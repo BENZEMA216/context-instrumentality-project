@@ -1,0 +1,9 @@
+// Copy to PersonalLibrary.local.xcconfig only after the matching App ID, team,
+// CloudKit container, Sign in with Apple capability and profile are configured.
+// Do not put passwords or bearer tokens in build settings or the application.
+WR_CLOUDKIT_ENABLED = YES
+WR_CLOUDKIT_CONTAINER_IDENTIFIER = iCloud.REPLACE_WITH_REGISTERED_CONTAINER
+WR_CLOUDKIT_ENVIRONMENT = Development
+WR_PHONE_ENTITLEMENTS = Config/Phone-Cloud.entitlements
+// Xcode treats // as a comment. Use the empty expansion when entering HTTPS.
+// WR_AGENT_GATEWAY_BASE_URL = https:/$()/YOUR_GATEWAY_HOST

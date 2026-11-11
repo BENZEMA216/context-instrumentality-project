@@ -1,0 +1,12 @@
+// Copy to GoogleDrive.local.xcconfig only after the APP OWNER creates a genuine
+// OAuth client of type iOS in their own Google Cloud project. Enable Drive API,
+// configure the consent screen/test users, and register this exact app bundle ID.
+// These placeholders deliberately fail configuration validation. Never copy a
+// web client, desktop client, service account, plugin token or client secret here.
+WR_GOOGLE_DRIVE_OAUTH_CLIENT_ID = REPLACE_WITH_REGISTERED_IOS_CLIENT.apps.googleusercontent.com
+WR_GOOGLE_DRIVE_REVERSED_CLIENT_ID = com.googleusercontent.apps.REPLACE_WITH_REGISTERED_IOS_CLIENT
+WR_GOOGLE_DRIVE_OAUTH_REGISTERED_BUNDLE_ID = REPLACE_WITH_EXACT_REGISTERED_APP_BUNDLE_ID
+// scope: https://www.googleapis.com/auth/drive.file only.
+// A correctly shaped ID alone is not proof that Google will authorize this app.
+// Verify native browser login, callback, account identity, token refresh and
+// revocation on a signed device before calling this connection operational.

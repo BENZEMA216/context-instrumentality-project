@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "record-for-agent": {
+      "type": "stdio",
+      "command": "/usr/bin/python3",
+      "args": [
+        "-B",
+        "/ABSOLUTE/PATH/AgentBridge/bridge.py",
+        "serve",
+        "--library",
+        "/ABSOLUTE/PATH/RecordForAgentLibrary"
+      ]
+    }
+  }
+}

@@ -1,0 +1,27 @@
+PRODUCT_NAME = WristRecordPhone
+PRODUCT_BUNDLE_IDENTIFIER = $(WR_PHONE_BUNDLE_IDENTIFIER)
+SDKROOT = iphoneos
+SUPPORTED_PLATFORMS = iphoneos iphonesimulator
+IPHONEOS_DEPLOYMENT_TARGET = 18.0
+TARGETED_DEVICE_FAMILY = 1
+SUPPORTS_MACCATALYST = NO
+SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO
+SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO
+GENERATE_INFOPLIST_FILE = NO
+INFOPLIST_FILE = Config/Phone-Info.plist
+LD_RUNPATH_SEARCH_PATHS = $(inherited) @executable_path/Frameworks
+ENABLE_PREVIEWS = YES
+// Enable only after a CloudKit + Sign in with Apple profile has been verified.
+WR_CLOUDKIT_ENABLED = NO
+WR_CLOUDKIT_CONTAINER_IDENTIFIER =
+WR_CLOUDKIT_ENVIRONMENT = Development
+WR_PHONE_ENTITLEMENTS =
+WR_AGENT_GATEWAY_BASE_URL =
+#include? "PersonalLibrary.local.xcconfig"
+CODE_SIGN_ENTITLEMENTS = $(WR_PHONE_ENTITLEMENTS)
+
+// Direct private Google Drive. Empty defaults deliberately cannot authenticate.
+WR_GOOGLE_DRIVE_OAUTH_CLIENT_ID =
+WR_GOOGLE_DRIVE_REVERSED_CLIENT_ID = wr-google-drive-unconfigured
+WR_GOOGLE_DRIVE_OAUTH_REGISTERED_BUNDLE_ID =
+#include? "GoogleDrive.local.xcconfig"

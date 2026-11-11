@@ -1,0 +1,7 @@
+# Example only. Replace both absolute paths before adding to user configuration.
+[mcp_servers.record-for-agent]
+command = "/usr/bin/python3"
+args = ["-B", "/ABSOLUTE/PATH/AgentBridge/bridge.py", "serve", "--library", "/ABSOLUTE/PATH/RecordForAgentLibrary"]
+enabled_tools = ["list_recordings", "get_recording", "get_transcript", "search_recordings", "get_audio_asset"]
+startup_timeout_sec = 10
+tool_timeout_sec = 60

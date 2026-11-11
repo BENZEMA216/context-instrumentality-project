@@ -1,0 +1,4 @@
+// Copy to Local.xcconfig, then fill in your own Apple Developer team and a unique prefix.
+// Do not commit Local.xcconfig. No team or signing identity is provided by this project.
+DEVELOPMENT_TEAM =
+WR_BUNDLE_ID_PREFIX =
