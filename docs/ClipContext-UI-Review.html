@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ClipContext · UI 验收画板</title>
+  <style>
+    :root { color-scheme: light; --paper: #f3f4f6; --ink: #182031; --muted: #515c70; --line: #d9dee7; --accent: #2852a8; --plate: #e9ecf2; }
+    * { box-sizing: border-box; }
+    html { scroll-padding-top: 20px; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font: 14px/1.55 -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif; }
+    a { color: var(--accent); }
+    .layout { max-width: 1690px; margin: auto; padding: 40px clamp(16px, 3vw, 48px) 70px; }
+    .intro { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px 30px; align-items: end; padding: 0 0 24px; border-bottom: 1px solid var(--line); }
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: clamp(27px, 4vw, 43px); letter-spacing: -.05em; line-height: 1.2; }
+    .intro p { margin-top: 9px; color: var(--muted); }
+    .legend { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: flex-end; }
+    .tag { display: inline-flex; align-items: center; border-radius: 20px; padding: 3px 9px; background: #edf0f5; color: #4a5464; font-size: 11px; white-space: nowrap; line-height: 1.45; }
+    .tag.auth { color: #7e4d10; background: #fdf0d8; }
+    .tag.native { color: #125c44; background: #dff3e9; }
+    .tag.issue { color: #912d33; background: #fde8e9; }
+    nav { display: flex; flex-wrap: wrap; gap: 7px; padding-top: 15px; }
+    nav a { background: #fff; border: 1px solid var(--line); padding: 5px 11px; text-decoration: none; border-radius: 7px; }
+    nav a:hover { border-color: var(--accent); }
+    a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    section { margin-top: 35px; }
+    section > header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+    h2 { font-size: 24px; letter-spacing: -.03em; }
+    section > header span { color: var(--muted); }
+    .board { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(335px, 100%), 1fr)); gap: 12px; }
+    article { display: flex; flex-direction: column; min-width: 0; padding: 13px; border-radius: 11px; border: 1px solid var(--line); background: #fff; scroll-margin-top: 10px; }
+    article:target { outline: 2px solid var(--accent); }
+    article header { display: flex; flex-wrap: wrap; gap: 5px 8px; align-items: baseline; margin: 0 0 8px; }
+    article h3 { font-size: 15px; line-height: 1.35; }
+    article header a { text-decoration: none; color: inherit; }
+    article p { margin-top: 9px; color: var(--muted); font-size: 12px; }
+    article footer { margin-top: auto; padding-top: 7px; color: var(--muted); font-size: 10px; overflow-wrap: anywhere; }
+    article figure { margin: 0; }
+    article figure img { max-width: 100%; height: auto; }
+    .plate { display: grid; place-items: center; padding: 13px; min-height: 220px; overflow: hidden; border-radius: 7px; background: var(--plate); }
+    .window { width: min(100%, 370px); color: #25252a; background: #fafafa; border: 1px solid #c6c8cd; border-radius: 9px; box-shadow: 0 4px 11px #2732491b; overflow: hidden; font-size: 11px; line-height: 1.35; }
+    .window.narrow { width: min(100%, 258px); }
+    .window.mid { width: min(100%, 305px); }
+    .window-bar { position: relative; min-height: 26px; display: grid; place-items: center; border-bottom: 1px solid #e1e1e4; background: #f3f3f4; font-weight: 650; }
+    .lights { position: absolute; left: 9px; top: 9px; display: flex; gap: 4px; }
+    .lights i { display: block; width: 7px; height: 7px; border-radius: 50%; background: #f5655b; }
+    .lights i:nth-child(2) { background: #e9b54b; }
+    .lights i:nth-child(3) { background: #55bf58; }
+    .window-body { padding: 10px; }
+    .search { display: flex; justify-content: space-between; align-items: center; gap: 5px; background: #eeeeef; border-radius: 4px; padding: 5px 7px; margin-bottom: 6px; }
+    .search.dim { color: #616169; }
+    .search.active { box-shadow: 0 0 0 2px #a5caff; }
+    .row { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: 21px; padding: 3px 5px; border-radius: 4px; }
+    .row span:first-child { min-width: 0; overflow-wrap: anywhere; }
+    .row small { flex-shrink: 0; color: #5b5b63; font-size: 9px; }
+    .row.selected { background: #1973e6; color: #fff; }
+    .row.selected small { color: #fff; }
+    .row.disabled { color: #74747c; }
+    .divider { height: 1px; background: #e1e1e4; margin: 4px 0; }
+    .command-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 5px; margin-top: 7px; }
+    .command-row.end { justify-content: flex-end; }
+    .btn, .value { display: inline-block; border: 1px solid #d0d0d4; background: white; border-radius: 5px; padding: 3px 6px; line-height: 1.2; font-size: 10px; white-space: nowrap; }
+    .btn.primary { border-color: #0664d4; color: white; background: #0875ed; }
+    .btn.destructive { color: #ad2833; }
+    .btn.disabled { background: #f1f1f3; color: #71717c; }
+    .value { min-width: 70px; }
+    .pane-title { margin-bottom: 4px; font-size: 16px; font-weight: 680; }
+    .hint { color: #555964; font-size: 10px; margin: 4px 0; overflow-wrap: anywhere; }
+    .hint.error, .error { color: #ad2833; }
+    .box { margin-top: 7px; padding: 6px 7px; border: 1px solid #dedee2; border-radius: 5px; }
+    .box-title { font-weight: 650; margin-bottom: 2px; }
+    .tabs { display: flex; flex-wrap: wrap; gap: 1px 6px; padding: 5px 7px; background: #f4f4f5; border-bottom: 1px solid #e1e1e4; color: #54545c; font-size: 9px; }
+    .tabs b { color: #1859a0; }
+    .dialog-icon { font-size: 21px; }
+    .dialog-title { margin: 2px 0 5px; font-size: 13px; font-weight: 680; }
+    .field { width: 100%; padding: 4px 6px; margin-top: 5px; border: 1px solid #d5d6da; border-radius: 4px; background: #fff; overflow-wrap: anywhere; }
+    .field.blank { color: #67676e; }
+    .file { margin-top: 6px; min-height: 58px; border: 1px solid #dedee1; border-radius: 4px; }
+    .split { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); }
+    .split > div { min-width: 0; padding: 7px; }
+    .split > div + div { border-left: 1px solid #dedee1; }
+    .media { display: grid; place-items: center; min-height: 50px; margin: 3px 0 5px; padding: 5px; border-radius: 4px; background: #e5ebf5; color: #315b9c; text-align: center; font-weight: 650; }
+    .spot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #5c86bc; margin-right: 3px; }
+    .spinner { display: inline-block; width: 11px; height: 11px; border: 2px solid #bac5d4; border-top-color: #2378e1; border-radius: 50%; vertical-align: -2px; }
+    .menu-bar { display: flex; align-self: start; justify-content: flex-end; gap: 7px; background: #f5f6fa; color: #262a33; width: 100%; padding: 5px 9px; border: 1px solid #d7dbe4; border-radius: 4px; }
+    .terminal { background: #262c38; color: #f4f7ff; padding: 10px; border-radius: 6px; overflow-wrap: anywhere; font: 10px/1.5 "SF Mono", Menlo, monospace; }
+    .note { margin-top: 25px; color: var(--muted); }
+    @media (max-width: 680px) { .intro { grid-template-columns: 1fr; } .legend { justify-content: flex-start; } }
+    @media print { body { background: white; } .layout { padding: 0; } nav { display: none; } article { break-inside: avoid; } .board { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  </style>
+</head>
+<body>
+  <main class="layout">
+    <header class="intro">
+      <div><h1>ClipContext UI 验收画板</h1><p><span id="state-count"></span>。根据 macOS 应用源码重建，示例均为合成数据。</p></div>
+      <div class="legend" aria-label="验收图例"><span class="tag">源码重建</span><span class="tag auth">需真实云盘</span><span class="tag native">已验收，范围见备注</span><span class="tag issue">待修</span></div>
+    </header>
+    <nav id="nav" aria-label="状态分组"></nav>
+    <div id="atlas"></div>
+    <script id="atlas-data" type="application/json"></script>
+    <noscript>请启用 JavaScript 以平铺状态。</noscript>
+  </main>
+  <script>
+    // Each state has a stable anchor. Add native evidence by ID in the map below.
+    // Example: "agent-off": { state: "native", note: "验收记录", image: "synthetic-capture.png" }
+    const evidence = {
+      "agent-off": { state: "native", note: "干净环境确认初始范围关闭。立即同步和 Finder 按钮禁用，未创建归档。" },
+      "agent-policy-menu": { state: "native", note: "本机确认菜单含四种范围。" },
+      "agent-all-confirm": { state: "native", note: "本机确认弹窗，取消后范围保留关闭。" },
+      "agent-all": { state: "native", note: "确认所有历史后，本机归档写入四条合成历史。机密标记条目未被采集。" },
+      "agent-manual": { state: "native", note: "右键分享一条合成文本后，自动从关闭切到手动选择，归档仅包含该条。" },
+      "agent-pinned": { state: "native", note: "经辅助功能收藏富文本并撤销文本共享后，收藏与手动选择模式只写入富文本。" },
+      "agent-share": { state: "native", note: "右键分享一条合成文本，归档内容与原文一致。禁用分享状态按源码重建。" },
+      "agent-revoke": { state: "native", note: "共享后出现行标记和撤销共享辅助功能动作。在所有历史模式撤销，行标记消失。" },
+      "archive-interval": { state: "native", note: "本机确认四种可选值。选择 1 分钟后移走合成快照，定时任务重建了内容一致的新版本。" },
+      "archive-ready": { state: "native", note: "本机归档实际读取并核对过条数和内容，Finder 点击仍待单独确认。" },
+      "archive-empty": { state: "native", note: "从收藏与手动选择切换至关闭后，归档写入零条，本机历史仍保留四条。" },
+      "icloud-chooser": { state: "native", note: "本机打开系统文件夹选择器并取消，未修改位置。" },
+      "icloud-written": { state: "native", note: "隔离路径中的真实 iCloud Drive 文件为 383 字节，内容与合成预期完全一致，系统返回 isUploaded=true。" },
+      "drive-blank": { state: "native", note: "本机确认空白表单与授权按钮禁用状态。" },
+      "drive-partial": { state: "native", note: "本机确认单个字段已填时授权按钮仍禁用。" },
+      "drive-filled": { state: "native", note: "本机确认密钥掩码、两项已填时授权按钮可用，随后取消。" },
+      "drive-uploaded": { note: "模拟 Google Drive 网络传输测试已通过。真实账号授权、上传与副本链接待验。" },
+      "mcp-actions": { state: "native", note: "已检查 Codex 命令的复制反馈、命令内容和剪贴板临时标记。" },
+      "mcp-read": { state: "native", note: "真实 Codex MCP 已读取合成目录。Claude Code 登录已过期，待续验。" },
+      "digest-menu": { state: "native", note: "真实 Codex 简报已运行。Claude Code 登录已过期，待续验。" },
+      "popup-populated": { state: "native", note: "合成文本、富文本、图片和文件均实际进入历史，机密标记内容被跳过。" },
+      "search-hit": { state: "native", note: "本机合成输入得到两条匹配结果。其他匹配模式见源码与测试用例。" },
+      "search-empty": { state: "native", note: "本机确认无匹配状态与 Ctrl+U 清空。回车创建按源码重建。" },
+      "search-keyboard": { state: "native", note: "本机按方向键向下，依次选中图片和文本。其他快捷键和朗读状态按源码重建。" },
+      "preview-file": { state: "native", note: "本机预览显示合成文件的 URL，编辑按钮禁用。" },
+      "edit-text": { state: "native", note: "修改合成条目的别名后，完成按钮启用并保存新标题。" },
+      "edit-untouched": { state: "native", note: "本机确认编辑器未修改时完成按钮禁用。" },
+      "clear-regular": { state: "native", note: "清除确认中选择取消保留所有条目。随后确认清除，仅保留已收藏的富文本。" },
+      "prefs-general": { state: "native", note: "本机确认设置窗口六个标签页均可打开。" },
+      "prefs-advanced": { state: "native", note: "启用退出时清除历史后退出，磁盘快照已移除未收藏的合成条目，仅保留收藏项。" },
+    };
+    const text = value => String(value ?? "").replace(/[&<>"']/g, character => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[character]));
+    const lights = '<span class="lights" aria-hidden="true"><i></i><i></i><i></i></span>';
+    const windowFrame = (title, body, width = "", tabs = "") => `<div class="window ${width}"><div class="window-bar">${lights}${text(title)}</div>${tabs}<div class="window-body">${body}</div></div>`;
+    const row = (title, key = "", state = "") => `<div class="row ${state}"><span>${text(title)}</span>${key ? `<small>${text(key)}</small>` : ""}</div>`;
+    const button = (title, type = "") => `<span class="btn ${type}">${text(title)}</span>`;
+    const commands = (...buttons) => `<div class="command-row end">${buttons.join("")}</div>`;
+    const line = '<div class="divider"></div>';
+    const hint = (message, error = false) => `<div class="hint${error ? " error" : ""}">${text(message)}</div>`;
+    const field = (value, empty = false) => `<div class="field${empty ? " blank" : ""}">${text(value)}</div>`;
+    const picker = value => `<span class="value">${text(value)}　⌄</span>`;
+    const setting = (title, value) => `<div class="command-row"><span>${text(title)}</span>${value}</div>`;
+    const box = (title, contents) => `<div class="box"><div class="box-title">${text(title)}</div>${contents}</div>`;
+    const list = (...rows) => rows.map(item => Array.isArray(item) ? row(...item) : row(item)).join("");
+    const tabs = (items, active) => `<div class="tabs">${items.map(item => item === active ? `<b>${text(item)}</b>` : `<span>${text(item)}</span>`).join("")}</div>`;
+    const sections = ["通用", "存储", "外观", "忽略", "高级", "Agent"];
+    const preferences = (active, body) => windowFrame("设置", body, "", tabs(sections, active));
+    const agent = body => preferences("Agent", `<div class="pane-title">剪贴板目录</div>${body}`);
+    const nativeAlert = (title, message, primary, secondary = "取消", destructive = false) => windowFrame("ClipContext", `<div class="dialog-icon">▤</div><div class="dialog-title">${text(title)}</div>${hint(message)}${commands(secondary ? button(secondary) : "", button(primary, destructive ? "destructive" : "primary"))}`, "mid");
+    const find = (value = "", focused = false) => `<div class="search ${value ? "" : "dim"} ${focused ? "active" : ""}"><span>⌕　${text(value || "搜索")}</span>${value ? "<span>⊗</span>" : ""}</div>`;
+    const history = (contents, query = "", focus = false) => windowFrame("ClipContext", `${find(query, focus)}${contents}`, "narrow");
+    const examples = list(["展会场地核对", "⌘1", "selected"], ["城市采样.png", "图像"], ["行程说明.rtf", "富文本"], ["样例预算.csv", "文件"]);
+    const footer = (clear = "清除") => `${line}${list([clear, "⌘⌥⌫"], ["偏好设置…", "⌘,"], "Agent 目录…", "关于", ["退出", "⌘Q"])}`;
+    const policy = (name, status = "", minutes = "5 分钟", activity = "") => box("共享范围", `${setting("共享方式", picker(name))}${hint("右键单条历史可分享或撤销。")}${setting("同步间隔", `${picker(minutes)} ${activity === "working" ? '<span class="spinner"></span> ' : ""}${button("立即同步", activity ? "disabled" : "")}`)}${status}`);
+    const source = (title, status, ...buttons) => `${setting(title, buttons.join(" "))}${hint(status)}`;
+    const drive = (status, ...buttons) => agent(box("同步位置", source("Google Drive", status, ...buttons)));
+    const folder = (status, ...buttons) => agent(box("同步位置", source("iCloud Drive", status, ...buttons)));
+    const oauth = (client = "", secret = "", mode = "", error = "") => windowFrame("连接 Google Drive", `${hint("启用 Drive API，创建 Desktop app 类型的 OAuth 客户端。")}${hint("打开 Google Cloud OAuth 客户端 ↗")}${field(client || "OAuth 客户端 ID", !client)}${field(secret || "OAuth 客户端密钥", !secret)}${error ? hint(error, true) : ""}${commands(mode === "working" ? '<span class="spinner"></span>' : "", button("取消", mode === "working" ? "disabled" : ""), button("在浏览器中授权", client && secret && mode !== "working" ? "primary" : "disabled"))}`, "mid");
+    const preview = (selection, title, content, toolbar = "收藏　 编辑　 删除") => windowFrame("ClipContext", `<div class="split"><div>${find()}${list([selection, "⌘1", "selected"], "展会场地核对")}</div><div><b>${text(title)}</b>${content}${line}${hint(toolbar)}</div></div>`);
+    const editor = (alias, pin, content, status, enabled = true, locked = false) => windowFrame("编辑条目", `${setting("别名", button(alias, locked ? "disabled" : ""))}${pin ? setting("快捷键", picker(pin)) : ""}${line}<b>内容</b>${status ? hint(status, true) : ""}${field(content)}${commands(button("取消"), button("完成", enabled ? "primary" : "disabled"))}`, "mid");
+    const shelf = (name, content) => preferences("忽略", `${tabs(["应用程序", "剪贴板类型", "正则表达式"], name)}${content}`);
+    const toggle = (label, checked) => row(`${checked ? "☑" : "☐"}　${label}`);
+    const agentActions = () => box("Agent 接入", `${hint("复制命令到终端注册只读 MCP。")} ${commands(button("复制 Codex 命令"), button("复制 Claude Code 命令"), button("使用说明"))}${commands(button("复制简报命令　⌄"))}`);
+
+    // [anchor, visible title, review detail, implementation, reconstructed frame, optional state]
+    const groups = [
+      ["agent-scope", "Agent · 共享范围", "默认关闭，按范围发布剪贴板目录", [
+        ["agent-off", "关闭 · 初始状态", "从浮窗的 Agent 目录…或设置里的 Agent 页进入。首次启动且无归档时，立即同步禁用，悬停显示原因。", "Settings/ArchiveSettingsPane.swift:27", agent(policy("关闭", "", "5 分钟", "off"))],
+        ["agent-policy-menu", "共享方式 · 四个选项", "检查关闭、手动选择、收藏与手动选择、所有历史。", "Settings/ArchiveSettingsPane.swift:29", agent(policy("关闭", "", "5 分钟", "off") + list(["关闭", "✓", "selected"], "手动选择", "收藏与手动选择", "所有历史"))],
+        ["agent-manual", "手动选择", "右键分享首条历史可从关闭自动进入此模式。确认只出现手动选入的条目。", "ClipboardArchive.swift:212", agent(policy("手动选择", hint("已写入 1 条 · 09:42")))],
+        ["agent-pinned", "收藏与手动选择", "已收藏和手动分享都会进入目录。对已收藏条目撤销共享后，它仍保留收藏。", "ClipboardArchive.swift:228", agent(policy("收藏与手动选择", hint("已写入 3 条 · 09:42")))],
+        ["agent-all-confirm", "所有历史 · 授权确认", "取消应恢复原有选项。允许后，现有及后续符合条件的历史按该模式同步到已连接位置。", "Settings/ArchiveSettingsPane.swift:129", nativeAlert("允许 Agent 读取所有历史？", "本机现有和后续采集的历史会自动进入共享目录。已连接的云盘也会收到这份目录。", "允许所有历史")],
+        ["agent-all", "所有历史 · 已允许", "右键仍可排除单条，忽略规则仍生效。关闭共享后应在可用目的地同步空目录。", "ClipboardArchive.swift:228", agent(policy("所有历史", hint("已写入 6 条 · 09:42")))],
+        ["agent-share", "单条 · 分享", "在未分享的历史上打开右键菜单，选中分享。忽略规则命中的条目保留禁用的分享项。", "Views/HistoryItemView.swift:63", history(list(["展会场地核对", "⌘1", "selected"]) + line + list("分享给 Agent", "收藏", "删除"))],
+        ["agent-revoke", "单条 · 已分享与撤销", "目录图标代表共享范围。撤销、删除或更改收藏后，检查目录内容。VoiceOver 行标签附带共享提示，并可执行分享和撤销操作。", "Views/HistoryItemView.swift:46", history(list(["展会场地核对", "⇧ 目录", "selected"]) + line + list("撤销 Agent 共享", "取消收藏", "删除"))],
+        ["agent-ineligible", "单条 · 分享不可用", "合成场景为条目进入历史后新增忽略规则。共享菜单项禁用，收藏和删除仍可用。", "Views/HistoryItemView.swift:67", history(list(["内部样例 · 规则命中", "⌘1", "selected"]) + line + list(["分享给 Agent", "", "disabled"], "收藏", "删除"))],
+      ]],
+      ["archive-sync", "Agent · 本机目录与定时", "间隔、同步反馈与 Finder", [
+        ["archive-interval", "同步间隔菜单", "默认 5 分钟。菜单可选 1、5、15、60 分钟，修改后重新计时。", "Settings/ArchiveSettingsPane.swift:40", agent(policy("手动选择") + list("1 分钟", ["5 分钟", "✓", "selected"], "15 分钟", "60 分钟"))],
+        ["archive-working", "同步中", "进度指示器的辅助功能标签为正在同步，立即同步按钮禁用。", "Settings/ArchiveSettingsPane.swift:48", agent(policy("手动选择", "", "5 分钟", "working"))],
+        ["archive-ready", "本机目录已写入", "核对写入条数和时间。用 Finder 定位 clipboard.json，首次成功前按钮禁用。", "Settings/ArchiveSettingsPane.swift:54", agent(policy("手动选择", hint("已写入 1 条 · 09:42")) + box("同步位置", source("本机目录", "~/Library/Application Support/ClipContext/Agent", button("在 Finder 中显示"))))],
+        ["archive-empty", "关闭后同步空目录", "先分享合成条目再关闭，检查目录仍可读取且 items 为空。", "ClipboardArchive.swift:233", agent(policy("关闭", hint("已写入 0 条 · 09:42")) + box("同步位置", source("本机目录", "~/Library/Application Support/ClipContext/Agent", button("在 Finder 中显示"))))],
+        ["archive-error", "本机写入失败", "模拟不可写位置。共享范围下显示错误，重试成功后恢复条数和时间。", "ClipboardArchive.swift:245", agent(policy("手动选择", hint("无法写入本机目录。", true)))],
+      ]],
+      ["icloud", "iCloud Drive", "选择位置、写入、换目录与断开", [
+        ["icloud-none", "未配置", "点击选择文件夹。该控件接受本机文件夹，因此可用临时路径验收本机文件写入。", "Settings/ArchiveSettingsPane.swift:75", folder("", button("选择文件夹…"))],
+        ["icloud-chooser", "系统文件夹选择器", "进入 iCloud Drive、创建或选择文件夹。取消应保留原位置。", "Settings/ArchiveSettingsPane.swift:219", windowFrame("选择文件夹", `${hint("在 iCloud Drive 中选择保存目录的位置。")}${field("iCloud Drive ▾") }<div class="file">${list(["▣　ClipContext 验收", "", "selected"], "▣　演示资料")}</div>${commands(button("新建文件夹"), button("取消"), button("使用此文件夹", "primary"))}`)],
+        ["icloud-ready", "已选位置 · 待写入", "路径和断开按钮出现。共享关闭且从未生成目录时，可能停在待写入。", "ClipboardArchive.swift:165", folder("~/iCloud Drive/ClipContext 验收 · Ready to write", button("断开"), button("选择文件夹…"))],
+        ["icloud-written", "目录已写入", "本机状态只证明写入所选文件夹。跨设备到达需使用真实 iCloud Drive 验证。", "ClipboardArchive.swift:274", folder("~/iCloud Drive/ClipContext 验收 · Written to folder at 09:42", button("断开"), button("选择文件夹…")), "auth"],
+        ["icloud-write-error", "写入失败 · 状态行", "核对目录不可访问或不可写时的状态提示。重启后书签无法恢复时显示重选提示。", "ClipboardArchive.swift:129", folder("Select the folder again: 无法访问所选文件夹。", button("选择文件夹…"))],
+        ["icloud-switch", "替换位置与断开", "更换位置或断开时，应用尝试移除旧的设备快照。操作失败弹窗可关闭后重试。", "ClipboardArchive.swift:175", nativeAlert("操作失败", "无法移除旧位置的 ClipContext 快照。", "好", "")],
+      ]],
+      ["google", "Google Drive", "应用内设置、浏览器授权、上传和断开", [
+        ["drive-off", "未连接", "显示使用 Google 账号授权，连接按钮打开凭据表单。", "Settings/ArchiveSettingsPane.swift:87", drive("使用 Google 账号授权", button("连接…"))],
+        ["drive-blank", "OAuth · 空白表单", "输入 Desktop app 客户端 ID 和密钥。单个字段为空时授权按钮禁用。可取消或打开 Google Cloud。", "Settings/ArchiveSettingsPane.swift:161", oauth()],
+        ["drive-partial", "OAuth · 只填一项", "客户端密钥为空或仅有空白字符时，授权按钮禁用。", "Settings/ArchiveSettingsPane.swift:167", oauth("123-demo.apps.googleusercontent.com")],
+        ["drive-filled", "OAuth · 两项已填", "客户端密钥使用安全输入。截图只展示合成凭据和掩码。", "Settings/ArchiveSettingsPane.swift:167", oauth("123-demo.apps.googleusercontent.com", "••••••••")],
+        ["drive-working", "OAuth · 等待浏览器回调", "显示进度。当前授权等待期间，取消和发起授权都禁用。", "Settings/ArchiveSettingsPane.swift:170", oauth("123-demo.apps.googleusercontent.com", "••••••••", "working"), "issue"],
+        ["drive-consent", "浏览器 · Google 同意页", "真实 Google 账号选择、允许、拒绝与回调依赖有效 OAuth 客户端。", "ClipboardGoogleDrive.swift:56", windowFrame("accounts.google.com", `<div class="pane-title">使用 Google 账号登录</div>${hint("选择用于 ClipContext 的账号")}${field("reviewer@example.invalid")}${commands(button("取消"), button("继续", "primary"))}`, "mid"), "auth"],
+        ["drive-auth-error", "OAuth · 表单内错误", "配置格式错误可本地触发。浏览器关闭、拒绝、超时、令牌或钥匙串失败均保留表单，可修正后重试。", "ClipboardGoogleDrive.swift:671", oauth("123-demo.apps.googleusercontent.com", "••••••••", "", "Google sign-in was cancelled or declined.")],
+        ["drive-connected", "已连接 · 等待同步", "授权完成后关闭表单。无可同步内容的初始状态可停留在已连接、等待同步。", "Settings/ArchiveSettingsPane.swift:155", drive("已连接，等待同步", button("断开")), "auth"],
+        ["drive-uploaded", "已上传 · 打开副本", "校验上次上传时间和副本链接，确认该文件归属当前账号和设备。", "Settings/ArchiveSettingsPane.swift:89", drive("上次上传 11 月 12 日 09:42", button("打开副本 ↗"), button("断开")), "auth"],
+        ["drive-upload-error", "已连接 · 上传失败", "核对离线、权限过期、快照冲突与校验失败等状态。授权失效时目前需先断开再连接。", "ClipboardGoogleDrive.swift:686", drive("Google rejected the authorization. Reconnect Google Drive.", button("断开")), "auth"],
+        ["drive-disconnect", "断开确认", "断开后最后一份远程目录会保留。取消或确认断开后检查设置状态。", "Settings/ArchiveSettingsPane.swift:135", nativeAlert("断开 Google Drive？", "云端最后一份目录会保留。可以在 Google Drive 中删除，或先关闭共享并同步空目录。", "断开", "取消", true), "auth"],
+      ]],
+      ["agent-access", "Agent · 读取与简报", "命令、说明与调度入口", [
+        ["mcp-actions", "注册命令 · Codex 和 Claude Code", "分别复制命令到终端。点击后检查已复制命令或复制命令失败的反馈。生成命令不会进入应用的历史列表。", "Settings/ArchiveSettingsPane.swift:257", agent(agentActions() + hint("已复制命令"))],
+        ["mcp-guide", "使用说明 · 浏览器打开", "核对分发包包含使用说明。对照本机目录、云盘副本及 Agent 的接入路径。", "Settings/ArchiveSettingsPane.swift:302", windowFrame("ClipContext 使用说明", `<div class="pane-title">剪贴板目录</div>${list("1. 选择要共享的内容", "2. 设置同步位置", "3. 接入 Codex 或 Claude Code", "4. 设置定时简报")}`)],
+        ["digest-menu", "简报 · 选择 Codex 或 Claude Code", "打开简报命令菜单，两项分别生成对应 CLI 命令。定时运行由 Agent 的定时任务配置。", "Settings/ArchiveSettingsPane.swift:268", agent(agentActions() + box("复制简报命令", list("用 Codex 生成", "用 Claude Code 生成")))],
+        ["mcp-read", "本机 · 只读 MCP 验收", "用合成条目检查列表、搜索与读取。检查空目录、撤销后的记录不可读和归档格式错误。", "Agent/clipcontext-mcp.py", windowFrame("终端", '<div class="terminal">MCP 读取样例<br>list → 展会场地核对<br>search → 1 条<br>get → 展会场地核对</div>')],
+      ]],
+      ["popup", "剪贴板 · 菜单栏与历史", "入口、收集状态和行级交互", [
+        ["popup-closed", "菜单栏 · 浮窗关闭", "菜单栏点击、⇧⌘C 或重开应用可打开浮窗。再次按快捷键、Esc、点外部均应关闭。", "AppDelegate.swift:143", '<div class="menu-bar"><span>▣ ClipContext</span><span>09:42</span></div>'],
+        ["popup-empty", "浮窗 · 无历史", "新安装时可聚焦搜索。底部提供清除、设置、Agent 目录、关于和退出。", "Views/HistoryListView.swift:68", history(footer())],
+        ["popup-populated", "浮窗 · 多种内容", "检查文本、富文本、HTML、图片及文件的标题、缩略图与应用图标。检查光标悬浮、键盘高亮和颜色色块。", "Views/HistoryItemView.swift:45", history(examples + list(["#5486bd", "● 色块"]) + footer())],
+        ["popup-paused", "采集 · 暂停或跳过下一次", "⌥点菜单栏切换暂停；⌥⇧点菜单栏只跳过下一次复制。辅助功能标签应体现暂停。", "AppDelegate.swift:206", '<div class="menu-bar"><span style="opacity:.62">▣ ClipContext · 已暂停</span><span>09:42</span></div>'],
+        ["popup-copy", "复用 · 复制、粘贴、纯文本粘贴", "用鼠标、回车、数字快捷键和所配置的修饰键复用条目。分别检查普通与无格式粘贴。", "Observables/History.swift:353", history(list(["展会场地核对", "⌘1", "selected"], ["行程说明.rtf", "⌘2"], ["城市采样.png", "⌘3"]))],
+        ["popup-permission", "自动粘贴 · 辅助功能权限", "验证系统权限授予前后。当前源码对未授予权限没有可见提示，可能只完成复制。", "Accessibility.swift:4", windowFrame("系统设置 · 辅助功能", `${hint("隐私与安全性")}${list(["ClipContext", "关闭"], ["合成应用", "开启"])}`, "mid"), "issue"],
+        ["popup-pins", "收藏 · 置顶、置底与排序", "右键或快捷键收藏和取消。配置顶部或底部，拖动重排并检查重开后保留顺序。", "Views/PinsView.swift", history(list(["★ 周会模板", "⌘A", "selected"], ["★ 场地图例", "⌘B"]) + line + list("行程说明.rtf", "城市采样.png"))],
+        ["popup-delete", "单条 · 删除后选择", "从常规列表和筛选结果中分别删除条目。核对下一个高亮项及共享目录。", "Observables/History.swift:306", history(list(["城市采样.png", "⌘1", "selected"], ["样例预算.csv", "⌘2"]), "采样", true)],
+      ]],
+      ["search", "剪贴板 · 搜索与键盘", "输入、命中、空结果与快捷操作", [
+        ["search-hit", "有结果 · 支持文件名", "验证精确、模糊、正则和混合模式，支持文件名、中文输入法合成及匹配高亮。", "Search.swift:6", history(list(["城市采样.png", "⌘1", "selected"], ["采样记录说明", "⌘2"]), "采样", true)],
+        ["search-empty", "无结果 · 回车创建", "输入无匹配的合成文本，按回车创建复制内容。点击清除按钮或 Ctrl+U 清空搜索。", "Observables/History.swift:353", history(footer(), "合成地点清单", true)],
+        ["search-visibility", "搜索框 · 始终、搜索时与隐藏", "检查从不可见切换到输入时出现，隐藏时也从辅助功能树移除。", "Views/HeaderView.swift:40", windowFrame("ClipContext", examples, "narrow")],
+        ["search-keyboard", "键盘导航和 VoiceOver", "方向键、Ctrl+J/K、跳首尾、Ctrl+H/W/U、回车、Esc 和 ⌘,。验证选中状态、共享标记、收藏和删除动作可朗读。", "Views/KeyHandlingView.swift:15", history(list(["展会场地核对", "⌘1"], ["城市采样.png", "⌘2", "selected"], ["样例预算.csv", "⌘3"]))],
+      ]],
+      ["preview", "剪贴板 · 预览与编辑", "预览、OCR、编辑与警告", [
+        ["preview-text", "预览 · 文本与富文本", "用快捷键或悬浮自动打开。屏幕边缘可让面板向左展开。检查分隔拖动、关闭、来源和日期。", "Observables/SlideoutController.swift:127", preview("展会场地核对", "展会场地核对", hint("上午确认场地，下午补齐设备清单。") + hint("文本编辑 · 09:42"))],
+        ["preview-image", "预览 · 图片和 OCR", "有识别结果时可复制提取文本。无文字时 OCR 按钮禁用。检查图片尺寸和来源。", "Views/ToolbarView.swift:121", preview("城市采样.png", "城市采样.png", '<div class="media">城市采样<br>09:42</div>' + hint("1280 × 720"), "复制识别文字　 收藏　 编辑　 删除")],
+        ["preview-file", "预览 · 文件", "检查文件名与来源，文件条目的编辑按钮禁用。", "Views/ToolbarView.swift:105", preview("样例预算.csv", "样例预算.csv", hint("file:///Example/样例预算.csv"), "收藏　 编辑不可用　 删除")],
+        ["edit-text", "编辑 · 普通文本与收藏键", "可修改文本、别名和收藏键。无修改时完成按钮禁用，修改后可确认或取消。", "Views/ItemEditorView.swift:46", editor("展会场地核对", "A", "上午确认场地。", "")],
+        ["edit-untouched", "编辑 · 未修改与取消", "按 Esc 或点击取消应关闭编辑且保留原值。未更改时完成按钮禁用。", "Views/ItemEditorView.swift:105", editor("展会场地核对", "", "上午确认场地。", "", false)],
+        ["edit-rich", "编辑 · 富文本格式警告", "编辑富文本后提示格式会丢失，取消应保留格式。", "Views/ItemEditorView.swift:83", editor("行程说明", "", "更新后的行程说明。", "⚠ 修改内容会丢失格式。")],
+        ["edit-large", "编辑 · 长段落只读", "超过编辑阈值的段落出现警告。内容不可编辑，允许其他适用字段修改。", "Views/ItemEditorView.swift:144", editor("长段落样例", "", "此处显示截断的合成文本。", "⚠ 文本包含过长的段落。", false)],
+        ["edit-image", "编辑 · 图片别名禁用", "图片的别名禁用且内容不可编辑。已收藏图片可以调整收藏键。", "Views/ItemEditorView.swift:53", editor("城市采样.png", "B", "内容不是文本。", "", false, true)],
+      ]],
+      ["maintenance", "剪贴板 · 清理与系统入口", "底部操作、确认和关于", [
+        ["clear-regular", "清除历史 · 保留收藏", "选择清除或按 ⌘⌥⌫。验证确认、取消、下次不提示。", "Observables/Footer.swift:29", nativeAlert("清除历史？", "清除后可检查历史和收藏。", "清除", "取消", true)],
+        ["clear-all", "清除全部 · 含收藏", "按带 Shift 的快捷键或让底部操作切换为清除全部。确认后检查历史及收藏。", "Views/FooterView.swift:13", history(list("★ 周会模板", "展会场地核对") + footer("清除全部"))],
+        ["clear-suppression", "清除确认 · 不再提示", "复选框改变后续清理是否弹窗。验证取消和清除的结果。", "Views/ConfirmationView.swift:17", windowFrame("ClipContext", `<div class="dialog-title">清除历史？</div>${toggle("下次不再提示", false)}${commands(button("取消"), button("清除", "destructive"))}`, "mid")],
+        ["about-and-quit", "关于与退出", "关于窗口显示应用版本。退出时核对高级设置中的清理选项及归档更新。", "Observables/Footer.swift:76", windowFrame("关于 ClipContext", '<div class="pane-title">ClipContext</div><div class="hint">基于 Maccy 的剪贴板管理工具</div>', "mid")],
+      ]],
+      ["preferences", "设置 · 剪贴板管理", "通用、存储、外观、忽略、高级", [
+        ["prefs-general", "通用 · 快捷键和行为", "记录或清除弹窗、收藏、删除、预览快捷键，检查冲突。测试启动项、搜索模式、自动粘贴、纯文本粘贴及通知链接。", "Settings/GeneralSettingsPane.swift:18", preferences("通用", toggle("登录时启动", false) + setting("打开", button("⇧⌘C")) + setting("收藏 / 删除 / 预览", button("记录快捷键")) + setting("搜索", picker("混合")) + toggle("自动粘贴", false) + toggle("去除格式", false))],
+        ["prefs-storage", "存储 · 类型、容量、排序", "检查文本、图片和文件采集开关，历史上限边界，及最近、首次、复制次数排序。", "Settings/StorageSettingsPane.swift:78", preferences("存储", toggle("文本", true) + toggle("图像", true) + toggle("文件", true) + setting("历史大小", button("200")) + setting("排序方式", picker("最近复制")))],
+        ["prefs-position", "外观 · 浮窗和收藏位置", "检查光标、菜单栏、当前窗口、居中、上次位置及显示器选项，收藏支持顶部或底部。", "Settings/AppearanceSettingsPane.swift:56", preferences("外观", setting("浮窗位置", picker("光标")) + setting("显示器", picker("当前显示器")) + setting("收藏位置", picker("顶部")) + setting("图片高度", button("40")))],
+        ["prefs-appearance", "外观 · 可见性与预览", "覆盖自动预览及延迟、匹配高亮、特殊字符、图标款式、菜单栏最近条目、搜索框、标题、来源图标、色块及底部。", "Settings/AppearanceSettingsPane.swift:109", preferences("外观", toggle("自动打开预览", false) + setting("预览延迟", button("500 ms")) + setting("显示搜索框", picker("始终")) + toggle("显示应用图标", true) + toggle("显示底部", true))],
+        ["prefs-ignore-app", "忽略 · 应用程序", "通过系统选择器增加应用，列表空/选中时核对减号行为。切换忽略列表与仅收集列表。", "Settings/IgnoreSettingsPane/IgnoreApplicationsSettingsView.swift:37", shelf("应用程序", `<div class="file">${list(["合成应用.app", "", "selected"])}</div>${commands(button("+"), button("−"))}${toggle("忽略列表以外的应用", false)}`)],
+        ["prefs-ignore-type", "忽略 · 剪贴板类型", "新增、编辑和移除类型。核对系统保护类型及条目采集状态。", "Settings/IgnoreSettingsPane/IgnorePasteboardTypesSettingsView.swift:15", shelf("剪贴板类型", `<div class="file">${list(["public.example-clipboard-type", "", "selected"])}</div>${commands(button("+"), button("−"))}`)],
+        ["prefs-ignore-regex", "忽略 · 正则表达式", "新增、编辑和移除规则。使用合成匹配项核对历史采集和 Agent 分享行为。", "Settings/IgnoreSettingsPane/IgnoreRegexpsSettingsView.swift:15", shelf("正则表达式", `<div class="file">${list(["^合成私密样例", "", "selected"])}</div>${commands(button("+"), button("−"))}`)],
+        ["prefs-advanced", "高级 · 暂停与退出清理", "检查关闭采集、退出时清除历史和清除系统剪贴板。可用合成数据核对全局效果。", "Settings/AdvancedSettingsPane.swift:7", preferences("高级", toggle("关闭采集", false) + hint("可通过菜单栏临时停止采集。") + line + toggle("退出时清除历史", false) + toggle("清除系统剪贴板", false))],
+      ]],
+    ];
+
+    const names = { source: "源码重建", auth: "需真实云盘", native: "验收见备注", issue: "待修" };
+    const renderState = ([id, title, detail, file, illustration, state = "source"]) => {
+      const proof = evidence[id];
+      const marker = proof?.state || state;
+      return `<article id="${text(id)}"><header><h3><a href="#${text(id)}">${text(title)}</a></h3><span class="tag ${text(marker)}">${text(names[marker])}</span></header><figure class="plate" aria-label="${text(title)}示意">${illustration}</figure><p>${text(detail)}</p>${proof?.image ? `<figure><img src="${text(proof.image)}" alt="${text(title)}本机截图" loading="lazy"></figure>` : ""}${proof?.note ? `<p>${text(proof.note)}</p>` : ""}<footer>${text(file)}</footer></article>`;
+    };
+    const count = groups.reduce((sum, group) => sum + group[3].length, 0);
+    document.getElementById("atlas-data").textContent = JSON.stringify(groups.map(([id, title, description, states]) => ({
+      id, title, description,
+      states: states.map(([id, title, detail, file, illustrationHTML, state = "source"]) => ({
+        id, title, detail, file, illustrationHTML, state, evidence: evidence[id] ?? null,
+      })),
+    })));
+    document.getElementById("state-count").textContent = `${groups.length} 组，${count} 个状态`;
+    document.getElementById("nav").innerHTML = groups.map(([id, title]) => `<a href="#${text(id)}">${text(title)}</a>`).join("");
+    document.getElementById("atlas").innerHTML = groups.map(([id, title, description, states]) => `<section id="${text(id)}" aria-labelledby="${text(id)}-title"><header><h2 id="${text(id)}-title">${text(title)}</h2><span>${text(description)}</span></header><div class="board">${states.map(renderState).join("")}</div></section>`).join("");
+  </script>
+</body>
+</html>
