@@ -1,0 +1,26 @@
+.DS_Store
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+node_modules/
+dist/
+build/
+
+# Local private context & credentials - NEVER commit
+.env
+.env.*
+!.env.example
+*.sqlite
+*.sqlite3
+*.db
+*.pem
+*.key
+*.p12
+*.caf
+*.m4a
+*.wav
+*.opus
+local-data/
+context-vault/

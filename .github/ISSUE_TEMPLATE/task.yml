@@ -1,0 +1,22 @@
+name: "任务 / 功能"
+description: "研究任务、功能或新渠道"
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: "领域"
+      options: ["channels", "integration", "hub", "schema", "evaluation", "oss"]
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: "目标"
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: "完成标准"
+    validations:
+      required: true

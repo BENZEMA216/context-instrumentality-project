@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "milestones": [
+    {
+      "title": "M0: Research - Channels & Integration Method",
+      "description": "明确 Context 渠道清单与优先级，完成各渠道可行性研究，并提出经过论证的跨渠道 Context 整合方法（RFC + 评测方案）。本阶段不写产品代码。"
+    }
+  ],
+  "labels": [
+    {"name": "area:channels", "color": "1D76DB", "description": "Context 渠道定义与可行性研究"},
+    {"name": "area:integration", "color": "006B75", "description": "跨渠道 Context 整合方法与数据模型"},
+    {"name": "area:evaluation", "color": "BFDADC", "description": "评测方法与 Benchmark 设计"},
+    {"name": "area:oss", "color": "E99695", "description": "开源准备：命名、许可证、隐私原则"},
+    {"name": "type:research", "color": "0075CA", "description": "研究、调研或方法论证任务"},
+    {"name": "type:rfc", "color": "5319E7", "description": "需要评审的设计提案"},
+    {"name": "prio:P0", "color": "B60205", "description": "当前阶段阻塞项"},
+    {"name": "prio:P1", "color": "D93F0B", "description": "当前阶段重要项"},
+    {"name": "privacy-critical", "color": "B60205", "description": "涉及敏感权限、PII 或隐私边界"}
+  ],
+  "issues": [
+    {
+      "id": "R-01",
+      "title": "[Channels] 确定 Context 渠道清单、定义与优先级",
+      "milestone": "M0: Research - Channels & Integration Method",
+      "module": "channels",
+      "priority": "P0",
+      "effort": "S",
+      "labels": ["area:channels", "type:research", "prio:P0"],
+      "depends_on": [],
+      "body": "## 目标\n给出项目第一阶段要覆盖的渠道清单，每个渠道写清：提供什么信号、为什么对 Agent 有价值、采集平台、隐私风险等级、优先级。\n\n## 候选渠道\n- 语音录音与转写（record-for-agent：Apple Watch → iPhone → Mac）\n- 桌面剪切板 + 来源 App / 窗口\n- 前台应用 / 窗口焦点时间线\n- 浏览器：访问页面 + 有效停留时长 + 正文 + 选中/高亮\n- 移动端：Android 通知、iOS Shortcuts\n- 其他候选：Shell 历史、Git、日历、笔记库、AI 对话历史、IM 导出\n\n## 交付\n- `docs/research/channels.md`\n\n## 验收\n- [ ] 每个渠道有价值 / 成本 / 隐私风险评分与阶段归属\n- [ ] 明确第一批（MVP）渠道"
+    },
+    {
+      "id": "R-02",
+      "title": "[Channels] 音频渠道：record-for-agent 数据模型与接入点分析",
+      "milestone": "M0: Research - Channels & Integration Method",
+      "module": "channels",
+      "priority": "P0",
+      "effort": "S",
+      "labels": ["area:channels", "type:research", "prio:P0"],
+      "depends_on": ["R-01"],
+      "body": "## 目标\n梳理 record-for-agent 的录音 / 分段 / 转写数据模型、AgentBridge 与 AgentGateway 的接口，确定 open-context 最稳定的接入方式，避免重复实现 MCP。\n\n## 交付\n- `docs/research/channel-audio.md`\n\n## 验收\n- [ ] 字段到统一事件模型的映射表\n- [ ] 列出缺口（如说话人区分、语言、逐句时间戳）"
+    },
+    {
+      "id": "R-03",
+      "title": "[Channels] 剪切板与前台窗口渠道可行性研究",
+      "milestone": "M0: Research - Channels & Integration Method",
+      "module": "channels",
+      "priority": "P0",
+      "effort": "S",
+      "labels": ["area:channels", "type:research", "prio:P0", "privacy-critical"],
+      "depends_on": ["R-01"],
+      "body": "## 目标\n确认 macOS（优先）及其他平台的剪切板与窗口焦点采集机制、系统权限限制、噪声与注意力信号、隐私脱敏方案，以及可借鉴的开源实现。\n\n## 交付\n- `docs/research/channel-clipboard-window.md`"
+    },
+    {
+      "id": "R-04",
+      "title": "[Channels] 浏览器渠道：有效停留时长与正文抽取可行性研究",
+      "milestone": "M0: Research - Channels & Integration Method",
+      "module": "channels",
+      "priority": "P0",
+      "effort": "S",
+      "labels": ["area:channels", "type:research", "prio:P0", "privacy-critical"],
+      "depends_on": ["R-01"],
+      "body": "## 目标\n研究 MV3 扩展下的有效停留时长计算（焦点 / 可见性 / idle）、正文抽取（Readability vs defuddle）、选中与高亮事件，对比 aw-watcher-web、Memex、Obsidian Web Clipper、promnesia。\n\n## 交付\n- `docs/research/channel-browser.md`"
+    },
+    {
+      "id": "R-05",
+      "title": "[Channels] 移动端与其他候选渠道评估",
+      "milestone": "M0: Research - Channels & Integration Method",
+      "module": "channels",
+      "priority": "P1",
+      "effort": "S",
+      "labels": ["area:channels", "type:research", "prio:P1", "privacy-critical"],
+      "depends_on": ["R-01"],
+      "body": "## 目标\n评估 Android 通知、Android 剪切板替代方案、iOS Shortcuts / Share Extension，以及 Shell、Git、日历、笔记、AI 对话历史、IM 导出等渠道的价值与成本，并与 screenpipe 式录屏 OCR 做对比。\n\n## 交付\n- `docs/research/channel-others.md`"
+    },
+    {
+      "id": "R-06",
+      "title": "[Integration] 现有系统数据模型对比研究",
+      "milestone": "M0: Research - Channels & Integration Method",
+      "module": "integration",
+      "priority": "P0",
+      "effort": "M",
+      "labels": ["area:integration", "type:research", "prio:P0"],
+      "depends_on": [],
+      "body": "## 目标\n基于源码与文档，对比 promnesia、HPI、timelinize、ActivityWatch、screenpipe、OpenViking、graphiti、mem0、letta、cognee、omi 的核心数据模型，以及它们如何处理溯源、时间有效性和跨源关联。\n\n## 交付\n- `docs/research/prior-art-data-models.md`"
+    },
+    {
+      "id": "R-07",
+      "title": "[Integration] 学术研究综述与引用核实",
+      "milestone": "M0: Research - Channels & Integration Method",
+      "module": "integration",
+      "priority": "P0",
+      "effort": "M",
+      "labels": ["area:integration", "type:research", "prio:P0"],
+      "depends_on": [],
+      "body": "## 目标\n综述 Lifelog 检索（LSC、NTCIR）、事件分割与情景记忆、个人 / 时序知识图谱、Agent 记忆 Benchmark（LongMemEval、LoCoMo 等），并逐条核实前期调研中引用的论文与数据。\n\n## 交付\n- `docs/research/literature.md`（每条引用标注 已核实 / 未找到）"
+    },
+    {
+      "id": "R-08",
+      "title": "[RFC] 跨渠道 Context 整合方法提案（统一事件模型 + 分层整合架构）",
+      "milestone": "M0: Research - Channels & Integration Method",
+      "module": "integration",
+      "priority": "P0",
+      "effort": "M",
+      "labels": ["area:integration", "type:rfc", "prio:P0"],
+      "depends_on": ["R-02", "R-03", "R-04", "R-06", "R-07"],
+      "body": "## 目标\n在渠道研究与已有方案对比的基础上，提出 open-context 的整合方法：\n- 统一事件模型（字段、时间、溯源、隐私分级）\n- 分层整合：原始事件日志 → Episode → 实体 / 事实 → 面向 Agent 的视图\n- 跨渠道关联方法（时间窗、锚点、语义相似度）\n- 时间有效性与冲突处理\n- 面向 Agent 的暴露方式（MCP tools / resources）\n\n## 交付\n- `docs/rfc/0001-context-integration.md`\n\n## 验收\n- [ ] 用至少 3 个真实（脱敏）跨渠道场景走查方案"
+    },
+    {
+      "id": "R-09",
+      "title": "[Evaluation] 设计整合效果评测方法",
+      "milestone": "M0: Research - Channels & Integration Method",
+      "module": "evaluation",
+      "priority": "P1",
+      "effort": "M",
+      "labels": ["area:evaluation", "type:research", "prio:P1"],
+      "depends_on": ["R-08"],
+      "body": "## 目标\n设计一套可复现的方法，衡量整合后的 Context 是否真正帮助 Agent：场景构造、对照组（无 Context / 原始检索 / 整合后）、指标（关键上下文召回、任务一次通过率、Token 开销、用户追问次数）。\n\n## 交付\n- `docs/research/evaluation-plan.md`"
+    },
+    {
+      "id": "R-10",
+      "title": "[OSS] 开源准备：命名查重、许可证选择与隐私原则声明",
+      "milestone": "M0: Research - Channels & Integration Method",
+      "module": "oss",
+      "priority": "P1",
+      "effort": "S",
+      "labels": ["area:oss", "type:research", "prio:P1", "privacy-critical"],
+      "depends_on": [],
+      "body": "## 目标\n- 检查 open-context 名称是否与已有项目冲突，必要时给出备选名\n- 选择许可证（并确认与 record-for-agent 的许可证关系）\n- 起草隐私原则（本地优先、默认不采集、可审计、可删除）\n\n## 交付\n- `docs/oss-readiness.md`"
+    }
+  ]
+}

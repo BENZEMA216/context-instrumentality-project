@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "context-event.schema.json",
+  "title": "ContextEvent (draft)",
+  "type": "object",
+  "required": ["id", "source", "kind", "t_start", "t_end", "t_observed", "provenance", "privacy"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {"type": "string", "description": "ULID"},
+    "source": {"enum": ["voice", "clipboard", "browser", "ai_chat", "window"]},
+    "kind": {"type": "string", "description": "transcript_segment | copy | page_read | chat_turn | focus ..."},
+    "t_start": {"type": "integer", "description": "Unix ms"},
+    "t_end": {"type": "integer", "description": "Unix ms; equals t_start for instant events"},
+    "tz": {"type": "string"},
+    "tz_source": {"enum": ["recorded", "utc_fallback"]},
+    "t_observed": {"type": "integer", "description": "Unix ms when written"},
+    "device_id": {"type": "string"},
+    "actor": {"type": "string", "description": "self | speaker_k | app | unknown"},
+    "content": {
+      "type": "object",
+      "properties": {
+        "text": {"type": "string"},
+        "title": {"type": "string"},
+        "url_norm": {"type": "string"},
+        "lang": {"type": "string"},
+        "content_hash": {"type": "string"}
+      }
+    },
+    "context": {
+      "type": "object",
+      "properties": {
+        "app_bundle": {"type": "string"},
+        "window_title": {"type": "string"},
+        "dwell_ms": {"type": "integer", "minimum": 0},
+        "scroll_depth": {"type": "number", "minimum": 0, "maximum": 1},
+        "afk": {"type": "boolean"}
+      }
+    },
+    "anchors": {"type": "array", "items": {"type": "string"}},
+    "attention": {"type": "number", "minimum": 0, "maximum": 1},
+    "provenance": {
+      "type": "object",
+      "required": ["connector", "source_id"],
+      "properties": {
+        "connector": {"type": "string"},
+        "version": {"type": "string"},
+        "source_id": {"type": "string"},
+        "source_hash": {"type": "string"},
+        "locator": {"type": "string"}
+      }
+    },
+    "privacy": {
+      "type": "object",
+      "required": ["tier"],
+      "properties": {
+        "tier": {"enum": ["local_only", "redacted", "shareable"]},
+        "pii_tags": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  }
+}
