@@ -1,0 +1,10 @@
+"Title" = "高级";
+"TurnOff" = "暂停";
+"TurnOffDescription" = "暂停记录新的剪贴板项目。\n如果您想在复制敏感数据时通过程序调用来禁用本程序。";
+"TurnOffViaMenuIconDescription" = "您也可以按下 ⌥ 并单击菜单图标。\n要仅忽略下一个副本，请单击 ⌥⇧。";
+"ClearHistoryOnQuit" = "退出时清除历史记录";
+"ClearHistoryOnQuitTooltip" = "退出应用时仅保留已置顶的项目(其他历史记录将被抛弃)。";
+"ClearSystemClipboard" = "同时清除系统剪贴板";
+"ClearSystemClipboardTooltip" = "启用后，清除历史记录也会清除当前系统剪贴板。";
+
+"TurnOffCommandResume" = "复制完成后，恢复记录：";

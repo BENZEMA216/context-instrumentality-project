@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ClipContext 0.1.1 使用说明</title>
+<style>
+:root{color-scheme:light dark;font-family:-apple-system,BlinkMacSystemFont,sans-serif;line-height:1.65}
+body{max-width:700px;margin:56px auto;padding:0 26px;color:CanvasText;background:Canvas}
+h1{font-size:2.3rem;letter-spacing:-.04em;margin:0} h2{margin-top:2rem;border-top:1px solid color-mix(in srgb,CanvasText 15%,Canvas);padding-top:1.2rem} p,li{max-width:68ch} a{color:LinkText} code{overflow-wrap:anywhere}
+</style>
+<h1>ClipContext 0.1.1</h1>
+<p>点菜单栏图标或按 <strong>⌘⇧C</strong> 打开历史。默认点击条目或按 Return 会复制回剪贴板，然后在目标应用按 ⌘V。卡片更多菜单、列表底部以及设置的 Agent 页面都可进入共享目录。</p>
+<h2>多选与顺序粘贴</h2>
+<ol>
+<li>卡片更多菜单或列表顶部点「选择多条…」。当前高亮条目会保留，继续点击条目增减选择；条目上的编号就是粘贴顺序。</li>
+<li>也可以 ⌘点击进入多选，列表用 ⇧↑↓，卡片在空搜索时用 ⇧←→ 扩展选择。点「取消」恢复单选。</li>
+<li>点「开始顺序粘贴」或按 Return 准备第一条，再返回目标应用，每次按 ⌘V 粘贴下一条。队列不会在启动时自动插入内容。列表顶部或卡片左侧显示剩余数量，并可停止。</li>
+</ol>
+<p>新的外部复制、单独取用其他历史、清除历史或删除队列中的项目会停止队列。仅选一项时，修饰键与 Return 按快捷键设置执行复制或粘贴；⌘点击专用于多选。</p>
+<h2>辅助功能授权</h2>
+<p>直接粘贴和顺序粘贴需要 macOS 辅助功能权限。缺权限时应用会显示说明，点「打开系统设置」进入对应页面，再由你开启 ClipContext 权限。授权后返回应用，重新选择项目并开始队列。选择「稍后」不会启动队列；单条内容仍可手动 ⌘V 粘贴。</p>
+<h2>卡片与列表设置</h2>
+<p>设置 → 外观可切换卡片/列表及浅色/深色。卡片使用收起式搜索，点放大镜或输入开始查找；「始终显示搜索框」「搜索前显示应用名」只在列表模式提供。收藏板是分组，内置收藏则是固定条目。</p>
+<h2>选择共享的资料</h2>
+<p>默认关闭共享。右键历史条目可以单条分享或撤销。也可以选择「收藏与手动选择」或开启「所有历史」。文字、富文本和图片保留原剪贴板内容，Finder 中复制的文件保存为文件引用。</p>
+<p>本机目录位于 <code>~/Library/Application Support/ClipContext/Agent/clipboard.json</code>。其中的条目会随共享范围、删除和历史保留上限更新。撤销共享会更新本目录和已连接云端的后续副本。Agent 之前的会话或简报可保留已经读取的资料。</p>
+<h2>连接 iCloud Drive 和 Google Drive</h2>
+<ul>
+<li>在 iCloud Drive 内选择一个文件夹。ClipContext 在其中更新 <code>ClipContext/&lt;设备 ID&gt;/clipboard.json</code>。文件先写到本机 iCloud Drive 目录，再由 macOS 同步。可在另一台设备上确认到达。</li>
+<li>在 Google Cloud 启用 <a href="https://console.cloud.google.com/apis/library/drive.googleapis.com">Google Drive API</a>，创建 <a href="https://console.cloud.google.com/auth/clients">Desktop app OAuth 客户端</a>。若 OAuth 应用处于测试模式，将使用的 Google 账号加入测试名单。回到 ClipContext 输入客户端 ID 和密钥，再在浏览器授权。上传后「打开副本」可以定位 Drive 文件。</li>
+</ul>
+<h2>让 Agent 查询或生成简报</h2>
+<ol>
+<li>在 ClipContext 复制对应的 Codex 或 Claude Code 命令并在终端执行。新会话中可要求「用 clipcontext 查找今天复制的链接，并列出条目 ID」。</li>
+<li>用「复制简报命令」取得可重复运行的命令。在终端试跑一次，随后在 Codex 或 Claude Code 的桌面定时任务中设定频率，让任务运行该命令。两种 Agent 分别保存进度；命令需要同机可用的 CLI 和登录。简报写到 <code>~/Library/Application Support/ClipContext/Reports</code>。可在命令末尾加 <code>--preview</code> 查看待处理数量。</li>
+<li>云端定时任务可用已获授权的 Drive 连接器按文件 ID 读取 JSON。如果所用连接器提供文件下载，也可以下载到执行环境后用 MCP 的 <code>--archive</code> 指向该副本。iCloud 副本可以在已登录同一账号并完成同步的 Mac 上以同样方式读取。应用内的本机 MCP 注册只作用于本机客户端。</li>
+</ol>
+<p>共享内容会作为外部资料进入 Agent。使用托管模型时，Agent 读取的片段会传给所选模型。</p>
+<h2>暂停与忽略下一次</h2>
+<p>优先用卡片更多菜单或设置 → 高级暂停记录。终端自动化应使用本应用的设置域；只忽略下一次需要同时设置两个开关：</p>
+<pre><code># 暂停
+defaults write com.benzema.ClipContext ignoreEvents -bool true
+# 恢复
+defaults write com.benzema.ClipContext ignoreOnlyNextEvent -bool false
+defaults write com.benzema.ClipContext ignoreEvents -bool false
+# 只忽略下一次复制
+defaults write com.benzema.ClipContext ignoreOnlyNextEvent -bool true
+defaults write com.benzema.ClipContext ignoreEvents -bool true</code></pre>
+<p>0.1.1 的修复说明已更新；本轮测试与实机验收结果由交付报告提供。</p>
+</html>

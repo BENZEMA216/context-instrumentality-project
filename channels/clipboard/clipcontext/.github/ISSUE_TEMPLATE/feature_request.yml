@@ -1,0 +1,18 @@
+name: 功能建议
+description: 为 ClipContext 提出功能或体验改进
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 使用场景与问题
+      description: 描述你想完成什么，以及当前遇到的困难。
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: 期望的改进
+      description: 描述期望的操作方式和结果。
+    validations:
+      required: true

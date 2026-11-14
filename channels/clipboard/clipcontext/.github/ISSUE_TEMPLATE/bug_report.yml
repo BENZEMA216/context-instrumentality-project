@@ -1,0 +1,42 @@
+name: Bug 反馈
+description: 报告 ClipContext 的问题
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请用合成资料描述问题，不要上传真实剪贴板历史、完整数据库、OAuth 凭据或完整授权回跳地址。
+        提交前可阅读仓库根目录的 Bug 反馈说明。
+  - type: input
+    id: version
+    attributes:
+      label: ClipContext 版本
+      placeholder: 例如 0.1.1（2）
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: macOS 与芯片
+      placeholder: macOS 版本、Apple Silicon 型号
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 包含界面布局、来源和目标应用、准确按键以及合成测试内容。
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: 预期与实际结果
+      description: 附上出现频率以及必要的错误文字。
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: 已尝试的检查与补充资料
+      description: 可选。附件请先移除个人信息、令牌和真实剪贴板内容。
