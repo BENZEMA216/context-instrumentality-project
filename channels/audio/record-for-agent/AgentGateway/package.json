@@ -1,0 +1,29 @@
+{
+  "name": "record-for-agent-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@cloudflare/workers-oauth-provider": "1.2.3",
+    "@modelcontextprotocol/server": "2.3.1",
+    "jose": "6.2.12",
+    "jsonc-parser": "3.3.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "1.4.8",
+    "@cloudflare/workers-types": "5.20261023.1",
+    "typescript": "7.0.2",
+    "vitest": "4.1.12",
+    "wrangler": "4.153.0"
+  },
+  "overrides": {
+    "@cloudflare/vitest-plugin": {
+      "zod": "$zod"
+    }
+  }
+}

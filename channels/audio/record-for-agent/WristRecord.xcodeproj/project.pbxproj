@@ -1,0 +1,490 @@
+// !$*UTF8*$!
+{
+	"archiveVersion" = 1;
+	"classes" = {
+
+	};
+	"objectVersion" = 77;
+	"objects" = {
+		"0063A9BC6EBC3FDBBCB9EDDD" = {
+			"isa" = "XCBuildConfiguration";
+			"name" = "Release";
+			"baseConfigurationReference" = "8693E667785293A559E0CB15";
+			"buildSettings" = {
+
+			};
+		};
+		"0163364EEFBF60B6A271D5F8" = {
+			"isa" = "PBXFileReference";
+			"explicitFileType" = "wrapper.application";
+			"includeInIndex" = 0;
+			"path" = "WristRecordPhoneValidation.app";
+			"sourceTree" = "BUILT_PRODUCTS_DIR";
+		};
+		"033EF26CB90D64C395E2CDC8" = {
+			"isa" = "XCBuildConfiguration";
+			"name" = "Release";
+			"baseConfigurationReference" = "1D459AF0B39C58215652CD6A";
+			"buildSettings" = {
+				"PRODUCT_NAME" = "WristRecordPhoneValidation";
+				"PRODUCT_BUNDLE_IDENTIFIER" = "$(WR_PHONE_BUNDLE_IDENTIFIER).validation";
+				"WR_APP_DISPLAY_NAME" = "WristRecord 验证";
+				"SDKROOT" = "iphonesimulator";
+				"SUPPORTED_PLATFORMS" = "iphonesimulator";
+				"SKIP_INSTALL" = "YES";
+			};
+		};
+		"03AD44E2D3616B291BF71553" = {
+			"isa" = "PBXFrameworksBuildPhase";
+			"buildActionMask" = 2147483647;
+			"files" = (
+				"8F562ACEB88DAD342099C513",
+			);
+			"runOnlyForDeploymentPostprocessing" = 0;
+		};
+		"0B8B91C19BB19D5EB8ECAD90" = {
+			"isa" = "PBXFrameworksBuildPhase";
+			"buildActionMask" = 2147483647;
+			"files" = (
+				"5E1127B1F9367D3398112B6E",
+			);
+			"runOnlyForDeploymentPostprocessing" = 0;
+		};
+		"0C7CFC70C1828C2FA1D92246" = {
+			"isa" = "XCConfigurationList";
+			"buildConfigurations" = (
+				"52E09D8D55F386872C07B030",
+				"033EF26CB90D64C395E2CDC8",
+			);
+			"defaultConfigurationIsVisible" = 0;
+			"defaultConfigurationName" = "Release";
+		};
+		"15DC959372CBACB43C545CA0" = {
+			"isa" = "XCSwiftPackageProductDependency";
+			"package" = "AA7F3CADBF1FDDF764FF0A28";
+			"productName" = "RecordingCore";
+		};
+		"1D459AF0B39C58215652CD6A" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "text.xcconfig";
+			"path" = "Phone.xcconfig";
+			"sourceTree" = "<group>";
+		};
+		"1E814DCEEA6AF342F9FA83C5" = {
+			"isa" = "PBXBuildFile";
+			"productRef" = "8B9235DD140B1C7C994775B8";
+		};
+		"2AE1B91DC063B0CABF8C2526" = {
+			"isa" = "PBXNativeTarget";
+			"buildConfigurationList" = "4B6E69526B4393654E39BB2E";
+			"buildPhases" = (
+				"9717FD29DC45AD87AFC1EA50",
+				"DF66741F67BFA45529E5357F",
+				"B7D57BC1F948871424393F0B",
+				"D240FDCEA2E2F6E70F908668",
+			);
+			"buildRules" = ();
+			"dependencies" = (
+				"D36A05A91EC7D77FB23EC07D",
+			);
+			"fileSystemSynchronizedGroups" = (
+				"F3CDF72F6616E9C5EF7C9193",
+			);
+			"name" = "WristRecordPhone";
+			"packageProductDependencies" = (
+				"8B9235DD140B1C7C994775B8",
+			);
+			"productName" = "WristRecordPhone";
+			"productReference" = "F56D4EC42AE8F1BCC4A8D9E7";
+			"productType" = "com.apple.product-type.application";
+		};
+		"32A03C8777B293B38FEF7F72" = {
+			"isa" = "XCBuildConfiguration";
+			"name" = "Debug";
+			"baseConfigurationReference" = "1D459AF0B39C58215652CD6A";
+			"buildSettings" = {
+
+			};
+		};
+		"35009E200C9D0DFAB832B99E" = {
+			"isa" = "PBXFileReference";
+			"explicitFileType" = "wrapper.application";
+			"includeInIndex" = 0;
+			"path" = "WristRecordWatch.app";
+			"sourceTree" = "BUILT_PRODUCTS_DIR";
+		};
+		"35AFA5DE4A1B5D1CA32E0487" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "text.plist.xml";
+			"path" = "Phone-Info.plist";
+			"sourceTree" = "<group>";
+		};
+		"3A2B54F8E6A812558B3E828E" = {
+			"isa" = "PBXGroup";
+			"children" = (
+				"F56D4EC42AE8F1BCC4A8D9E7",
+				"35009E200C9D0DFAB832B99E",
+				"0163364EEFBF60B6A271D5F8",
+			);
+			"name" = "Products";
+			"sourceTree" = "<group>";
+		};
+		"439CCE7D4A388A979A899B0F" = {
+			"isa" = "PBXGroup";
+			"children" = (
+				"4FA2399C3714CD53C403A6F6",
+				"1D459AF0B39C58215652CD6A",
+				"8693E667785293A559E0CB15",
+				"35AFA5DE4A1B5D1CA32E0487",
+				"EA17A472A0C6B88FECA122B1",
+			);
+			"path" = "Config";
+			"sourceTree" = "<group>";
+		};
+		"44ECA811896E5029D5B5A588" = {
+			"isa" = "PBXFileSystemSynchronizedRootGroup";
+			"path" = "Watch";
+			"sourceTree" = "<group>";
+			"explicitFileTypes" = {
+
+			};
+			"explicitFolders" = ();
+		};
+		"46608BF7133CC627A35D9C28" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "35009E200C9D0DFAB832B99E";
+			"settings" = {
+				"ATTRIBUTES" = (
+					"RemoveHeadersOnCopy",
+				);
+			};
+		};
+		"4B6E69526B4393654E39BB2E" = {
+			"isa" = "XCConfigurationList";
+			"buildConfigurations" = (
+				"32A03C8777B293B38FEF7F72",
+				"F99886C5653F6E61E67A421B",
+			);
+			"defaultConfigurationIsVisible" = 0;
+			"defaultConfigurationName" = "Release";
+		};
+		"4FA2399C3714CD53C403A6F6" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "text.xcconfig";
+			"path" = "Shared.xcconfig";
+			"sourceTree" = "<group>";
+		};
+		"50F4B6E77C9C8A66FB4B8797" = {
+			"isa" = "XCBuildConfiguration";
+			"name" = "Release";
+			"baseConfigurationReference" = "4FA2399C3714CD53C403A6F6";
+			"buildSettings" = {
+				"ALWAYS_SEARCH_USER_PATHS" = "NO";
+				"CLANG_ENABLE_MODULES" = "YES";
+				"CLANG_ENABLE_OBJC_ARC" = "YES";
+				"CLANG_WARN_DOCUMENTATION_COMMENTS" = "YES";
+				"COPY_PHASE_STRIP" = "NO";
+				"ENABLE_STRICT_OBJC_MSGSEND" = "YES";
+				"ENABLE_USER_SCRIPT_SANDBOXING" = "YES";
+				"GCC_C_LANGUAGE_STANDARD" = "gnu17";
+				"SWIFT_VERSION" = "5.0";
+				"SWIFT_STRICT_CONCURRENCY" = "targeted";
+				"DEBUG_INFORMATION_FORMAT" = "dwarf-with-dsym";
+				"SWIFT_COMPILATION_MODE" = "wholemodule";
+				"SWIFT_OPTIMIZATION_LEVEL" = "-O";
+				"VALIDATE_PRODUCT" = "YES";
+			};
+		};
+		"52E09D8D55F386872C07B030" = {
+			"isa" = "XCBuildConfiguration";
+			"name" = "Debug";
+			"baseConfigurationReference" = "1D459AF0B39C58215652CD6A";
+			"buildSettings" = {
+				"PRODUCT_NAME" = "WristRecordPhoneValidation";
+				"PRODUCT_BUNDLE_IDENTIFIER" = "$(WR_PHONE_BUNDLE_IDENTIFIER).validation";
+				"WR_APP_DISPLAY_NAME" = "WristRecord 验证";
+				"SDKROOT" = "iphonesimulator";
+				"SUPPORTED_PLATFORMS" = "iphonesimulator";
+				"SKIP_INSTALL" = "YES";
+			};
+		};
+		"583BA1A7AFCCAEABFF5CBD96" = {
+			"isa" = "XCBuildConfiguration";
+			"name" = "Debug";
+			"baseConfigurationReference" = "8693E667785293A559E0CB15";
+			"buildSettings" = {
+
+			};
+		};
+		"5E1127B1F9367D3398112B6E" = {
+			"isa" = "PBXBuildFile";
+			"productRef" = "15DC959372CBACB43C545CA0";
+		};
+		"6F3FE6D274583E68BC288A54" = {
+			"isa" = "PBXSourcesBuildPhase";
+			"buildActionMask" = 2147483647;
+			"files" = ();
+			"runOnlyForDeploymentPostprocessing" = 0;
+		};
+		"7D004DFB1DEC7EFC02CB6BCE" = {
+			"isa" = "PBXSourcesBuildPhase";
+			"buildActionMask" = 2147483647;
+			"files" = ();
+			"runOnlyForDeploymentPostprocessing" = 0;
+		};
+		"8693E667785293A559E0CB15" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "text.xcconfig";
+			"path" = "Watch.xcconfig";
+			"sourceTree" = "<group>";
+		};
+		"8B5F7B9827850FFAA97A6658" = {
+			"isa" = "PBXResourcesBuildPhase";
+			"buildActionMask" = 2147483647;
+			"files" = ();
+			"runOnlyForDeploymentPostprocessing" = 0;
+		};
+		"8B9235DD140B1C7C994775B8" = {
+			"isa" = "XCSwiftPackageProductDependency";
+			"package" = "AA7F3CADBF1FDDF764FF0A28";
+			"productName" = "RecordingCore";
+		};
+		"8D9F42F17B3BB4C05922C257" = {
+			"isa" = "XCSwiftPackageProductDependency";
+			"package" = "AA7F3CADBF1FDDF764FF0A28";
+			"productName" = "RecordingCore";
+		};
+		"8F3826434D3251F7A099EDC1" = {
+			"isa" = "XCBuildConfiguration";
+			"name" = "Debug";
+			"baseConfigurationReference" = "4FA2399C3714CD53C403A6F6";
+			"buildSettings" = {
+				"ALWAYS_SEARCH_USER_PATHS" = "NO";
+				"CLANG_ENABLE_MODULES" = "YES";
+				"CLANG_ENABLE_OBJC_ARC" = "YES";
+				"CLANG_WARN_DOCUMENTATION_COMMENTS" = "YES";
+				"COPY_PHASE_STRIP" = "NO";
+				"ENABLE_STRICT_OBJC_MSGSEND" = "YES";
+				"ENABLE_USER_SCRIPT_SANDBOXING" = "YES";
+				"GCC_C_LANGUAGE_STANDARD" = "gnu17";
+				"SWIFT_VERSION" = "5.0";
+				"SWIFT_STRICT_CONCURRENCY" = "targeted";
+				"DEBUG_INFORMATION_FORMAT" = "dwarf";
+				"ENABLE_TESTABILITY" = "YES";
+				"GCC_OPTIMIZATION_LEVEL" = "0";
+				"ONLY_ACTIVE_ARCH" = "YES";
+				"SWIFT_ACTIVE_COMPILATION_CONDITIONS" = "$(inherited) DEBUG";
+				"SWIFT_OPTIMIZATION_LEVEL" = "-Onone";
+			};
+		};
+		"8F562ACEB88DAD342099C513" = {
+			"isa" = "PBXBuildFile";
+			"productRef" = "8D9F42F17B3BB4C05922C257";
+		};
+		"9717FD29DC45AD87AFC1EA50" = {
+			"isa" = "PBXSourcesBuildPhase";
+			"buildActionMask" = 2147483647;
+			"files" = ();
+			"runOnlyForDeploymentPostprocessing" = 0;
+		};
+		"A5E489D7F526AE9372ECA9B0" = {
+			"isa" = "PBXNativeTarget";
+			"buildConfigurationList" = "A9D6F6F6A97B33F851E8EDB5";
+			"buildPhases" = (
+				"7D004DFB1DEC7EFC02CB6BCE",
+				"03AD44E2D3616B291BF71553",
+				"D054851483495DC48BDB1179",
+			);
+			"buildRules" = ();
+			"dependencies" = ();
+			"fileSystemSynchronizedGroups" = (
+				"44ECA811896E5029D5B5A588",
+			);
+			"name" = "WristRecordWatch";
+			"packageProductDependencies" = (
+				"8D9F42F17B3BB4C05922C257",
+			);
+			"productName" = "WristRecordWatch";
+			"productReference" = "35009E200C9D0DFAB832B99E";
+			"productType" = "com.apple.product-type.application";
+		};
+		"A9D6F6F6A97B33F851E8EDB5" = {
+			"isa" = "XCConfigurationList";
+			"buildConfigurations" = (
+				"583BA1A7AFCCAEABFF5CBD96",
+				"0063A9BC6EBC3FDBBCB9EDDD",
+			);
+			"defaultConfigurationIsVisible" = 0;
+			"defaultConfigurationName" = "Release";
+		};
+		"AA7F3CADBF1FDDF764FF0A28" = {
+			"isa" = "XCLocalSwiftPackageReference";
+			"relativePath" = ".";
+		};
+		"AFB9B60A27CEB0965992F7D1" = {
+			"isa" = "PBXContainerItemProxy";
+			"containerPortal" = "B992C91892B524684655013E";
+			"proxyType" = 1;
+			"remoteGlobalIDString" = "A5E489D7F526AE9372ECA9B0";
+			"remoteInfo" = "WristRecordWatch";
+		};
+		"B7D57BC1F948871424393F0B" = {
+			"isa" = "PBXResourcesBuildPhase";
+			"buildActionMask" = 2147483647;
+			"files" = ();
+			"runOnlyForDeploymentPostprocessing" = 0;
+		};
+		"B992C91892B524684655013E" = {
+			"isa" = "PBXProject";
+			"attributes" = {
+				"BuildIndependentTargetsInParallel" = "YES";
+				"LastUpgradeCheck" = "2640";
+				"LastSwiftUpdateCheck" = "2640";
+				"TargetAttributes" = {
+					"2AE1B91DC063B0CABF8C2526" = {
+						"CreatedOnToolsVersion" = "26.4";
+						"ProvisioningStyle" = "Automatic";
+					};
+					"A5E489D7F526AE9372ECA9B0" = {
+						"CreatedOnToolsVersion" = "26.4";
+						"ProvisioningStyle" = "Automatic";
+					};
+					"CA58DB7775E39CFB9661B7B6" = {
+						"CreatedOnToolsVersion" = "26.4";
+						"ProvisioningStyle" = "Automatic";
+					};
+				};
+			};
+			"buildConfigurationList" = "F53022B67A21B492236A828C";
+			"developmentRegion" = "zh-Hans";
+			"hasScannedForEncodings" = 0;
+			"knownRegions" = (
+				"zh-Hans",
+				"en",
+				"Base",
+			);
+			"mainGroup" = "E1ABF881C185767EAEEED9CE";
+			"minimizedProjectReferenceProxies" = 1;
+			"packageReferences" = (
+				"AA7F3CADBF1FDDF764FF0A28",
+			);
+			"preferredProjectObjectVersion" = 77;
+			"productRefGroup" = "3A2B54F8E6A812558B3E828E";
+			"projectDirPath" = "";
+			"projectRoot" = "";
+			"targets" = (
+				"2AE1B91DC063B0CABF8C2526",
+				"A5E489D7F526AE9372ECA9B0",
+				"CA58DB7775E39CFB9661B7B6",
+			);
+		};
+		"CA58DB7775E39CFB9661B7B6" = {
+			"isa" = "PBXNativeTarget";
+			"buildConfigurationList" = "0C7CFC70C1828C2FA1D92246";
+			"buildPhases" = (
+				"6F3FE6D274583E68BC288A54",
+				"0B8B91C19BB19D5EB8ECAD90",
+				"8B5F7B9827850FFAA97A6658",
+			);
+			"buildRules" = ();
+			"dependencies" = ();
+			"fileSystemSynchronizedGroups" = (
+				"F3CDF72F6616E9C5EF7C9193",
+			);
+			"name" = "WristRecordPhoneValidation";
+			"packageProductDependencies" = (
+				"15DC959372CBACB43C545CA0",
+			);
+			"productName" = "WristRecordPhoneValidation";
+			"productReference" = "0163364EEFBF60B6A271D5F8";
+			"productType" = "com.apple.product-type.application";
+		};
+		"CF7EFA507D27427A1EB53A74" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.swift";
+			"path" = "Package.swift";
+			"sourceTree" = "<group>";
+		};
+		"D054851483495DC48BDB1179" = {
+			"isa" = "PBXResourcesBuildPhase";
+			"buildActionMask" = 2147483647;
+			"files" = ();
+			"runOnlyForDeploymentPostprocessing" = 0;
+		};
+		"D240FDCEA2E2F6E70F908668" = {
+			"isa" = "PBXCopyFilesBuildPhase";
+			"buildActionMask" = 2147483647;
+			"dstPath" = "$(CONTENTS_FOLDER_PATH)/Watch";
+			"dstSubfolderSpec" = 16;
+			"files" = (
+				"46608BF7133CC627A35D9C28",
+			);
+			"name" = "Embed Watch Content";
+			"runOnlyForDeploymentPostprocessing" = 0;
+		};
+		"D36A05A91EC7D77FB23EC07D" = {
+			"isa" = "PBXTargetDependency";
+			"target" = "A5E489D7F526AE9372ECA9B0";
+			"targetProxy" = "AFB9B60A27CEB0965992F7D1";
+		};
+		"DF66741F67BFA45529E5357F" = {
+			"isa" = "PBXFrameworksBuildPhase";
+			"buildActionMask" = 2147483647;
+			"files" = (
+				"1E814DCEEA6AF342F9FA83C5",
+			);
+			"runOnlyForDeploymentPostprocessing" = 0;
+		};
+		"E1ABF881C185767EAEEED9CE" = {
+			"isa" = "PBXGroup";
+			"children" = (
+				"F3CDF72F6616E9C5EF7C9193",
+				"44ECA811896E5029D5B5A588",
+				"439CCE7D4A388A979A899B0F",
+				"CF7EFA507D27427A1EB53A74",
+				"3A2B54F8E6A812558B3E828E",
+			);
+			"sourceTree" = "<group>";
+		};
+		"EA17A472A0C6B88FECA122B1" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "text.plist.xml";
+			"path" = "Watch-Info.plist";
+			"sourceTree" = "<group>";
+		};
+		"F3CDF72F6616E9C5EF7C9193" = {
+			"isa" = "PBXFileSystemSynchronizedRootGroup";
+			"path" = "Phone";
+			"sourceTree" = "<group>";
+			"explicitFileTypes" = {
+
+			};
+			"explicitFolders" = ();
+		};
+		"F53022B67A21B492236A828C" = {
+			"isa" = "XCConfigurationList";
+			"buildConfigurations" = (
+				"8F3826434D3251F7A099EDC1",
+				"50F4B6E77C9C8A66FB4B8797",
+			);
+			"defaultConfigurationIsVisible" = 0;
+			"defaultConfigurationName" = "Release";
+		};
+		"F56D4EC42AE8F1BCC4A8D9E7" = {
+			"isa" = "PBXFileReference";
+			"explicitFileType" = "wrapper.application";
+			"includeInIndex" = 0;
+			"path" = "WristRecordPhone.app";
+			"sourceTree" = "BUILT_PRODUCTS_DIR";
+		};
+		"F99886C5653F6E61E67A421B" = {
+			"isa" = "XCBuildConfiguration";
+			"name" = "Release";
+			"baseConfigurationReference" = "1D459AF0B39C58215652CD6A";
+			"buildSettings" = {
+
+			};
+		};
+	};
+	"rootObject" = "B992C91892B524684655013E";
+}

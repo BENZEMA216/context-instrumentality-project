@@ -1,0 +1,12 @@
+// Change local signing and identifiers in Local.xcconfig, not the generated project.
+WR_BUNDLE_ID_PREFIX = com.example
+WR_PHONE_BUNDLE_IDENTIFIER = $(WR_BUNDLE_ID_PREFIX).WristRecord
+WR_WATCH_BUNDLE_IDENTIFIER = $(WR_PHONE_BUNDLE_IDENTIFIER).watchkitapp
+WR_APP_DISPLAY_NAME = Record for Agent
+CODE_SIGN_STYLE = Automatic
+CURRENT_PROJECT_VERSION = 127
+MARKETING_VERSION = 1.0
+SWIFT_VERSION = 5.0
+#include? "Local.xcconfig"
+
+ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon
