@@ -1,4 +1,6 @@
-# 开源 Agent Context 补全计划：全栈调研与架构研究报告
+# 早期全景调研（初稿）
+
+> 最早的一版调研，部分数据未核实（star 数等）。核实后的结论以 [channels.md](channels.md)、[integration-methods.md](integration-methods.md) 为准。
 
 > **研究目标**：为构建“开源 Agent Context 补全计划”提供学术依据、开源竞品全景、端侧采集技术可行性边界（macOS / 浏览器 / 移动端 / 录音硬件）、隐私合规设计及差异化架构蓝图。
 
