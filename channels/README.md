@@ -3,7 +3,7 @@
 | 渠道 | 目录 | 状态 |
 | :--- | :--- | :--- |
 | 语音 | [audio/record-for-agent](audio/record-for-agent) | 已有实现 |
-| 剪切板 | [clipboard](clipboard) | 待接入 |
+| 剪切板 | [clipboard/clipcontext](clipboard/clipcontext) | 已有实现 |
 | 浏览器 | [browser](browser) | 规划中 |
 | AI 对话历史 | [ai-chat](ai-chat) | 规划中 |
 | 窗口焦点 | [window](window) | 规划中 |
