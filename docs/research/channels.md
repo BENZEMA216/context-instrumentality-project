@@ -1,111 +1,98 @@
-# Context 渠道研究（R-01 / R-03 / R-04 / R-05）
+[🏠 首页索引](../../README.md) ｜ **📡 采集渠道调研（本文）** ｜ [🧩 整合方法与架构](integration-methods.md) ｜ [📦 开源项目精读](projects-digest.md) ｜ [📄 论文与博客精读](papers-blogs-digest.md) ｜ [🎙️ 音频通道](channel-audio.md) ｜ [📋 剪切板通道](channel-clipboard.md)
 
-> **核实说明**：各项目的 star 数都是搜索得到的近似值，未核实，发布前要到 GitHub 逐一核对。标注"未核实"的内容，在写进正式文档前需要再确认。
+# 多渠道上下文采集可行性与优先级调研
 
-## 结论（TL;DR）
+> 系统评估个人工作与日常生活中 **12 条潜在 Context 数据源**，按“意图密度、工程成本、系统权限与隐私/法律红线”划分投入阶段。
 
-**第一批渠道（Phase 1）**：语音（record-for-agent）、浏览器、剪切板、AI 对话历史，再加窗口焦点时间线作为时间骨架。
-
-选择理由：这五个渠道的意图密度最高、工作量最低，而且都能在本地、不经过云端完成。
-
-**不做 / 后置的渠道：**
-- **全时录屏 OCR**（screenpipe 路线）：成本高（CPU 5–10%，每月 20–30GB），意图被稀释，而且 screenpipe 已从 MIT 改为商业许可，**不能复用它的代码**。
-- **微信本地库解密**：存在法律风险，社区工具已遭到 DMCA 大规模下架。
-- **Android 后台剪切板**：系统限制严格，绕过方案（Shizuku / IME）成本高。
+> [!NOTE]
+> **核实说明**：文中参考项目的 star 数仅作为检索期量级参考、尚未逐一赴 GitHub 主页核实；标注“未核实”的平台系统行为（如 `macOS 26` 默认剪贴板策略）在写入最终发布版用户指南前仍需实机验证。
 
 ---
 
-## 渠道总表
+## 一、 核心结论与渠道取舍（TL;DR）
 
-| # | 渠道 | 价值 | 工作量 | 隐私风险 | 阶段 |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| 0 | **语音 · record-for-agent**（Watch → iPhone → Mac） | 极高（线下讨论、灵感） | 低（读取已有库，见 [channel-audio.md](./channel-audio.md)） | 很高 | **Phase 1** |
+> [!TIP]
+> **Phase 1（第一批优先打通）**：**语音（`record-for-agent`）+ 浏览器（有效停留与正文）+ macOS 剪贴板（来源 App + 过滤）+ AI 对话历史**，辅以 **桌面窗口焦点时间线（先接入 ActivityWatch）** 作为时间骨架。  
+> 这五类信号意图密度最高、开发工作量最低，且都能**全流程留在本地完成、不经过云端**。
+
+**明确不做或延后处理的路线（避坑边界）**：
+- **全时录屏 OCR（screenpipe 路线）**：CPU（5%–10%）与磁盘开销高（每月约 20–30GB），混入大量无意图背景噪声；且 `screenpipe` 已从 MIT 改为商业许可（Screenpipe Commercial License），**不能复用其代码**。
+- **微信本地数据库解密**：本地库经加密，社区解密工具已遭 DMCA 大规模下架；开源项目**绝不内置解密**，仅可支持用户自主导出或间接读取系统通知。
+- **Android 后台剪贴板**：Android 10+ 系统级封禁后台读取，靠 `Shizuku` 或自定义输入法绕过部署门槛过高，降级为 Phase 3 可选路径。
+
+---
+
+## 二、 12 条个人 Context 渠道评估总表
+
+| # | 渠道 | 信息价值 | 工程工作量 | 隐私风险 | 接入阶段 |
+| :---: | :--- | :--- | :--- | :--- | :---: |
+| 0 | **语音 · `record-for-agent`**（Watch → iPhone → Mac） | 极高（线下讨论、瞬间灵感） | 低（只读已有库，见 [channel-audio.md](channel-audio.md)） | 很高 | **Phase 1** |
 | 1 | **浏览器**：有效停留 + Defuddle 正文 + 选中 / 复制 | 极高 | 中（5–8 人日） | 中高 | **Phase 1** |
-| 2 | **剪切板 + 来源 App**（macOS） | 极高 | 低中（3–5 人日） | 高 | **Phase 1** |
+| 2 | **剪贴板 + 来源 App**（macOS 优先） | 极高 | 低中（3–5 人日） | 高 | **Phase 1** |
 | 3 | **AI 对话历史**（Claude Code / Cursor / ChatGPT 导出） | 极高 | 低（2–4 人日） | 中 | **Phase 1** |
-| 4 | **窗口焦点时间线**（先接入 ActivityWatch） | 中高（作为时间骨架） | 低（2–3 人日） | 中 | **Phase 1** |
-| 5 | Shell 历史（atuin）+ Git 活动 | 高（面向开发者） | 低（2 人日） | 中 | Phase 1–2 |
-| 6 | Obsidian / Markdown 笔记库 | 高 | 低（1–2 人日） | 低中 | Phase 2 |
-| 7 | 日历（EventKit / Google / 飞书） | 中高 | 低（2 人日） | 中 | Phase 2 |
-| 8 | Android 通知 + 系统分享入口 | 高 | 中高（7–10 人日） | 高 | Phase 2 |
-| 9 | IM（飞书走 OpenAPI；微信不做解密） | 高 | 中 | 很高 | Phase 2（仅飞书） |
-| 10 | iOS Share Extension + 快捷指令 | 中（需用户主动操作） | 中（5–7 人日） | 低 | Phase 3 |
-| 11 | Android 后台剪切板（Shizuku / IME） | 中 | 高 | 高 | Phase 3（可选） |
-| 12 | 屏幕 OCR / 全时 Accessibility 采集 | 中（覆盖广，但意图被稀释） | 高 | 很高 | Phase 3 可选插件，或仅做"按需抓取焦点窗口文本" |
+| 4 | **窗口焦点时间线**（先接入 ActivityWatch） | 中高（天然时间骨架） | 低（2–3 人日） | 中 | **Phase 1** |
+| 5 | **Shell 历史（`atuin`）+ Git 活动** | 高（面向开发者极佳） | 低（2 人日） | 中 | **Phase 1–2** |
+| 6 | **Obsidian / Markdown 笔记库** | 高 | 低（1–2 人日） | 低中 | **Phase 2** |
+| 7 | **日历**（EventKit / Google / 飞书） | 中高 | 低（2 人日） | 中 | **Phase 2** |
+| 8 | **Android 通知 + 系统分享入口** | 高 | 中高（7–10 人日） | 高 | **Phase 2** |
+| 9 | **IM 消息**（飞书走 OpenAPI；微信不做解密） | 高 | 中 | 很高 | **Phase 2（仅飞书）** |
+| 10 | **iOS Share Extension + 快捷指令** | 中（依赖用户主动触发） | 中（5–7 人日） | 低 | **Phase 3** |
+| 11 | **Android 后台剪贴板**（Shizuku / IME） | 中 | 高 | 高 | **Phase 3（可选）** |
+| 12 | **屏幕 OCR / 全时 Accessibility 采集** | 中（覆盖广但意图稀释严重） | 高 | 很高 | **Phase 3 可选 / 按需抓焦点文本** |
 
 ---
 
-## 1. 浏览器
+## 三、 各重点通道实现与规范细节
 
-- **采集方式**：
-  - **有效停留时长**由三层信号叠加判定：`document.visibilityState`、`chrome.windows.onFocusChanged`（值为 `WINDOW_ID_NONE` 表示浏览器整体失焦）、`chrome.idle`（最小阈值 15 秒），再结合滚动深度和键鼠活动。
-  - **正文**：在 content script 中对当前 DOM 运行 [Defuddle](https://github.com/kepano/defuddle)（直接输出 Markdown，保留代码和公式，有针对特定站点的提取器），用 [Readability](https://github.com/mozilla/readability) 作为 fallback。
-  - **选中 / 复制**：监听 `selectionchange` 和 `copy` 事件。高亮锚定参考 W3C Web Annotation 的 TextQuote 方案。
-- **MV3 的限制**：service worker 在 30 秒无事件后会被终止，`setTimeout` 不可靠。应对：计时放在 content script 或 `chrome.storage.session` 中；通过 Native Messaging 把数据推给本地 daemon。
-- **注意力分数（初始权重，可调）**：`log(1+有效停留秒) × 滚动深度系数 + 3×选中 + 5×复制 + 8×高亮 + 2×7 天内回访 + 搜索来源加权`。若有效停留不足 10 秒且没有任何交互，则只记录 URL，不抽取正文。
-- **隐私**：排除隐身窗口和银行 / 医疗 / 邮箱类域名；剥除 URL 中的 token、code、session 等参数；支持域名白名单模式。
-- **参考实现**：
-  - [obsidian-clipper](https://github.com/obsidianmd/obsidian-clipper)：最佳参考，已集成 Defuddle 和高亮器，支持三端。
-  - [aw-watcher-web](https://github.com/ActivityWatch/aw-watcher-web)：heartbeat 计时模型。
-  - [Memex](https://github.com/WorldBrain/Memex)：高亮与全文索引。
-  - [promnesia](https://github.com/karlicoss/promnesia)：多源索引思路。
+### 1. 浏览器：有效停留 + 正文提取
+- **三层正交门控判定真实阅读**：必须同时满足以下条件才累加 **有效停留时长（Effective Dwell Time）**，并结合滚动深度与键鼠微动验证：
+  1. `document.visibilityState`：当前标签页处于可见前台；
+  2. `chrome.windows.onFocusChanged`：浏览器窗口处于操作系统前台焦点（不为 `WINDOW_ID_NONE`）；
+  3. `chrome.idle`：用户处于活跃状态（最小阈值 15 秒）。
+- **正文提取（Noise Removal）**：在 content script 中优先运行 [Defuddle](https://github.com/kepano/defuddle)（专为现代页面设计，直接转清洁 Markdown、保留代码与公式），异常或老页面以 [Mozilla Readability](https://github.com/mozilla/readability) 作为 fallback。
+- **微交互与注意力权重（可调初始公式）**：
+  - 监听 `selectionchange` 与 `copy` 事件（高亮锚定可参考 W3C Web Annotation `TextQuote`）。
+  - 注意力打分公式：`log(1 + 有效停留秒) × 滚动深度系数 + 3×选中 + 5×复制 + 8×高亮 + 2×7天内回访 + 搜索来源加权`。
+  - **短时降噪原则**：有效停留不足 `10 秒` 且无任何交互时，仅记录 URL，绝不触发全文抓取。
+- **MV3 工程坑与应对**：Chrome MV3 Service Worker 在无事件 `30 秒` 后会休眠，`setTimeout` 不可靠——计时应放在 content script 或 `chrome.storage.session`，并通过 Native Messaging 推给本地 daemon。
+- **隐私红线**：自动排除隐身窗口与银行 / 医疗 / 邮箱域名；自动剥除 URL 中的 `token`、`code`、`session` 等查询参数；支持域名白名单。
+- **工程参考**：[obsidian-clipper](https://github.com/obsidianmd/obsidian-clipper) · [aw-watcher-web](https://github.com/ActivityWatch/aw-watcher-web) · [Memex](https://github.com/WorldBrain/Memex) · [promnesia](https://github.com/karlicoss/promnesia)。
 
-## 2. 剪切板 + 来源 App（macOS 优先）
+### 2. 剪贴板 + 来源 App（macOS 优先）
+- **采集方式**：每 `500ms` 轮询 `NSPasteboard.general.changeCount`；内容变化时结合 `NSWorkspace.frontmostApplication` 与 Accessibility (AX) API 捕获前台窗口标题（参考 MIT 协议开源项目 [Maccy](https://github.com/p0deje/Maccy)）。
+- **重要性提权信号**：复制后 N 秒内立刻切换至其他 App（跨应用粘贴）、来自浏览器或 PDF 等阅读型软件、短时重复复制同一段内容、粘贴目标属于 AI 聊天窗 / IDE / 终端时，自动提高权重。
 
-- **采集方式**：每 500ms 轮询一次 `NSPasteboard.general.changeCount`；内容变化时读取 `NSWorkspace.frontmostApplication`，并通过 Accessibility（AX）API 取窗口标题。参考 [Maccy](https://github.com/p0deje/Maccy)（MIT）。
-- **macOS 15.4+ 剪切板隐私**：
-  - 新增 `NSPasteboard.accessBehavior` 和 `detect*` 方法（只判断类型、不读取内容，不会弹窗）。
-  - 程序化读取会触发系统提示，需要用户把本应用设为"允许"。
-  - **macOS 26 是否默认强制执行这一限制：未核实。**
-- **重要性信号**：复制后 N 秒内切换到其他 App（跨应用粘贴）、来源是浏览器或 PDF 等阅读型应用、同一内容重复复制、粘贴目标是 AI 聊天 / IDE / 终端，这些情况都应提高权重。
-- **隐私**：
-  - 遵守 nspasteboard.org 约定：跳过 `ConcealedType`、`TransientType`、`AutoGeneratedType`（1Password、Bitwarden 会打上这些标记）。
-  - 默认排除密码管理器。
-  - 用正则加熵值检测密钥（参考 gitleaks 的规则）。
-  - 设置保留期限（TTL），本地加密存储。
-- **其他平台**：
-  - Windows：用 `AddClipboardFormatListener` 事件驱动，并遵守 `ExcludeClipboardContentFromMonitorProcessing` 标记。
-  - Linux Wayland：GNOME 不支持 data-control 协议，没有标准采集途径。
+> [!WARNING]
+> **macOS 15.4+ 剪贴板隐私与秘密隔离红线**
+> - Apple 引入了 `NSPasteboard.accessBehavior` 及仅查类型的 `detect*` 方法（不读正文、不触发弹窗）；程序化直接读取会触发系统权限确认，须正当引导用户在设置中设为“允许”。（*注：`macOS 26` 是否默认强制执行该弹窗仍待实机核实。*）
+> - **敏感跳过规则（物理零落盘）**：强制遵守 `nspasteboard.org` 约定跳过 `ConcealedType` / `TransientType` / `AutoGeneratedType`；默认排除所有密码管理器；配合规则与高熵检测拦截密钥（参考 `gitleaks`）；设置本地保留期限（TTL）与加密选项。
 
-## 3. AI 对话历史
+- **跨平台备注**：Windows 使用事件驱动 `AddClipboardFormatListener` 并遵守 `ExcludeClipboardContentFromMonitorProcessing`；Linux Wayland 上 GNOME 默认不支持 data-control 协议，尚无通用标准路径。
 
-- **Claude Code**：`~/.claude/projects/<编码后的路径>/<session>.jsonl`，纯 JSONL，最容易接入。
-- **Cursor**：`~/Library/Application Support/Cursor/User/globalStorage/state.vscdb`（SQLite，`cursorDiskKV` 表）。schema 会随版本变化，必须以只读方式打开。
-- **ChatGPT / Claude.ai / Gemini**：使用官方导出文件（ChatGPT 是 `conversations.json`，Gemini 走 Google Takeout）。
+### 3. AI 对话历史（天然高密度思考流）
+- **Claude Code**：直接读取 `~/.claude/projects/<编码后的路径>/<session>.jsonl`，原生纯 JSONL 格式，最易无缝接入。
+- **Cursor**：只读打开 `~/Library/Application Support/Cursor/User/globalStorage/state.vscdb`（SQLite，`cursorDiskKV` 表；因 schema 随版本演化，务必保持只读访问）。
+- **ChatGPT / Claude.ai / Gemini**：消费官方标准导出包（如 ChatGPT `conversations.json`、Google Takeout）。
 
-## 4. 窗口焦点时间线
+### 4. 窗口焦点时间线（时间骨架）
+- **采集策略**：macOS 监听 `NSWorkspace.didActivateApplicationNotification` + AX 读窗口标题（避免使用需录屏权限的 `CGWindowList`）；Windows 使用 `SetWinEventHook(EVENT_SYSTEM_FOREGROUND)`。
+- **降噪三件套**：用 **Heartbeat** 合并连续相同事件；焦点停留不足约 `3 秒` 直接丢弃；正则洗掉标题动态角标如 `(3) Slack`。
+- **MVP 极简路线**：先直接通过 `localhost:5600` API 拉取 [ActivityWatch](https://github.com/ActivityWatch/activitywatch) 现成时间线（约 `2 人日`），跑通验证后再决定是否自研替代。
 
-- **采集方式**：
-  - macOS：用 `NSWorkspace.didActivateApplicationNotification` 监听应用切换，用 AX 读取窗口标题（需要辅助功能权限）。不推荐 `CGWindowList`，因为它需要屏幕录制权限。
-  - Windows：`SetWinEventHook(EVENT_SYSTEM_FOREGROUND)`。
-- **降噪**：
-  - 用 heartbeat 合并相邻的重复事件；
-  - 焦点停留不足约 3 秒的丢弃；
-  - 用正则清洗标题中的未读数，例如"(3) Slack"。
-- **MVP 建议**：先直接读取 [ActivityWatch](https://github.com/ActivityWatch/activitywatch) 的 `localhost:5600` API（约 2 人日），验证有效后再决定是否自研。
+### 5. 移动端外延信号（Android & iOS）
+- **Android 通知**：通过官方 `NotificationListenerService` 读取 `title / text / bigText`（Android 15 起系统自动隐藏 OTP 验证码反而更安全），建议走 F-Droid 或 GitHub 侧载分发。
+- **Android 剪贴板**：Android 10+ 限制后台读取；推荐无障碍外最稳入口——系统分享菜单 / `ACTION_PROCESS_TEXT`（零额外权限且意图明确），避免滥用易遭商店拒审的 `AccessibilityService`。
+- **iOS**：受系统后台策略限制，只适合通过 **Share Extension** 与 **快捷指令（Shortcuts / App Intents）** 主动推送补充上下文（Screen Time 原始数据无法导出）。
 
-## 5. 移动端
-
-- **Android 通知**：通过 `NotificationListenerService` 读取 title、text、bigText，需要用户手动授予通知使用权。Android 15 起，系统会自动脱敏 OTP 类通知，这对本项目反而是好事。建议通过 F-Droid 或 GitHub 侧载分发。
-- **Android 剪切板**：Android 10+ 只允许前台应用或默认输入法读取剪切板。推荐的采集入口是系统分享菜单 / `ACTION_PROCESS_TEXT`：零权限，且用户意图最明确。不推荐用 AccessibilityService，Google Play 对它有严格限制。
-- **iOS**：无法在后台常驻采集。可行的入口只有 Share Extension 和快捷指令 / App Intents；Screen Time 的原始数据无法导出。
-
-## 6. 屏幕 OCR（对照组）
-
-- 覆盖面最广，但大部分内容只是"看到过"，并不是用户"在意"的。
-- [screenpipe](https://github.com/screenpipe/screenpipe) 已改为 Screenpipe Commercial License；[openrecall](https://github.com/openrecall/openrecall) 是 AGPL-3.0。
-- **结论**：不做全时录屏。最多在用户复制或切换窗口时，按需抓取一次焦点窗口的 AX 文本。
-
-## 7. IM 的合规边界
-
-- **飞书**：有官方 OpenAPI，合规可行（本机已装的 lark-cli 可以直接用作原型）。
-- **微信**：本地库经过加密，社区解密工具已遭腾讯 DMCA 大规模下架。开源项目**不内置解密**，最多支持用户自行导出的文件，或经由 Android 通知渠道获取。
+### 6. 屏幕 OCR（对照组边界）与 IM 合规边界
+- **屏幕 OCR**：[screenpipe](https://github.com/screenpipe/screenpipe) 已改为商用许可（Screenpipe Commercial License）；[openrecall](https://github.com/openrecall/openrecall) 为 AGPL-3.0。结论：**不做 24/7 全时录屏**，至多在用户触发复制或切窗瞬间按需读取焦点窗口一次文本。
+- **IM 边界**：飞书具备合规官方 OpenAPI（可用本机已配的 `lark-cli` 做原型）；**微信禁止内置库解密**（DMCA 风险极高），只支持官方自行导出包或 Android 通知摘要。
 
 ---
 
-## 待核实
+## 四、 待核实清单（发布前逐项确认）
 
-1. macOS 26 是否默认强制执行剪切板隐私弹窗。
-2. 各项目的 star 数与最近活跃时间（Defuddle 的 star 数尤其可疑）。
-3. Shizuku 剪切板相关项目（Rian-yes/Clipboard-Manager 等）是否真实存在、能否使用。
-4. Chrome History 数据库中 `visit_duration` 字段的准确度。
+1. `macOS 26` 是否默认强制执行剪贴板隐私读取弹窗。
+2. 文档内先驱开源项目当前精确 GitHub star 数与活跃维护状态（尤其 `Defuddle` 量级差异）。
+3. 基于 Shizuku 的 Android 剪贴板工具（如 `Rian-yes/Clipboard-Manager` 等）最新可用性与实际兼容版本。
+4. Chrome 历史 SQLite 数据库中 `visit_duration` 字段在多标签/休眠下的准确度偏差。
