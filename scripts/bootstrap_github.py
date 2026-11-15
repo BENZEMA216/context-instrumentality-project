@@ -151,7 +151,7 @@ def format_issue_body(issue: dict[str, Any], issue_numbers: dict[str, int]) -> s
         rendered_deps = "None"
 
     meta_block = (
-        "<!-- open-context-managed -->\n"
+        "<!-- context-instrumentality-managed -->\n"
         "| Track ID | Module | Priority | Effort | Depends On |\n"
         "| :--- | :--- | :--- | :--- | :--- |\n"
         f"| `{issue['id']}` | `{issue['module']}` | `{issue['priority']}` | `{issue['effort']}` | {rendered_deps} |\n\n"
@@ -394,7 +394,7 @@ def sync_issues(
 def build_parser() -> argparse.ArgumentParser:
     """Create CLI argument parser."""
     parser = argparse.ArgumentParser(
-        description="Idempotently import Open Context labels, milestones, issues, and Project V2 items via gh CLI."
+        description="Idempotently import Context Instrumentality Project labels, milestones, issues, and Project V2 items via gh CLI."
     )
     parser.add_argument("--plan", type=Path, default=DEFAULT_PLAN_PATH, help="Path to issues.json plan file.")
     parser.add_argument("--repo", help="Target GitHub repository in OWNER/REPO format.")

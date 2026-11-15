@@ -1,20 +1,20 @@
 # GitHub Projects 看板搭建与批量导入指南
 
-本指南帮助你用 **GitHub 原生 Projects (V2) + Milestones + Issues** 把 `open-context` 的研发与社区协作跑起来。
+本指南帮助你用 **GitHub 原生 Projects (V2) + Milestones + Issues** 把 `context-instrumentality-project` 的研发与社区协作跑起来。
 
 ---
 
 ## 第一步：创建 GitHub 仓库与本地绑定
 
-1. 在 GitHub 上创建一个新仓库（例如 `<OWNER>/open-context`）。
-2. 将当前 `open-context/` 目录初始化并推送到 GitHub：
+1. 在 GitHub 上创建一个新仓库（例如 `<OWNER>/context-instrumentality-project`）。
+2. 将当前 `context-instrumentality-project/` 目录初始化并推送到 GitHub：
 
 ```bash
-cd open-context
+cd context-instrumentality-project
 git init -b main
 git add .
-git commit -m "chore: bootstrap open-context roadmap, issue templates, and project setup"
-git remote add origin https://github.com/<OWNER>/open-context.git
+git commit -m "chore: bootstrap context-instrumentality-project roadmap, issue templates, and project setup"
+git remote add origin https://github.com/<OWNER>/context-instrumentality-project.git
 git push -u origin main
 ```
 
@@ -58,7 +58,7 @@ python3 scripts/bootstrap_github.py --validate-only
 
 # 预演将要执行的 gh 命令（不修改任何 GitHub 远端数据）
 python3 scripts/bootstrap_github.py \
-  --repo <OWNER>/open-context \
+  --repo <OWNER>/context-instrumentality-project \
   --project-number 1 \
   --project-owner <OWNER> \
   --dry-run
@@ -68,7 +68,7 @@ python3 scripts/bootstrap_github.py \
 
 ```bash
 python3 scripts/bootstrap_github.py \
-  --repo <OWNER>/open-context \
+  --repo <OWNER>/context-instrumentality-project \
   --project-number 1 \
   --project-owner <OWNER>
 ```

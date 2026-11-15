@@ -1,4 +1,6 @@
-# Context Completion · 开源 Agent Context 补全计划
+<p align="center"><img src="assets/eva-context-banner.png" alt="CONTEXT 补全计划 · The Context Instrumentality Project" width="100%" /></p>
+
+# Context 补全计划 · Context Instrumentality Project
 
 把 Agent 原本拿不到的个人 Context（语音、剪切板、浏览、AI 对话……）补给它。本地优先，开源。
 

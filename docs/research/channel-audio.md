@@ -5,7 +5,7 @@
 ## 结论（TL;DR）
 
 - **接入方式**：首选在 Mac 上只读访问 AgentBridge 的 `library.sqlite3`（也可以直接 import `library.Library`）。这条路径的字段最完整，含位置和时区，而且是纯本地，不需要网络和 OAuth。增量同步有两种做法：消费 `recordings.available` 事件（eventID 是确定性的，可直接作幂等键），或者用 `started_at,id` 游标扫描，再加上对转写表的监听。
-- **不要重复造 MCP**：record-for-agent 仓库里已经有 4 个 MCP server，工具名彼此重叠。open-context 应作为**聚合层**：读取本地库或事件，对外暴露跨渠道视图；音频工具要么不重复暴露，要么加命名空间前缀（如 `audio.*`）。
+- **不要重复造 MCP**：record-for-agent 仓库里已经有 4 个 MCP server，工具名彼此重叠。`context-instrumentality-project` 应作为**聚合层**：读取本地库或事件，对外暴露跨渠道视图；音频工具要么不重复暴露，要么加命名空间前缀（如 `audio.*`）。
 - **对整合层影响最大的几个缺口**：
   1. 没有说话人分离；
   2. 没有设备 ID；

@@ -5,7 +5,7 @@
 ## 结论（TL;DR）
 
 - **首选接入方式**：直接读取用户授权导出的本机快照 `clipboard.json`（默认位于 `~/Library/Application Support/ClipContext/Agent/clipboard.json`），或复用意图清晰的增量模型（`revision` + 条目 SHA-256 指纹），与 `Agent/clipcontext-digest.py` 一致。
-- **不重复造 MCP**：`Agent/clipcontext-mcp.py` 已暴露只读工具 `recent`、`search`、`get`。`open-context/hub` 应作为跨渠道聚合层消费快照或变更，不重复暴露单渠道剪切板工具。
+- **不重复造 MCP**：`Agent/clipcontext-mcp.py` 已暴露只读工具 `recent`、`search`、`get`。`context-instrumentality-project/hub` 应作为跨渠道聚合层消费快照或变更，不重复暴露单渠道剪切板工具。
 - **核心缺口**：目前仅记录来源 `application`（Bundle ID），缺少复制时刻的前台**窗口标题**、**浏览器 URL**（从浏览器复制时）以及**粘贴目标 App**。
 
 ## 1. 架构与数据流

@@ -38,7 +38,7 @@
       "effort": "S",
       "labels": ["area:channels", "type:research", "prio:P0"],
       "depends_on": ["R-01"],
-      "body": "## 目标\n梳理 record-for-agent 的录音 / 分段 / 转写数据模型、AgentBridge 与 AgentGateway 的接口，确定 open-context 最稳定的接入方式，避免重复实现 MCP。\n\n## 交付\n- `docs/research/channel-audio.md`\n\n## 验收\n- [ ] 字段到统一事件模型的映射表\n- [ ] 列出缺口（如说话人区分、语言、逐句时间戳）"
+      "body": "## 目标\n梳理 record-for-agent 的录音 / 分段 / 转写数据模型、AgentBridge 与 AgentGateway 的接口，确定 Context 补全计划（context-instrumentality-project） 最稳定的接入方式，避免重复实现 MCP。\n\n## 交付\n- `docs/research/channel-audio.md`\n\n## 验收\n- [ ] 字段到统一事件模型的映射表\n- [ ] 列出缺口（如说话人区分、语言、逐句时间戳）"
     },
     {
       "id": "R-03",
@@ -104,7 +104,7 @@
       "effort": "M",
       "labels": ["area:integration", "type:rfc", "prio:P0"],
       "depends_on": ["R-02", "R-03", "R-04", "R-06", "R-07"],
-      "body": "## 目标\n在渠道研究与已有方案对比的基础上，提出 open-context 的整合方法：\n- 统一事件模型（字段、时间、溯源、隐私分级）\n- 分层整合：原始事件日志 → Episode → 实体 / 事实 → 面向 Agent 的视图\n- 跨渠道关联方法（时间窗、锚点、语义相似度）\n- 时间有效性与冲突处理\n- 面向 Agent 的暴露方式（MCP tools / resources）\n\n## 交付\n- `docs/rfc/0001-context-integration.md`\n\n## 验收\n- [ ] 用至少 3 个真实（脱敏）跨渠道场景走查方案"
+      "body": "## 目标\n在渠道研究与已有方案对比的基础上，提出 Context 补全计划（context-instrumentality-project） 的整合方法：\n- 统一事件模型（字段、时间、溯源、隐私分级）\n- 分层整合：原始事件日志 → Episode → 实体 / 事实 → 面向 Agent 的视图\n- 跨渠道关联方法（时间窗、锚点、语义相似度）\n- 时间有效性与冲突处理\n- 面向 Agent 的暴露方式（MCP tools / resources）\n\n## 交付\n- `docs/rfc/0001-context-integration.md`\n\n## 验收\n- [ ] 用至少 3 个真实（脱敏）跨渠道场景走查方案"
     },
     {
       "id": "R-09",
@@ -126,7 +126,7 @@
       "effort": "S",
       "labels": ["area:oss", "type:research", "prio:P1", "privacy-critical"],
       "depends_on": [],
-      "body": "## 目标\n- 检查 open-context 名称是否与已有项目冲突，必要时给出备选名\n- 选择许可证（并确认与 record-for-agent 的许可证关系）\n- 起草隐私原则（本地优先、默认不采集、可审计、可删除）\n\n## 交付\n- `docs/oss-readiness.md`"
+      "body": "## 目标\n- 检查 Context 补全计划（context-instrumentality-project） 名称是否与已有项目冲突，必要时给出备选名\n- 选择许可证（并确认与 record-for-agent 的许可证关系）\n- 起草隐私原则（本地优先、默认不采集、可审计、可删除）\n\n## 交付\n- `docs/oss-readiness.md`"
     }
   ]
 }

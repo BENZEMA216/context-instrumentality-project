@@ -74,7 +74,7 @@ def test_dry_run_makes_no_subprocess_calls(capsys: pytest.CaptureFixture[str]) -
     exit_code = bootstrap_github.main(
         [
             "--repo",
-            "BENZEMA216/open-context",
+            "BENZEMA216/context-instrumentality-project",
             "--project-number",
             "1",
             "--milestone",
