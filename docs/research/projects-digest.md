@@ -1,4 +1,4 @@
-[🏠 首页索引](../../README.md) ｜ [📡 采集渠道调研](channels.md) ｜ [🧩 整合方法与架构](integration-methods.md) ｜ **📦 开源项目精读（本文）** ｜ [📄 论文与博客精读](papers-blogs-digest.md) ｜ [🎙️ 音频通道](channel-audio.md) ｜ [📋 剪切板通道](channel-clipboard.md)
+[🏠 首页索引](../../README.md) ｜ [📡 采集渠道调研](channels.md) ｜ [🧩 整合方法与架构](integration-methods.md) ｜ **📦 开源项目精读（本文）** ｜ [📄 论文与博客精读](papers-blogs-digest.md) ｜ [💡 启发与格式设计](design-reflections.md) ｜ [🎙️ 音频通道](channel-audio.md) ｜ [📋 剪切板通道](channel-clipboard.md)
 
 # 开源项目四维精读归档（24 项）
 
@@ -39,6 +39,11 @@
 - **4. 对「Context 补全计划」的提示与指示**：
   1. **把 `locator` 设为所有 `L0/L1` 事件的必填字段**：例如音频时间戳区间、规范化网页 URL 或本地文件行号，**绝不“只留摘要丢出处”**。
   2. **尽早做 URL 归一化**：剪贴板复制的 URL 与浏览器访问的 URL 必须去追踪参数、归一化处理，才能用零算力精准合流。
+
+> [!IMPORTANT]
+> **⭐ 重点收录：我们的深度思考与格式演进**
+> - **保留发扬的两个核心价值**：① 根据停留/滚动/选中/复制/高亮信号**按算法自动收藏与分级整理** browsed 网页（`transient` / `auto_curated` / `pinned`），告别手动书签负担；② 延续其**浏览器侧边栏原位叠加层**体验，升级为兼顾“触发前因 + 本页自动整理 + 同工作流关联”的双向面板。
+> - **补齐的关键缺失**：Promnesia 只记录孤立的 `Visit(norm_url, dt, context, locator)`，缺少网页浏览在**整体用户行为流（trigger → attention/curation → curated_content → follow_up_actions）**中的表达。我们已采纳并推演了兼容扩展 format `WebBehaviorContextEvent` —— 详见 [第 01 号格式设计推演 · design-reflections.md](design-reflections.md) 与 [schema/context-event.schema.json](../../schema/context-event.schema.json)。
 
 ---
 

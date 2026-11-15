@@ -23,7 +23,20 @@
         "title": {"type": "string"},
         "url_norm": {"type": "string"},
         "lang": {"type": "string"},
-        "content_hash": {"type": "string"}
+        "content_hash": {"type": "string"},
+        "summary": {"type": "string", "description": "Auto-curated concise summary"},
+        "excerpts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["text"],
+            "properties": {
+              "text": {"type": "string"},
+              "locator": {"type": "string"},
+              "note": {"type": "string"}
+            }
+          }
+        }
       }
     },
     "context": {
@@ -33,11 +46,33 @@
         "window_title": {"type": "string"},
         "dwell_ms": {"type": "integer", "minimum": 0},
         "scroll_depth": {"type": "number", "minimum": 0, "maximum": 1},
-        "afk": {"type": "boolean"}
+        "afk": {"type": "boolean"},
+        "curation_tier": {"enum": ["transient", "auto_curated", "pinned"]},
+        "interactions": {
+          "type": "object",
+          "properties": {
+            "selection_count": {"type": "integer", "minimum": 0},
+            "copy_count": {"type": "integer", "minimum": 0},
+            "highlight_count": {"type": "integer", "minimum": 0}
+          }
+        }
       }
     },
     "anchors": {"type": "array", "items": {"type": "string"}},
     "attention": {"type": "number", "minimum": 0, "maximum": 1},
+    "episode_id": {"type": "string", "description": "Optional behavior episode / workflow identifier"},
+    "links": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["target_id", "relation"],
+        "properties": {
+          "target_id": {"type": "string"},
+          "relation": {"type": "string", "description": "triggered_by | copied_to | discussed_in | same_anchor ..."},
+          "confidence": {"type": "number", "minimum": 0, "maximum": 1}
+        }
+      }
+    },
     "provenance": {
       "type": "object",
       "required": ["connector", "source_id"],

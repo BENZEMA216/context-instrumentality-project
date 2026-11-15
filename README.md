@@ -2,7 +2,7 @@
   <img src="assets/eva-context-banner.png" alt="CONTEXT 补全计划 · The Context Instrumentality Project" width="100%" />
 </p>
 
-[🏠 首页索引（当前页）](#context-补全计划--the-context-instrumentality-project) ｜ [📡 采集渠道调研](docs/research/channels.md) ｜ [🧩 整合方法与架构](docs/research/integration-methods.md) ｜ [📦 开源项目精读 (24)](docs/research/projects-digest.md) ｜ [📄 论文与博客精读 (22)](docs/research/papers-blogs-digest.md) ｜ [🎙️ 音频通道](docs/research/channel-audio.md) ｜ [📋 剪切板通道](docs/research/channel-clipboard.md)
+[🏠 首页索引（当前页）](#context-补全计划--the-context-instrumentality-project) ｜ [📡 采集渠道调研](docs/research/channels.md) ｜ [🧩 整合方法与架构](docs/research/integration-methods.md) ｜ [📦 开源项目精读 (24)](docs/research/projects-digest.md) ｜ [📄 论文与博客精读 (22)](docs/research/papers-blogs-digest.md) ｜ [💡 启发与格式设计](docs/research/design-reflections.md) ｜ [🎙️ 音频通道](docs/research/channel-audio.md) ｜ [📋 剪切板通道](docs/research/channel-clipboard.md)
 
 # Context 补全计划 · The Context Instrumentality Project
 
@@ -42,6 +42,7 @@
 
 | 专题文档 | 里面有什么 | 最适合谁读 |
 | :--- | :--- | :--- |
+| [重点项目启发与格式设计 · design-reflections.md](docs/research/design-reflections.md) | 对高启发开源项目的**深度吸收、缺失剖析与统一格式演进草案**（含 #01 Promnesia 与 `WebBehaviorContextEvent`） | 想看先驱优点如何转化为统一事件结构与 UI/Agent 消费闭环 |
 | [开源项目四维精读 · projects-digest.md](docs/research/projects-digest.md) | **24 项** 开源项目的完整四维卡片分析（无折叠独立文档版） | 想离线/打印逐一横向比较竞品源码思路 |
 | [论文与博客四维精读 · papers-blogs-digest.md](docs/research/papers-blogs-digest.md) | **16 篇论文 + 6 篇工程报告/规范** 的大白话四维精读版 | 想查证顶会实验结论、避坑依据与规范出处 |
 | [12 条采集渠道优先级对比 · channels.md](docs/research/channels.md) | 语音 / 浏览 / 剪贴板 / AI 对话 / 窗口 / Shell / 手机 / IM 评估、工作量与红线 | 想决定下一批先写哪个采集器 |
@@ -64,7 +65,7 @@
 
 | # | 项目 | 一句话看懂它解决什么问题 | 对本项目的核心启发 |
 | :---: | :--- | :--- | :--- |
-| 1 | **[Promnesia](https://github.com/karlicoss/promnesia)** | 重访网页时自动从侧边栏浮现以前在哪里聊过/记过这个链接 | 每条事件必须保留能跳回源文件的 **`locator` 定位符** + **URL 归一化** |
+| 1 | ⭐ 重点收录 **[Promnesia](https://github.com/karlicoss/promnesia)** | 重访网页时自动从侧边栏浮现以前在哪里聊过/记过这个链接 | 每条事件保留 `locator` + URL 归一化；进一步启发我们设计**算法自动收藏整理 + 浏览器双向上下文侧边栏 + 整体行为流 `WebBehaviorContextEvent` 格式**（[第 01 号格式演进推演](docs/research/design-reflections.md)） |
 | 2 | **[HPI](https://github.com/karlicoss/HPI)** | 把各平台混乱的数据导出格式翻译为统一 Python 调用接口 | 确立 **`L0` 原始导出不可变落盘 + `L1` 统一抽象**，换模型可随时重算 |
 | 3 | **[Timelinize](https://github.com/timelinize/timelinize)** | 把照片、位置、消息导入本地画成可离线回放的人生时间轴 | **UTC 时间轴是全渠道公共主键**，并须留好实时与历史批导入双入口 |
 | 4 | **[Dogsheep](https://dogsheep.github.io/)** | 用微型 CLI 采集器把各方数据倒进单文件 SQLite 个人数据仓库 | 提示可重点评估的轻量化底座：**SQLite + FTS5**，单机零运维即跑 |
@@ -88,6 +89,11 @@
 - **4. 对「Context 补全计划」的提示与指示**：
   1. **把 `locator` 设为所有 `L0/L1` 事件的必填字段**：例如音频时间戳区间、规范化网页 URL 或本地文件行号，**绝不“只留摘要丢出处”**。
   2. **尽早做 URL 归一化**：剪贴板复制的 URL 与浏览器访问的 URL 必须去追踪参数、归一化处理，才能用零算力精准合流。
+
+> [!IMPORTANT]
+> **⭐ 重点收录：我们的深度思考与格式演进**
+> - **保留发扬的两个核心价值**：① 基于停留/滚动/选中/复制/高亮信号，按算法对浏览网页**自动收藏、整理摘要与分级沉淀**（`transient` / `auto_curated` / `pinned`）；② 延续其**浏览器侧边栏原位叠加层**体验，升级为兼顾“触发前因 + 本页自动整理 + 同工作流关联”的双向面板。
+> - **补齐的关键缺失**：Promnesia 只存孤立的 `Visit(norm_url, dt, context, locator)`，缺少网页阅读在**整体用户行为流**中的上下游位置；我们已基于此推演 `WebBehaviorContextEvent` 格式并兼容扩展至根 Schema —— 详见 [design-reflections.md](docs/research/design-reflections.md) 与 [context-event.schema.json](schema/context-event.schema.json)。
 
 #### 2.1.2 HPI · Human Programming Interface (karlicoss/HPI) — 个人数据统一接口适配层
 > **一句话看懂**：把微信、浏览器、Kindle、GitHub 等五花八门的导出格式，统一翻译成一套干净的 Python 调用接口。 ｜ **仓库**：https://github.com/karlicoss/HPI
