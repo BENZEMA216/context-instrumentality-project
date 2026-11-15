@@ -6,29 +6,8 @@
 
 # Context 补全计划 · The Context Instrumentality Project
 
-> **研究型开源基座：在写重型代码前，先用 46 项一线调研搞清楚“个人上下文为什么难整合、该采什么、怎么防腐化”**  
-> 本页既是**项目首页导览**，也是**可直接阅读学习的完整四维精读手册**——默认折叠长文、保留速查总表与“抄作业小结”；想深入哪一组，随手点开折叠块即可原地精读。
-
----
-
-## 💡 30 秒读懂：我们在做什么？
-
-想象一个每天都在发生的真实场景：
-
-> 上午 10:00，你在走廊戴着手表和同事口头敲定了“接口改用异步队列”（**录音端 `record-for-agent` 记下语音**）；  
-> 10:25，你回到电脑前精读了一篇 `sherpa-onnx` 调试文档，顺手复制了一段终端报错（**浏览器阅读 + 剪贴板 `ClipContext` 记下片段**）；  
-> 10:40，你打开 Claude Code / Cursor 准备写代码——**但 AI 对刚才那 40 分钟一无所知**，你只能重新打一大段话当“人肉上下文搬运工”。
-
-这些被硬件、软件和隐私墙隔离在系统各处、**对当前工作至关重要却默认看不见的背景，就是 Dark Context（盲区上下文）**。  
-「**Context 补全计划**」不做又一个闭源聊天壳子，而是打造一套**本地优先、低噪音、跨渠道对齐**的个人上下文底层枢纽（`Local SQLite + Episode 时间轴 + MCP`），让任意接入的 AI Agent **按需、高信噪比地拿回来龙去脉**。
-
-### 核心结论先行（3 分钟速记版）
-
-| 维度 | 一句话大白话结论 | 背后的关键依据 |
-| :--- | :--- | :--- |
-| **为什么不能直接全量硬塞给 AI？** | 窗口再大也会 **“上下文腐烂（Context Rot）”**——塞进去的废话和过时旧事越多，模型反而越蠢；记忆的标准是**帮 Agent 做对下一步动作**。 | Chroma *Context Rot* · Anthropic *Context Engineering* · *From Memory to Action* |
-| **底层数据应该怎么分层存？** | **`L0/L1` 原始记录只增不删且带出处指针；`L2` 按自然场景切成情景片段；`L3` 状态知识必须记清楚“何时生效、何时作废”。** | *LifeDialBench* · *STALE* · *Episodic Memory* · *EST* / *EM-LLM* · *Zep/Graphiti* |
-| **第一批先接哪些真实数据流？** | 先拿下高意图的**手表/离线语音**与 **macOS 剪贴板**，配**三层有效停留过滤的网页正文**与桌面窗口骨架；**绕开全时截屏 OCR** 和高危私聊解密。 | `record-for-agent` · `ClipContext` · `nspasteboard.org` · `Defuddle` · `ActivityWatch` |
+> **探索与任务定义阶段 · 研究型开源归档库**  
+> 本项目目前仍处在**探索与任务定义阶段**，重点是先把问题边界搞清楚：收集并按四维结构拆解 **24 项代表性开源项目**、**16 篇学术论文与评测基准** 及 **6 篇工程博客与系统规范**，沉淀成方便查阅、对照与思考的首页学习索引，而非急于下最终技术定论。
 
 ---
 
@@ -36,7 +15,7 @@
 
 | 你的目标 | 建议时间 | 推荐读法 |
 | :--- | :---: | :--- |
-| **快速了解全貌** | 3 分钟 | 看完本页上方结论，顺着 [第二至四节](#二-开源项目分类索引与四维精读24-项) 每组的 **速查表 + `💡 我们的取舍`** 扫一遍 |
+| **快速了解调研全貌** | 3 分钟 | 顺着 [第二至四节](#二-开源项目分类索引与四维精读24-项) 每组的 **速查表 + `💡 本组研究启发`** 扫一遍 |
 | **逐个深度学习 46 项先驱/论文** | 20–40 分钟 | 在本页直接点开感兴趣的 `📖 点击展开本组完整四维精读`，或跳转纯长文归档：[projects-digest.md](docs/research/projects-digest.md) · [papers-blogs-digest.md](docs/research/papers-blogs-digest.md) |
 | **决定采集源与架构实现** | 15 分钟 | 依次精读 [渠道优先级对比](docs/research/channels.md) → [整合方法与架构选型](docs/research/integration-methods.md) → [RFC-0001](docs/rfc/0001-context-integration.md) |
 
@@ -77,7 +56,7 @@
 ## 二、 开源项目分类索引与四维精读（24 项）
 
 > [!NOTE]
-> **怎么读这一节？** 先看每个子分类的**速查表**和**💡 我们的取舍**（3 分钟拿走架构结论）；想看某项目的“问题 / 方法 / Before vs. After / 对本计划启示”细节，点击下方折叠栏原地展开，或前往 [projects-digest.md](docs/research/projects-digest.md) 阅读独立全文版。
+> **怎么读这一节？** 先看每个子分类的**速查表**和**💡 本组研究启发**（快速抓住值得关注的方向）；想看某项目的“问题 / 方法 / Before vs. After / 启发”细节，点击下方折叠栏原地展开，或前往 [projects-digest.md](docs/research/projects-digest.md) 阅读独立全文版。
 
 ### 2.1 个人数据统一与时间线归档（4 项）
 
@@ -88,9 +67,9 @@
 | 1 | **[Promnesia](https://github.com/karlicoss/promnesia)** | 重访网页时自动从侧边栏浮现以前在哪里聊过/记过这个链接 | 每条事件必须保留能跳回源文件的 **`locator` 定位符** + **URL 归一化** |
 | 2 | **[HPI](https://github.com/karlicoss/HPI)** | 把各平台混乱的数据导出格式翻译为统一 Python 调用接口 | 确立 **`L0` 原始导出不可变落盘 + `L1` 统一抽象**，换模型可随时重算 |
 | 3 | **[Timelinize](https://github.com/timelinize/timelinize)** | 把照片、位置、消息导入本地画成可离线回放的人生时间轴 | **UTC 时间轴是全渠道公共主键**，并须留好实时与历史批导入双入口 |
-| 4 | **[Dogsheep](https://dogsheep.github.io/)** | 用微型 CLI 采集器把各方数据倒进单文件 SQLite 个人数据仓库 | 拍板本项目 MVP 存储核心：**SQLite + FTS5**，单机零运维即跑 |
+| 4 | **[Dogsheep](https://dogsheep.github.io/)** | 用微型 CLI 采集器把各方数据倒进单文件 SQLite 个人数据仓库 | 提示可重点评估的轻量化底座：**SQLite + FTS5**，单机零运维即跑 |
 
-> 💡 **我们的取舍**：完全继承这组极客项目的**“Local-first + 原件不可变 + 单文件 SQLite + 可回跳溯源”**工程纪律；在此基础上补齐它们所缺的“实时环境音频/剪贴板流”与“面向 Agent 的 MCP 检索出口”。
+> 💡 **本组研究启发**：这组极客项目展示了**“Local-first + 原件不可变 + 单文件 SQLite + 可回跳溯源”**这条低维护路径的可行性；如果进一步定义个人上下文系统，还需思考它们较少涉及的“实时环境流接入”与“面向 Agent 的按需检索问题”。
 
 <details>
 <summary>📖 点击展开 2.1 全部 4 项完整四维精读（问题 / 方法 / Before vs. After / 启示）</summary>
@@ -176,7 +155,7 @@
 | 13 | **[Dawarich](https://github.com/Freika/dawarich)** | 自托管长期 GPS 轨迹 | 🔖 统一 Schema 预留可选 `location / place` 属性位，强化“时间+地点”回忆线索 |
 | 14 | **[FunASR](https://github.com/modelscope/FunASR) · [SenseVoice](https://github.com/FunAudioLLM/SenseVoice) · [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx)** | 全本地离线语音识别技术栈 | ✅ 补齐 `record-for-agent` 最后一环：全离线 VAD + 中英高精 ASR + 说话人区分，隐私录音零上传 |
 
-> 💡 **我们的取舍**：**优先深耕高信噪比、低功耗本地信道**——Phase 1 押注语音（`record-for-agent` + 离线语音栈）、macOS 剪贴板（`ClipContext`）、有效停留网页正文（`Defuddle/Readability`）及窗口骨架（`ActivityWatch`）；**明确拒绝以 24/7 全时截屏 OCR 为主路径**。
+> 💡 **本组研究启发**：这 10 个项目清晰暴露出两条截然不同的采集路线差异——**低功耗、高意图本地信道**（语音、macOS 剪贴板、有效停留网页正文、桌面窗口骨架）与 **24/7 全时截屏 OCR** 在信噪比、资源代价与许可边界上差距明显，如何划定主力信道与兜底边界是后续定义任务范围的重点。
 
 <details>
 <summary>📖 点击展开 2.2 全部 10 项完整四维精读（问题 / 方法 / Before vs. After / 启示）</summary>
@@ -341,9 +320,9 @@
 | 16 | **[Graphiti](https://github.com/getzep/graphiti)** | 带**双时间轴**的动态知识图谱，冲突时闭废旧边不删除 | 确立 `L3` 知识演进规则：事实边带 `valid_at / invalid_at` + **BM25+向量+图混合召回** |
 | 17 | **[Mem0](https://github.com/mem0ai/mem0)** (+ Chrome Ext) | `ADD/UPDATE/DELETE` 压缩核心事实 + 浏览器跨 AI 注入 | 验证“个人记忆跨平台共享”高价值；但 `DELETE` 绝不可直接销毁 `L0/L1` 原事件 |
 | 18 | **[Letta](https://github.com/letta-ai/letta)** | 把 OS 分页内存（Core / Recall / Archival）交给 Agent 自管理 | 我们专注做好底层的 **`Recall & Archival` MCP 工具** + 学习其夜间异步整理 |
-| 19 | **[cognee](https://github.com/topoteretes/cognee)** | 异步 `ECL` 管线同时驱动图数据库与向量语义库 | 坚决实行 **“实时轻采集”与“后台异步慢认知（Cognify）”彻底解耦** |
+| 19 | **[cognee](https://github.com/topoteretes/cognee)** | 异步 `ECL` 管线同时驱动图数据库与向量语义库 | 启发一种设计思路：**“实时轻采集”与“后台异步慢认知（Cognify）”或许需要彻底解耦** |
 
-> 💡 **我们的取舍**：**博采五家之长、避其前提盲区**——这些优秀引擎大多假定“输入已经是干净对话文本”，缺少物理世界端侧采集；因此本项目**专攻上游真实高信噪比采集与事件聚合，下游复用其分层渐进加载 + 双时序冲突标废 + 后台异步认知思路**。
+> 💡 **本组研究启发**：这些记忆基础设施大多假定“输入已经是干净对话文本”，较少直接面对物理世界端侧高噪信号；如何把**上游真实感官采集与事件聚合**同下游**分层渐进加载 + 双时序演进 + 后台异步整理**衔接起来，是当前值得继续探索的关键拼图。
 
 <details>
 <summary>📖 点击展开 2.3 全部 5 项完整四维精读（问题 / 方法 / Before vs. After / 启示）</summary>
@@ -435,10 +414,10 @@
 | 20 | **[MineContext](https://github.com/volcengine/MineContext)** | 不等你问，后台看懂全天桌面活动后主动生成日报与待办 | **每日简报 + 漏项提醒** 是绝佳 `L4` 出口，但须建在低噪信道上 |
 | 21 | **[Khoj](https://github.com/khoj-ai/khoj)** | 私有本地文档检索 + 多客户端接入 + 定时自动研究任务 | 学习其 **Nightly Synthesis（夜间批巩固）** 折叠全天流水账 |
 | 22 | **[Second-Me](https://github.com/mindverse/Second-Me)** | 个人分层记忆建模 + 微调本地模型形成私有“数字分身” | **确立阶段边界**：近期工作记忆坚决走检索，不急于早早微调权重 |
-| 23 | **[personal-ai-memory](https://github.com/marswangyang/personal-ai-memory)** | 极轻量 Chrome 浏览轨迹接入私有本地记忆的小闭环 | 警惕重依赖劝退用户——MVP 必须 **单机 5 分钟零集群跑通** |
+| 23 | **[personal-ai-memory](https://github.com/marswangyang/personal-ai-memory)** | 极轻量 Chrome 浏览轨迹接入私有本地记忆的小闭环 | 提示一条产品现实：如果无法**单机五分钟轻量跑通**，重依赖很容易劝退个人使用者 |
 | 24 | **[web-recap](https://github.com/robzolkos/web-recap) & [Reading-Watch-List](https://github.com/swetas7/Reading-Watch-List-Extension-Local-LLM)** | 汇总浏览与待读文章，直接喂给本地 Ollama 自动摘要 | **用本地小模型做网页初筛与两句摘要**，零云端成本且保护隐私 |
 
-> 💡 **我们的取舍**：**克制与渐进**——开箱门槛控制在五分钟（单机 SQLite），先让检索和日常工作接通；每日合成摘要交由**夜间异步巩固 + 本地小模型**低成本跑通，暂不盲目走权重微调路线。
+> 💡 **本组研究启发**：从上层应用形态看，轻量部署门槛、夜间异步合成摘要与本地小模型降噪展现了明确方向；至于具体是先走检索辅助还是后续结合微调偏好建模，仍有待结合实际使用场景继续验证与界定。
 
 <details>
 <summary>📖 点击展开 2.4 全部 5 项完整四维精读（问题 / 方法 / Before vs. After / 启示）</summary>
@@ -534,7 +513,7 @@
 | 6 | **LongMemEval** | 检验跨会话提取、时间推算、知识更新与**记不清时坦诚拒答（Abstention）** | [arXiv:2410.10813](https://arxiv.org/abs/2410.10813) |
 | 7 | **LoCoMo** | 超长多会话连续对话沙盒，证明硬塞全历史仍难搞定跨会话多跳先后推理 | [arXiv:2402.17753](https://arxiv.org/abs/2402.17753) |
 
-> 💡 **我们的取舍**：**原始证据不丢（抗有损退化）+ 显式时间轴与状态覆盖（治 STALE 55% 陷阱）+ 按任务动作而非单纯背诵设计 MCP 返回（打通 From Memory to Action 最后一公里）**。
+> 💡 **本组研究启发**：7 篇评测把三个棘手的问题摆到了台面上——**有损摘要常跑不过简单原文检索（*LifeDialBench*）、隐式旧状态冲突极易误导模型（*STALE*），以及“背得出不等于用得对”（*From Memory to Action*）**，这些都是界定任务目标与验收标准时绕不开的题眼。
 
 <details>
 <summary>📖 点击展开 3.1 全部 7 篇论文完整四维精读（问题 / 方法 / Before vs. After / 启示）</summary>
@@ -660,7 +639,7 @@
 | 12 | **Nemori** | 基于自然边界对齐与预测误差校准的自组织记忆思路 *(标题-ID 部分核验)* | [arXiv:2508.03341](https://arxiv.org/abs/2508.03341) |
 | 13 | **Memory for Autonomous LLM Agents** | 基于 POMDP 抽象出 **`Write – Manage – Read` 三轴生命周期**大综述 | [arXiv:2603.07670](https://arxiv.org/abs/2603.07670) |
 
-> 💡 **我们的取舍**：**`L2 Episode` 负责留住跨模态现场经过（按切换/惊喜度切分 + 邻接回溯），`L3` 负责提炼低冗余、带有效期的稳定真相**，并用 `Write – Manage – Read` 三轴定期体检全链路。
+> 💡 **本组研究启发**：这组系统与论文提供了一个可供参照的拆解框架——让**亲历情景（`L2 Episode`）保真留下过程现场**，让**语义知识（`L3`）追踪带有效期的状态**，并用 `Write – Manage – Read` 三轴来审视任何方案的短板。
 
 <details>
 <summary>📖 点击展开 3.2 全部 6 篇论文完整四维精读（问题 / 方法 / Before vs. After / 启示）</summary>
@@ -692,7 +671,7 @@
 | 记忆里全是去语境的标签短句，遇到需要复盘某次历史教训或场景迁移的问题时完全哑火。 | 在理论层确立了“**情景日志档案（`Episode`）与提炼语义知识（`Entity/Fact`）永远并行共存、不可替代**”的核心公理。 |
 
 - **4. 对「Context 补全计划」的提示与指示**：
-  1. **直接拍板本项目 `L2（情景档案）` 与 `L3（实体事实）` 双层不互删格局**：`L3` 负责告诉你“用户现在用什么工具、项目进度如何”，`L2` 则原汁原味封存“周二下午会议讨论过程 + 同步翻看的文档 + 复制的那段报错”。
+  1. **启发探索 `L2（情景档案）` 与 `L3（实体事实）` 双层并存、互不替代的思路**：如果引入语义提炼，`L3` 可负责追踪“用户当前状态与偏好”，`L2` 则保留“周二下午讨论经过 + 同步翻看文档 + 复制报错”的完整情景现场。
 
 #### 3.2.3 Zep — 基于双时序知识图谱的智能体记忆架构
 > **一句话看懂**：开源图引擎 Graphiti 背后的系统论文：用“原文情景 → 动态实体边 → 主题社区”三层图谱加上双时间轴，既答对变迁又跑得飞快。 ｜ **出处**：`arXiv:2501.13956` · https://arxiv.org/abs/2501.13956
@@ -769,7 +748,7 @@
 | 15 | **Event Segmentation Theory (EST)** | 人脑按 **预测误差骤升** 自动切分连续流成为自然故事的认知第一原理 | Zacks et al., *Psychological Bulletin 2007* |
 | 16 | **MyLifeBits & LSC** | 二十年终身全记录实证：**“存下来很简单，不沦为只写不读的数据坟墓才是生死线”** | Gemmell et al., *CACM 2006* · [lifelogsearch.org](http://lifelogsearch.org/) |
 
-> 💡 **我们的取舍**：以 **“人/项目共享实体消歧”** 串起所有分散渠道（PKG）；用零成本的 **物理跃变（AFK/切窗/换声景）** 当事件切分器（EST）；接任何新源之前**先设计消费查询出口**（MyLifeBits 教训）。
+> 💡 **本组研究启发**：三篇经典文献共同提出了三个基础研究命题——**跨渠道人物/项目实体如何对齐（PKG）**、**如何利用物理/行为跃变界定自然事件边界（EST）**，以及**如何避免建成“只写不读的数据坟墓”（MyLifeBits 二十年教训）**。
 
 <details>
 <summary>📖 点击展开 3.3 全部 3 篇奠基文献完整四维精读（问题 / 方法 / Before vs. After / 启示）</summary>
@@ -833,7 +812,7 @@
 | 5 | **`nspasteboard.org` & macOS 15.4+ 剪贴板规范** | 密码机密标记内存级物理跳过（零落盘）+ 遵循 `NSPasteboard.accessBehavior` | [nspasteboard.org](http://nspasteboard.org/) · [Apple Docs](https://developer.apple.com/documentation/appkit/nspasteboard) · [mjtsai.com](https://mjtsai.com/blog/) |
 | 6 | **浏览器有效停留三层信号规范** | `Page Visibility` ∩ `windows.onFocusChanged` ∩ `chrome.idle` 滤掉挂机后台噪声 | [Chrome idle](https://developer.chrome.com/docs/extensions/reference/api/idle) · [MDN Page Visibility](https://developer.mozilla.org/en-US/docs/Web/API/Page_Visibility_API) |
 
-> 💡 **我们的取舍**：**克制与防毒**——用“浏览器三层过滤 + 剪贴板机密跳过”卡死源头垃圾与隐私风险（防 Context Rot 污染），用“单机 SQLite + Just-in-Time MCP 工具”交付给各类 AI Agent。
+> 💡 **本组研究启发**：一线工程报告反复验证了两类约束方向——**入口必须滤掉挂机噪声与机密敏感信息（防 Context Rot 污染与泄露风险）**，同时保持**单机轻存储 + 按需工具拉取**，避免系统既臃肿又让大模型越塞越笨。
 
 <details>
 <summary>📖 点击展开 第四节 全部 6 篇工程报告与规范完整四维精读（问题 / 方法 / Before vs. After / 启示）</summary>
