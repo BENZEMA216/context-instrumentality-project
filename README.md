@@ -6,944 +6,175 @@
 
 # Context 补全计划 · The Context Instrumentality Project
 
-> **探索与任务定义阶段 · 研究型开源归档库**  
-> 本项目目前仍处在**探索与任务定义阶段**，重点是先把问题边界搞清楚：收集并按四维结构拆解 **24 项代表性开源项目**、**16 篇学术论文与评测基准** 及 **6 篇工程博客与系统规范**，沉淀成方便查阅、对照与思考的首页学习索引，而非急于下最终技术定论。
-
----
-
-## 🧭 推荐阅读路线（Reading Guide）
-
-| 你的目标 | 建议时间 | 推荐读法 |
-| :--- | :---: | :--- |
-| **先看我们重点吸收了哪些高价值设计** | 2 分钟 | 直接看下方独立板块 [⭐ 重点收录：高启发项目与格式推演](#-重点收录高启发项目与格式推演持续追加) 及深度文档 [design-reflections.md](docs/research/design-reflections.md) |
-| **快速了解调研全貌** | 3 分钟 | 顺着 [第二至四节](#二-开源项目分类索引与四维精读24-项) 每组的 **速查表 + `💡 本组研究启发`** 扫一遍 |
-| **逐个深度学习 46 项先驱/论文** | 20–40 分钟 | 在本页直接点开感兴趣的 `📖 点击展开本组完整四维精读`，或跳转纯长文归档：[projects-digest.md](docs/research/projects-digest.md) · [papers-blogs-digest.md](docs/research/papers-blogs-digest.md) |
-| **决定采集源与架构实现** | 15 分钟 | 依次精读 [渠道优先级对比](docs/research/channels.md) → [整合方法与架构选型](docs/research/integration-methods.md) → [RFC-0001](docs/rfc/0001-context-integration.md) |
+> **探索与任务定义阶段 · 逐级筛选与方案演进工作台**  
+> 本项目仍处于**探索与任务定义阶段**。我们不提前下僵化的结论，而是以首页作为**“初筛总表 → 重点深挖 → 方案收敛”**的工作台：先用统一表格简要展示候选先驱与研究脉络；当你认为某个项目确实有价值并拍板关注后，再进入重点收录区做技术/UI 深度剖析与格式推演，逐级筛选并拼合出最终方案。
 
 ---
 
 ## 目录导航
 
-- [一、 本仓库专题研究归档](#一-本仓库专题研究归档)
-- [⭐ 重点收录：高启发项目与格式推演（持续追加）](#-重点收录高启发项目与格式推演持续追加)
+- [🔄 我们的研究与设计方法：三级逐级筛选漏斗](#-我们的研究与设计方法三级逐级筛选漏斗)
+- [📋 第一级（L1）：候选项目初筛简要分析总表（24 项）](#-第一级l1候选项目初筛简要分析总表24-项)
+  - [1.1 开源项目初筛简要分析总表（24 项）](#11-开源项目初筛简要分析总表24-项)
+  - [1.2 学术论文与工程报告初筛速查表（22 篇）](#12-学术论文与工程报告初筛速查表22-篇)
+- [⭐ 第二级（L2）：重点收录与深度分析（你确认有价值后深挖）](#-第二级l2重点收录与深度分析你确认有价值后深挖)
   - [No.01 · Promnesia — 算法自动收藏整理与整体行为流 Web Context 格式](#no01--promnesia--算法自动收藏整理与整体行为流-web-context-格式)
-- [二、 开源项目分类索引与四维精读（24 项）](#二-开源项目分类索引与四维精读24-项)
-  - [2.1 个人数据统一与时间线归档（4 项）](#21-个人数据统一与时间线归档4-项)
-  - [2.2 端侧感官与桌面 / 浏览器采集（10 项）](#22-端侧感官与桌面--浏览器采集10-项)
-  - [2.3 Agent 记忆与 Context 基础设施（5 项）](#23-agent-记忆与-context-基础设施5-项)
-  - [2.4 主动式个人上下文与“第二大脑”应用（5 项）](#24-主动式个人上下文与第二大脑应用5-项)
-- [三、 学术论文与评测基准索引与四维精读（16 篇）](#三-学术论文与评测基准索引与四维精读16-篇)
-  - [3.1 连续生活流与 Agent 长期记忆评测（7 篇）](#31-连续生活流与-agent-长期记忆评测7-篇)
-  - [3.2 事件分割、情景记忆与系统架构（6 篇）](#32-事件分割情景记忆与系统架构6-篇)
-  - [3.3 经典奠基文献（3 篇）](#33-经典奠基文献3-篇)
-- [四、 技术博客、工程报告与系统规范（6 篇）](#四-技术博客工程报告与系统规范6-篇)
-- [五、 仓库结构与已接入采集端](#五-仓库结构与已接入采集端)
+- [🧩 第三级（L3）：正在收敛的「Context 补全计划」方案拼图](#-第三级l3正在收敛的context-补全计划方案拼图)
+- [📚 附录：专题研究归档与仓库结构](#-附录专题研究归档与仓库结构)
 
 ---
 
-## 一、 本仓库专题研究归档
+## 🔄 我们的研究与设计方法：三级逐级筛选漏斗
 
-| 专题文档 | 里面有什么 | 最适合谁读 |
-| :--- | :--- | :--- |
-| [重点项目启发与格式设计 · design-reflections.md](docs/research/design-reflections.md) | 对高启发开源项目的**深度吸收、缺失剖析与统一格式演进草案**（含 #01 Promnesia 与 `WebBehaviorContextEvent`） | 想看先驱优点如何转化为统一事件结构与 UI/Agent 消费闭环 |
-| [开源项目四维精读 · projects-digest.md](docs/research/projects-digest.md) | **24 项** 开源项目的完整四维卡片分析（无折叠独立文档版） | 想离线/打印逐一横向比较竞品源码思路 |
-| [论文与博客四维精读 · papers-blogs-digest.md](docs/research/papers-blogs-digest.md) | **16 篇论文 + 6 篇工程报告/规范** 的大白话四维精读版 | 想查证顶会实验结论、避坑依据与规范出处 |
-| [12 条采集渠道优先级对比 · channels.md](docs/research/channels.md) | 语音 / 浏览 / 剪贴板 / AI 对话 / 窗口 / Shell / 手机 / IM 评估、工作量与红线 | 想决定下一批先写哪个采集器 |
-| [整合方法与架构选型 · integration-methods.md](docs/research/integration-methods.md) | 11 个先驱字段 Schema 对照、6 种融合策略横评、`L0 → L4` 架构及 MCP 工具草案 | 想理解“采回来的碎片到底怎么变成可用上下文” |
-| [音频通道实盘盘点 · channel-audio.md](docs/research/channel-audio.md) | 已合入原型 `record-for-agent` 的 SQLite 布局、事件流、已有 MCP 与 5 大待补缺口 | 要改造/对接语音采集端的开发者 |
-| [剪贴板通道实盘盘点 · channel-clipboard.md](docs/research/channel-clipboard.md) | 已合入原型 `ClipContext` 的 `clipboard.json`、增量/撤销指纹与缺口 | 要扩展桌面剪贴板监听的开发者 |
-| [早期全景调研初稿 · landscape.md](docs/research/landscape.md) | 立项初期对 Dark Context、生态空档与端侧硬件路线的草拟笔记 *(结论以后续篇为准)* | 回顾立项早期思考起点 |
-| [架构设计草案 · RFC-0001](docs/rfc/0001-context-integration.md) · [事件协议 Schema](schema/context-event.schema.json) | `L0 → L4` 统一分层协议规范 + L1 标准事件 JSON Schema 定义 | 动手开发 Hub 与接入新数据源的开发者 |
+```mermaid
+flowchart LR
+    L1["L1 初筛池（46 项候选）\n先用统一表格给简要分析：\n问题 + 方法/UI形态 + 初筛看点"] -->|"你审阅并点名确认有价值"| L2["L2 重点收录与深度剖析\n技术实现 / UI体验 / 缺失拼图\n-> 推演统一数据结构与机制"]
+    L2 -->|"逐级筛选 · 积木沉淀"| L3["L3 「Context 补全计划」最终方案\n各渠道采集 + 行为链协议 + Agent MCP"]
+```
+
+| 筛选层级 | 在解决什么问题 | 准入条件与产出 | 查看位置 |
+| :---: | :--- | :--- | :--- |
+| **L1 · 初筛总表** | 快速扫完先驱项目“在解决什么、用了什么技术/UI、有没有可用应用”，降低信息过载 | 全量列出 **24 项开源项目 + 22 篇论文/报告** 简要分析；详细背景保留在独立档案中 | [下方 L1 表格](#-第一级l1候选项目初筛简要分析总表24-项) |
+| **L2 · 重点收录** | 只对真正打动我们的项目做耗时深挖，追问它离“整体用户行为 Context”还差哪一步 | 经你确认有价值后收录：拆解技术/UI 亮点 → 剖析缺失 → 推演并兼容扩展 Schema | [下方 L2 专区](#-第二级l2重点收录与深度分析你确认有价值后深挖) · [design-reflections.md](docs/research/design-reflections.md) |
+| **L3 · 方案收敛** | 防止调研停留在零散点子，把通过筛选的设计积木逐步拼成完整可执行方案 | 持续追踪哪些模块已有定稿草案、哪些环节正等待从 L1 池继续挑人补位 | [下方 L3 拼图](#-第三级l3正在收敛的context-补全计划方案拼图) · [context-event.schema.json](schema/context-event.schema.json) |
 
 ---
 
-## ⭐ 重点收录：高启发项目与格式推演（持续追加）
+## 📋 第一级（L1）：候选项目初筛简要分析总表（24 项）
 
-> **板块定位**：不同于下方 24 项项目的“广度调研索引”，本板块专门收录在探索过程中**对我们定义产品形态与底层协议有直接启发**的项目，按 **「💎 看中的核心价值 → 🧩 缺失的整体 Context 拼图 → 📐 我们的格式/机制推演」** 进行规整。
+> [!NOTE]
+> **怎么用这两张表？**  
+> 本节只给客观、紧凑的**初筛简要分析**（完整“问题 / 方法 / Before vs. After”四维详卡已完整归档在 [projects-digest.md](docs/research/projects-digest.md) 与 [papers-blogs-digest.md](docs/research/papers-blogs-digest.md)）。看到你觉得有意思的项目，直接在对话里点名编号（如“展开看看 #7、#15”），我们再将值得保留的设计推进 L2 深度推演。
 
-| 编号 | 启发源项目 | 我们看中的核心价值 | 补齐的缺失拼图 | 推演产物与协议落点 |
+### 1.1 开源项目初筛简要分析总表（24 项）
+
+| # | 方向 | 项目（仓库 · 详卡） | 1. 解决什么问题（简要） | 2. 核心方法与 UI / 应用形态 | 3. 初筛看点（供你判断是否深挖） | 筛选状态 |
+| :---: | :---: | :--- | :--- | :--- | :--- | :---: |
+| 1 | 归档 | **[Promnesia](https://github.com/karlicoss/promnesia)** · [详卡](docs/research/projects-digest.md) | 重访网页时找回以前在聊天、笔记里讨论/保存过它的上下文 | 多源索引器 + URL 归一化 + 本地 SQLite；**有完整 Chrome/Firefox 侧边栏扩展 + 后端** | 原位侧边栏交互、自动挖掘链接历史与 `locator` 溯源机制 | ⭐ 已入选 L2 ([No.01](#no01--promnesia--算法自动收藏整理与整体行为流-web-context-格式)) |
+| 2 | 归档 | **[HPI](https://github.com/karlicoss/HPI)** · [详卡](docs/research/projects-digest.md) | 统一微信/浏览器/GitHub 等混乱导出格式 | 原档不动落盘 + Python `my.*` 迭代器适配层；**纯 Python 库 / CLI（无 GUI）** | `L0` 原件不可变落盘与下游重算解耦原则 | ⏳ 待你审阅筛选 |
+| 3 | 归档 | **[Timelinize](https://github.com/timelinize/timelinize)** · [详卡](docs/research/projects-digest.md) | 将多平台消息/照片/位置汇成离线人生时间轴 | Go 解析引擎 + 本地 SQLite/文件库；**完整本地桌面 / Web 时间轴应用** | UTC 跨渠道公共主键，兼容批导入与实时事件 | ⏳ 待你审阅筛选 |
+| 4 | 归档 | **[Dogsheep](https://dogsheep.github.io/)** · [详卡](docs/research/projects-digest.md) | 让吃灰的多平台导出数据可直接联合 SQL/全文查询 | `*-to-sqlite` 微型 CLI 集群；**CLI + Datasette 网页查询界面** | **单文件 SQLite + FTS5** 零运维轻量存储底座 | ⏳ 待你审阅筛选 |
+| 5 | 采集 | **[ActivityWatch](https://github.com/ActivityWatch/activitywatch)** · [详卡](docs/research/projects-digest.md) | 客观记录桌面软件焦点时长与离开电脑区间（AFK） | 模块化 Watcher + Heartbeat 状态合并 + REST API；**完整桌面托盘 + Web 看板** | AFK 间隙切分任务段（Episode）与心跳去重合并 | ⏳ 待你审阅筛选 |
+| 6 | 采集 | **[Maccy](https://github.com/p0deje/Maccy)** (+ ClipContext) · [详卡](docs/research/projects-digest.md) | 保留系统每次复制片段并防密码泄露 | 监听 `NSPasteboard.changeCount` + `nspasteboard.org` 过滤；**macOS 状态栏应用 / MCP 原型** | 高意图低噪文本通道，可作本仓已有剪贴板端演进参考 | ⏳ 待你审阅筛选 |
+| 7 | 采集 | **[Defuddle](https://github.com/kepano/defuddle) & [Clipper](https://github.com/obsidianmd/obsidian-clipper)** · [详卡](docs/research/projects-digest.md) | 剥除网页导航/广告脚本，只提炼纯净文章 Markdown | 现代 DOM 结构识别 + 去噪转 Markdown；**开源 JS 库 + 成熟浏览器剪藏扩展** | 浏览器正文高纯度抽取候选首选，保代码与公式 | ⏳ 待你审阅筛选 |
+| 8 | 采集 | **[Mozilla Readability](https://github.com/mozilla/readability)** · [详卡](docs/research/projects-digest.md) | 无需手写选择器即可抽取各类老旧异构网页正文 | DOM 文本与超链接密度启发式打分；**纯 JS 库（Firefox 阅读模式内核）** | 与 `Defuddle` 搭配做双引擎 Fallback 兜底 | ⏳ 待你审阅筛选 |
+| 9 | 采集 | **[WorldBrain Memex](https://github.com/WorldBrain/Memex)** · [详卡](docs/research/projects-digest.md) | 记住读过的网页正文关键词与页内手工重点 | 浏览器本地全文库 + 网页原位划词高亮/批注；**完整浏览器扩展 + 本地同步应用** | **“静默建索 + 划词/高亮提权”** 注意力评分模型 | ⏳ 待你审阅筛选 |
+| 10 | 采集 | **[Omi](https://github.com/BasedHardware/omi)** · [详卡](docs/research/projects-digest.md) | 捕捉离开电脑桌的线下对话并转成摘要与待办 | VAD 切段 + ASR 转写 + 对话抽取 `action_items`；**可穿戴硬件 / App + 开源后端** | 录音到待办的三层解耦，与本仓 `record-for-agent` 互补 | ⏳ 待你审阅筛选 |
+| 11 | 采集 | **[screenpipe](https://github.com/screenpipe/screenpipe) & [OpenRecall](https://github.com/openrecall/openrecall)** · [详卡](docs/research/projects-digest.md) | 解决无 API 封闭窗口内文字“看不见”的问题 | 定期截屏帧 + 本地 OCR 写入 SQLite；**桌面后台守护 + Web 回溯 UI** | **对照组参考**：全时截屏耗电/占盘且有商用许可限制 | ⏳ 待你审阅筛选 |
+| 12 | 采集 | **[Atuin](https://github.com/atuinsh/atuin)** · [详卡](docs/research/projects-digest.md) | 让终端 Shell 历史带目录、耗时与退出码 | Shell Hook 写入结构化 SQLite；**完整 CLI + 交互式 `Ctrl+R` TUI** | 极轻 5 字段精准刻画开发者调试与排错轨迹 | ⏳ 待你审阅筛选 |
+| 13 | 采集 | **[Dawarich](https://github.com/Freika/dawarich)** · [详卡](docs/research/projects-digest.md) | 私有掌控多年物理出行轨迹与常访地点标签 | 自托管定位上报汇总 + 地点聚类；**完整 Docker 自托管 Web 地图台** | 为核心 Schema 预留可选 `location / place` 线索 | ⏳ 待你审阅筛选 |
+| 14 | 采集 | **[FunASR](https://github.com/modelscope/FunASR) · [SenseVoice](https://github.com/FunAudioLLM/SenseVoice) · [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx)** · [详卡](docs/research/projects-digest.md) | 离线高精度中英混读语音转写、加标点与说话人分离 | VAD + 流式/离线 ASR + ONNX C++ 端侧推理；**模型套件 / C++ / Python 推理引擎** | 本地语音隐私零上传，补齐音频通道关键一环 | ⏳ 待你审阅筛选 |
+| 15 | 记忆 | **[OpenViking](https://github.com/volcengine/OpenViking)** · [详卡](docs/research/projects-digest.md) | 解决扁平向量 RAG 切片碎裂且狂烧 Token 问题 | `viking://` 虚拟文件系统 + L0/L1/L2 分层按需展开；**Context 数据库引擎 + SDK** | **分层渐进加载**作为 Agent MCP 出口契约候选 | ⏳ 待你审阅筛选 |
+| 16 | 记忆 | **[Graphiti](https://github.com/getzep/graphiti)** · [详卡](docs/research/projects-digest.md) | 解决现实决策变更后新旧记忆打架的动态演进问题 | 双时序图谱（`valid_at / invalid_at`）+ 混合召回；**Python 服务 / MCP / 图谱引擎** | **不删旧史、关闭旧边**的双时间轴冲突消解规范 | ⏳ 待你审阅筛选 |
+| 17 | 记忆 | **[Mem0](https://github.com/mem0ai/mem0)** (+ Chrome Ext) · [详卡](docs/research/projects-digest.md) | 跨多 AI 平台共享精简的个人核心记忆卡 | 两阶段抽取 `ADD/UPDATE/DELETE`；**SDK / 托管服务 + Chrome 跨平台注入扩展** | 跨 AI 网站侧边注入思路，同时需警惕有损删除原文风险 | ⏳ 待你审阅筛选 |
+| 18 | 记忆 | **[Letta](https://github.com/letta-ai/letta)** · [详卡](docs/research/projects-digest.md) | 让 Agent 像 OS 管理内存一样自主翻查深历史 | Core / Recall / Archival 分层 + 夜间异步整理；**Agent Runtime + 管理面板 UI** | 夜间空闲异步整理（Sleep-time）与 MCP 工具定位边界 | ⏳ 待你审阅筛选 |
+| 19 | 记忆 | **[cognee](https://github.com/topoteretes/cognee)** · [详卡](docs/research/projects-digest.md) | 打通语义向量模糊搜与知识图谱关系多跳检索 | 强类型 `DataPoint` + 异步 `ECL` 管线；**Python 框架 + 轻量可视化 UI** | 毫秒轻采集与后台慢认知（Cognify）异步解耦 | ⏳ 待你审阅筛选 |
+| 20 | 应用 | **[MineContext](https://github.com/volcengine/MineContext)** · [详卡](docs/research/projects-digest.md) | 人不主动搜索时容易遗忘全天事项与隐含待办 | 后台活动聚合 + 主动工作日报 / Todo 提取；**完整桌面端应用** | `L4` 主动日报/漏项提醒展示形态（但避开重截屏采集） | ⏳ 待你审阅筛选 |
+| 21 | 应用 | **[Khoj](https://github.com/khoj-ai/khoj)** · [详卡](docs/research/projects-digest.md) | 私有文档本地 AI 问答与定时研究摘要汇总 | 本地 LLM 接入 + 多端插件 + 定时 Automations；**完整 Web/桌面端 + Obsidian/Emacs 插件** | **Nightly Synthesis** 夜间把日流水折叠成干净 Markdown | ⏳ 待你审阅筛选 |
+| 22 | 应用 | **[Second-Me](https://github.com/mindverse/Second-Me)** · [详卡](docs/research/projects-digest.md) | 让助手真正懂长期偏好与个人风格而非千篇一律 AI 腔 | 分层记忆对齐 + 本地小模型微调（Me-Alignment）；**完整桌面端 + 本地训练应用** | 明确“近期动态靠检索，长期风格才考虑微调”的阶段边界 | ⏳ 待你审阅筛选 |
+| 23 | 应用 | **[personal-ai-memory](https://github.com/marswangyang/personal-ai-memory)** · [详卡](docs/research/projects-digest.md) | 用低依赖极简方式让浏览器记忆服务私有对话 | Chrome 插件采集 + 轻量本地后端；**开源轻量扩展 + 小型本地服务** | 提醒遵守开源个人工具“5 分钟零重依赖跑通”底线 | ⏳ 待你审阅筛选 |
+| 24 | 应用 | **[web-recap](https://github.com/robzolkos/web-recap) & [Reading-Watch-List](https://github.com/swetas7/Reading-Watch-List-Extension-Local-LLM)** · [详卡](docs/research/projects-digest.md) | 待读清单/多标签页积压且不愿将网页正文上传云端 | 收集浏览正文 + 调用本地 Ollama 总结分类；**轻量化 Chrome 扩展原型** | 浏览器侧“本地小模型低成本初筛与两句摘要”可行范例 | ⏳ 待你审阅筛选 |
+
+---
+
+### 1.2 学术论文与工程报告初筛速查表（22 篇）
+
+> [!TIP]
+> **检索核实说明**：完整四维拆解见 [papers-blogs-digest.md](docs/research/papers-blogs-digest.md)。按严谨原则保留待复核标记：`PM-Bench` 的 `arXiv:2607.12385` 仅见于单一检索结果、`Nemori` 标题与 ID 对应关系部分核验、`From Memory to Action` 收录于 OpenReview 暂未对应 arXiv 编号。
+
+| # | 类型 | 标题 / 机构 · 出处 | 1. 研究什么问题 / 痛点 | 2. 核心发现与方法（简要） | 3. 初筛看点 | 筛选状态 |
+| :---: | :---: | :--- | :--- | :--- | :--- | :---: |
+| 1 | 评测 | **LifeDialBench** · [arXiv:2604.11182](https://arxiv.org/abs/2604.11182) | 多模态连续生活流 + 对话交织在线记忆评估 | 对比有损摘要与原文检索，发现重度压缩常输给原文 RAG | 决定必须保留 `L0/L1` 原始证据链不可销毁 | ⏳ 待你审阅筛选 |
+| 2 | 评测 | **STALE** · [arXiv:2605.06527](https://arxiv.org/abs/2605.06527) | 新计划悄悄推翻旧方案时的“隐式记忆冲突” | 构建 400 场景基准，前沿模型隐式冲突准确率最高仅 ~55.2% | 验证必须区分 `L1` 原档与带失效期的 `L3` 真相视图 | ⏳ 待你审阅筛选 |
+| 3 | 评测 | **PM-Bench** · [arXiv:2607.12385](https://arxiv.org/abs/2607.12385) *(单一检索源)* | 跨 7 天长噪声流的前瞻性提醒（“到时候记得提醒我”） | 构造连续 7 天模拟基准（最佳 F1 ~65.1%），写时粗糙即退化 | 为未来主动触发（Proactive Trigger）提供设计标尺 | ⏳ 待你审阅筛选 |
+| 4 | 评测 | **MemoryCD** · [arXiv:2603.25973](https://arxiv.org/abs/2603.25973) | 多年跨域持续写入后记忆库为何越用越笨 | 分析长期写入演化，低价值废话淹没高意图且矛盾积压 | 论证入口必须做“注意力权重 + 指纹去重”门控 | ⏳ 待你审阅筛选 |
+| 5 | 评测 | **From Memory to Action** · OpenReview *(无确认 arXiv 号)* | 记住偏好后为何在实际调用工具做决策时仍出错 | 多步工具行动实证发现最大掉点落在“记住之后、行动之前” | 确立“以工具执行成功率而非聊天像不像”评估 Context | ⏳ 待你审阅筛选 |
+| 6 | 评测 | **LongMemEval** · [arXiv:2410.10813](https://arxiv.org/abs/2410.10813) | 长周期跨会话提取、时序推算、更新与防胡编 | 确立 5 维标尺含时间推理与记不清时坦诚拒答（Abstention） | 约束 MCP 在低置信时返回空列表而非强行脑补 | ⏳ 待你审阅筛选 |
+| 7 | 评测 | **LoCoMo** · [arXiv:2402.17753](https://arxiv.org/abs/2402.17753) | 横跨数周的多会话超长图文连续对话推理 | 构造超长多会话沙盒，硬塞长窗口在跨会话多跳仍落后人类 | 佐证需要主题聚簇与实体跳转链而非纯塞长窗口 | ⏳ 待你审阅筛选 |
+| 8 | 架构 | **EM-LLM** · [arXiv:2407.09450](https://arxiv.org/abs/2407.09450) | 机械按字数切块腰斩完整叙事因果链 | 按大模型预测“惊喜度峰值”切情景块 + 召回相邻时间邻居 | 启发用空闲/切窗/话题拐点切分自然 Episode 并捞邻居 | ⏳ 待你审阅筛选 |
+| 9 | 架构 | **Episodic Memory** · [arXiv:2502.06975](https://arxiv.org/abs/2502.06975) | 只存干瘪百科事实（Semantic）丢失踩坑过程记忆 | 从认知科学界定情景记忆五大特征，须与语义事实并行 | 启发 `L2 Episode 现场档案` 与 `L3 事实视图` 分工共存 | ⏳ 待你审阅筛选 |
+| 10 | 架构 | **Zep** · [arXiv:2501.13956](https://arxiv.org/abs/2501.13956) | 多实体多跳且随日期修改状态的低延迟图记忆 | Episode → 双时序 Entity → Community 三层子图混合检索 | 图谱所有推论须顺指针追溯回原始 Episode 存证 | ⏳ 待你审阅筛选 |
+| 11 | 架构 | **Mem0 Paper** · [arXiv:2504.19413](https://arxiv.org/abs/2504.19413) | 高成本长对话如何在写入端压缩并维护一致事实池 | 实证对比纯向量与图增强版 `ADD/UPDATE/DELETE` 压紧效果 | 借鉴其整理高层 `L3` 工作状态卡，严禁用于删 `L0/L1` | ⏳ 待你审阅筛选 |
+| 12 | 架构 | **Nemori** · [arXiv:2508.03341](https://arxiv.org/abs/2508.03341) *(部分核验)* | 定时周期摘要反复录入同质背景导致废话膨胀 | 探索边界对齐与“预测-校准”偏差驱动的增量整理 | 引入信息增益闸门：遇到新词/新报错才高权重提炼 | ⏳ 待你审阅筛选 |
+| 13 | 综述 | **Memory for Autonomous LLM Agents** · [arXiv:2603.07670](https://arxiv.org/abs/2603.07670) | 杂乱的 Agent 记忆技术路线缺少统一分析坐标系 | 基于 POMDP 提出 **Write – Manage – Read** 三轴生命周期 | 作为检查各阶段方案短板的架构体检三轴清单 | ⏳ 待你审阅筛选 |
+| 14 | 奠基 | **Personal Knowledge Graphs** · *ICTIR 2019* (`DOI:10.1145/3341981.3344241`) | 定义以“用户个人（Me）”为原点的跨私密/公开图谱 | 系统确立 PKG 自我中心视角、动态演化与跨源实体连接准则 | 跨语音/剪贴板/Git 的最终粘合锚点是统一实体主键 | ⏳ 待你审阅筛选 |
+| 15 | 奠基 | **Event Segmentation Theory (EST)** · *Psych. Bull.* 2007 | 物理感知流从不断开，人脑如何划分出一件件事 | 实证当场景/人物/意图突变导致“预测误差骤增”时形成事件边界 | 用 AFK / 切窗 / 说话人变更零成本切分事件边界 | ⏳ 待你审阅筛选 |
+| 16 | 奠基 | **MyLifeBits & LSC** · *CACM* 2006 · [lifelogsearch.org](http://lifelogsearch.org/) | 20 年终身全数字记录到底卡在硬盘容量还是检索可读性 | 实证存下来很容易，沦为“只写不读的数据坟墓”才是致命伤 | 每个渠道接入前先定清结构、Agent 检索出口与过期清理 | ⏳ 待你审阅筛选 |
+| 17 | 报告 | **Anthropic Engineering**：Effective context engineering for AI agents · [原文](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) | 长程多步 Agent 提示词爆表导致注意力稀释 | 主张压缩（Compaction）+ 结构化笔记 + **Just-in-Time 工具按需取回** | 本项目对外输出的核心规范：**轻量卡片 + 按需 MCP 工具** | ⏳ 待你审阅筛选 |
+| 18 | 报告 | **Chroma Report**：Context Rot · [原文](https://research.trychroma.com/context-rot) | 百 K/百万大窗口是否真能无脑塞入全年个人历史 | 受控实验证明远未塞满窗口时准确率就骤降，相似废话最伤模型 | 从实证角度论证去重、降噪、分层召回是刚需 | ⏳ 待你审阅筛选 |
+| 19 | 博客 | **Karlicoss**：Exobrain 系列工程文集 · [原文](https://beepb00p.xyz/) | 为何 95% 个人知识基建半年就因为太复杂弃坑 | 主张 Local-first、原档不动与极度克制引入重型服务 | 防过度设计的十年稳定压舱准则 | ⏳ 待你审阅筛选 |
+| 20 | 博客 | **Simon Willison**：Personal Data Warehouses · [原文](https://simonwillison.net/2020/Nov/14/personal-data-warehouses/) | 个人开发者没法运维大数据集群怎么建跨源数仓 | 微型 CLI + 单文件 SQLite + Datasette 一周末零门槛跑通 | 坚定了单机极简存储选型信心 | ⏳ 待你审阅筛选 |
+| 21 | 规范 | **`nspasteboard.org` & macOS 15.4+ 剪贴板规范** · [原文](http://nspasteboard.org/) | 剪贴板监听如何避免落盘密码且适配原生权限提示 | 内存门控跳过 `ConcealedType` 等标记 + 兼容 `accessBehavior` | 桌面剪贴板监听不可逾越的隐私与系统权限红线 | ⏳ 待你审阅筛选 |
+| 22 | 规范 | **浏览器有效停留三层信号规范** · [Chrome idle](https://developer.chrome.com/docs/extensions/reference/api/idle) · [Page Visibility](https://developer.mozilla.org/en-US/docs/Web/API/Page_Visibility_API) | 后台开着几十个标签页挂机一晚怎么从采集端剔除 | `Visibility` ∩ `windows.onFocusChanged` ∩ `idle` 求交集计数 | 确定浏览器侧零算力高纯采集的前置门控逻辑 | ⏳ 待你审阅筛选 |
+
+---
+
+## ⭐ 第二级（L2）：重点收录与深度分析（你确认有价值后深挖）
+
+> **板块规则**：只有经过你在 L1 表中审阅并确认“这个项目确实有价值 / 思路对味”后，我们才会为其立项 **L2 重点收录**：深挖其技术实现与 UI 体验 → 明确我们要吸收的部分 → 指出它在**整体用户行为 Context**上的空白 → 推演进我们的统一协议（目前入选：**1 / 24**）。
+
+| 编号 | 启发源项目 | 你拍板保留的核心价值 | 离整体用户行为 Context 还缺什么 | 推演出的设计 / 协议落点 |
 | :---: | :--- | :--- | :--- | :--- |
-| **No.01** | **[Promnesia](https://github.com/karlicoss/promnesia)** | 算法自动收藏与整理 browsed 网页 + 浏览器原位侧边栏展示 | 补充触发前因（Trigger）、注意力自动收藏分级与跨渠道行为链 | `WebBehaviorContextEvent`（[第 01 号推演](docs/research/design-reflections.md) · [Schema](schema/context-event.schema.json)） |
+| **No.01** | **[Promnesia](https://github.com/karlicoss/promnesia)** | ① 算法自动收藏与内容整理 browsed 网页；② 浏览器侧边栏原位展示 | 仅存孤立 `Visit(norm_url, dt, context, locator)`，缺前因动机、注意力收藏分级与跨渠道后续行为链 | `WebBehaviorContextEvent` · [完整推演](docs/research/design-reflections.md) · [Schema](schema/context-event.schema.json) |
 
 ### No.01 · Promnesia — 算法自动收藏整理与整体行为流 Web Context 格式
 
-- **💎 看中的核心价值**：
-  1. **算法驱动的自动收藏与内容整理**：根据真实浏览行为（停留时长、滚动深度、选中/复制/高亮、7 天回访）对网页自动分级（`transient` 略过噪音 / `auto_curated` 自动提炼摘要与摘录 / `pinned` 显式收藏），免去手动管书签负担。
-  2. **浏览器侧边栏“原位叠加”体验**：直接在当前标签页侧边栏浮现关联上下文，无需切出浏览器搜索。
+- **🔍 技术实现与 UI 形态核实亮点**：
+  - **技术底层**：用可插拔 Python 索引器 + `cannon.py` URL 归一化（去追踪参数、统一斜杠）+ 文本/AST 上下文提取，写入本地 SQLite（关键结构包含规范化 `url`、时间戳 `dt`、上下文片段 `context` 与源定位符 `locator`），并由本地轻量 HTTP 服务响应反查。
+  - **UI 与可用性**：提供完整可用的 **Chrome / Firefox WebExtension + 服务端**（`pip install promnesia` 即跑），包含标签页角标命中数提示、网页链接历史标记及**原位侧边栏（Sidebar Overlay）**展示与一键跳回源文件。
+- **💎 你看中并决定保留的核心价值**：
+  1. **算法自动收藏与内容整理**：不依赖人手工点收藏夹，根据真实网页浏览信号，自动筛掉过眼噪音，沉淀高质量摘要与摘录片段。
+  2. **浏览器侧边栏“原位展示”体验**：留在用户正在阅读的浏览器页面右侧原地浮现上下文，低打扰且无需额外切换 App 搜索。
 - **🧩 离“整体用户行为 Context”还缺什么**：
-  - Promnesia 的原子记录只是孤立的 `Visit(norm_url, dt, context, locator)`，只能回答“这个 URL 以前在哪出现过”，缺少**阅读前因（Trigger）**、**页内注意力分级（Attention & Curation Tier）**以及**后续跨渠道行为链（Follow-up Action / Episode）**。
+  - Promnesia 的记录单元只是围绕单一 URL 聚合的孤立索引点 `Visit(norm_url, dt, context, locator)`，无法还原**网页浏览作为用户整体连续行为流的一环**：
+    - 不知“为什么打开这一页”（来自某段语音讨论、AI 对话还是剪贴板报错？）；
+    - 不区分 2 秒扫一眼的误点与 15 分钟精读并多次划词的文章；
+    - 看完网页后复制代码、切回 IDE 的后续行动与之断裂。
 - **📐 我们推演并采纳的格式（`WebBehaviorContextEvent`）**：
-  - 以 `episode_id` + `links[]`（`triggered_by` / `copied_to`）串联前因后果，以 `context.curation_tier` + `context.interactions` 标记自动收藏等级，以 `content.summary` + `content.excerpts[]` 同时服务**浏览器双向侧边栏 UI**与**Agent MCP 分层召回**。
-  - [📄 阅读第 01 号完整推演与 JSON 样例 · design-reflections.md](docs/research/design-reflections.md) ｜ [🧩 查看已扩展的事件 Schema · context-event.schema.json](schema/context-event.schema.json)
+  1. **行为与自动收藏分级**：在 `context` 下引入 `curation_tier`（`transient` / `auto_curated` / `pinned`）与 `interactions`（`selection_count`、`copy_count`、`highlight_count`），结合停留 `dwell_ms`、滚动 `scroll_depth` 与 `attention` 得分自动决定收藏与整理深度。
+  2. **分层自动整理产物**：在 `content` 下引入 `summary`（给侧边栏和 Agent 首轮召回省 Token）与 `excerpts[]`（带精确 DOM/行级 `locator` 与 `note` 的精选片段），长正文通过 `provenance.locator` 按需回溯。
+  3. **整体行为因果链**：在事件根级新增 `episode_id`（同一工作流编号）与 `links[]`（`triggered_by` / `copied_to` / `discussed_in` / `same_anchor` + `confidence`），让同一份结构既驱动**浏览器双向侧边栏**（前因 + 本页整理 + 同 Episode 历史），又直通 **Agent MCP 分层拉取**。
+  - 📄 完整对比表、Mermaid 流向与合法 JSON 示例：[design-reflections.md](docs/research/design-reflections.md) ｜ 🧩 协议定义：[schema/context-event.schema.json](schema/context-event.schema.json)
 
 ---
 
-## 二、 开源项目分类索引与四维精读（24 项）
+## 🧩 第三级（L3）：正在收敛的「Context 补全计划」方案拼图
 
-> [!NOTE]
-> **怎么读这一节？** 先看每个子分类的**速查表**和**💡 本组研究启发**（快速抓住值得关注的方向）；想看某项目的“问题 / 方法 / Before vs. After / 启发”细节，点击下方折叠栏原地展开，或前往 [projects-digest.md](docs/research/projects-digest.md) 阅读独立全文版。
+> **收敛方式**：随着一个个项目从 **L1 初筛表** 被你挑进 **L2 深度推演**，我们把通过验证的设计积木陆续装配到下表中，最终汇聚形成完整的「Context 补全计划」工程方案。
 
-### 2.1 个人数据统一与时间线归档（4 项）
-
-> 把五花八门的个人历史导出包统一收归本地并变成可查资产的先驱方案。
-
-| # | 项目 | 一句话看懂它解决什么问题 | 对本项目的核心启发 |
-| :---: | :--- | :--- | :--- |
-| 1 | **[Promnesia](https://github.com/karlicoss/promnesia)** · [⭐ 重点收录](#no01--promnesia--算法自动收藏整理与整体行为流-web-context-格式) | 重访网页时自动从侧边栏浮现以前在哪里聊过/记过这个链接 | 每条事件必须保留能跳回源文件的 **`locator` 定位符** + **URL 归一化**（扩展推演见上方 [重点收录 No.01](#no01--promnesia--算法自动收藏整理与整体行为流-web-context-格式)） |
-| 2 | **[HPI](https://github.com/karlicoss/HPI)** | 把各平台混乱的数据导出格式翻译为统一 Python 调用接口 | 确立 **`L0` 原始导出不可变落盘 + `L1` 统一抽象**，换模型可随时重算 |
-| 3 | **[Timelinize](https://github.com/timelinize/timelinize)** | 把照片、位置、消息导入本地画成可离线回放的人生时间轴 | **UTC 时间轴是全渠道公共主键**，并须留好实时与历史批导入双入口 |
-| 4 | **[Dogsheep](https://dogsheep.github.io/)** | 用微型 CLI 采集器把各方数据倒进单文件 SQLite 个人数据仓库 | 提示可重点评估的轻量化底座：**SQLite + FTS5**，单机零运维即跑 |
-
-> 💡 **本组研究启发**：这组极客项目展示了**“Local-first + 原件不可变 + 单文件 SQLite + 可回跳溯源”**这条低维护路径的可行性；如果进一步定义个人上下文系统，还需思考它们较少涉及的“实时环境流接入”与“面向 Agent 的按需检索问题”。
-
-<details>
-<summary>📖 点击展开 2.1 全部 4 项完整四维精读（问题 / 方法 / Before vs. After / 启示）</summary>
-
-#### 2.1.1 Promnesia (karlicoss/promnesia) — 个人数字历史“原位反向叠加层”
-> **一句话看懂**：在你重访某个网页时，把过去聊过、记过、搜过该链接的上下文自动从侧边栏“浮现”出来。 ｜ **仓库**：https://github.com/karlicoss/promnesia
-
-- **1. 核心解决的问题**：人在浏览器里重访某个技术文档或文章时，往往早已忘记“我以前在哪个群聊里发过它、哪天笔记里摘录过它”，关键来龙去脉全被割裂在几十个软件孤岛中。
-- **2. 使用的方法**：采用**多源索引器 + URL 规范化**（去掉跟踪参数如 `utm_*`，统一斜杠格式）将各处链接写入本地 SQLite 索引（核心记录包含 `url`、时间 `dt`、上下文片段 `context` 与源文件定位符 `locator`），再由浏览器侧边栏实时反查当前网页并叠加展示。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 只能靠印象去 Chrome 历史、Telegram、Obsidian、GitHub 里轮流全文搜索，极易漏掉当时对话语境。 | 打开网页即可在侧边栏一眼看到所有历史提及时间、对话原话，并附带直达源文件的 `locator` 一键回跳。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **把 `locator` 设为所有 `L0/L1` 事件的必填字段**：例如音频时间戳区间、规范化网页 URL 或本地文件行号，**绝不“只留摘要丢出处”**。
-  2. **尽早做 URL 归一化**：剪贴板复制的 URL 与浏览器访问的 URL 必须去追踪参数、归一化处理，才能用零算力精准合流。
-
-> [!IMPORTANT]
-> **⭐ 重点收录：我们的深度思考与格式演进**
-> - **保留发扬的两个核心价值**：① 基于停留/滚动/选中/复制/高亮信号，按算法对浏览网页**自动收藏、整理摘要与分级沉淀**（`transient` / `auto_curated` / `pinned`）；② 延续其**浏览器侧边栏原位叠加层**体验，升级为兼顾“触发前因 + 本页自动整理 + 同工作流关联”的双向面板。
-> - **补齐的关键缺失**：Promnesia 只存孤立的 `Visit(norm_url, dt, context, locator)`，缺少网页阅读在**整体用户行为流**中的上下游位置；我们已基于此推演 `WebBehaviorContextEvent` 格式并兼容扩展至根 Schema —— 详见 [design-reflections.md](docs/research/design-reflections.md) 与 [context-event.schema.json](schema/context-event.schema.json)。
-
-#### 2.1.2 HPI · Human Programming Interface (karlicoss/HPI) — 个人数据统一接口适配层
-> **一句话看懂**：把微信、浏览器、Kindle、GitHub 等五花八门的导出格式，统一翻译成一套干净的 Python 调用接口。 ｜ **仓库**：https://github.com/karlicoss/HPI
-
-- **1. 核心解决的问题**：各大平台导出的个人数据格式极度混乱（JSON、CSV、SQLite、ZIP 归档等），每次写分析脚本或接入 AI 助手都得重复编写脆弱的格式解析代码。
-- **2. 使用的方法**：坚持**“先按原样落盘保存导出包，不强求立刻塞进单一中央大库”**，再通过分模块编写的 Python `my.*` 适配器包向外暴露统一的数据结构与 Iterator（迭代器）接口，配合本地轻量缓存提升多次读取效率。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 每接一个新 AI 工具或脚本都要重读十几种平台导出文档；平台导出格式微调一次，下游工具就大面积报错。 | 原始导出包原封不动放在磁盘目录，上层消费逻辑只面向统一的 `my.*` 接口编程，随时可基于旧原档重新计算。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **确立 `L0`（原始归档）与 `L1`（统一事件 Schema）分离原则**：原始录音和剪贴板归档保持原格式不可变，统一映射到 `ContextEvent` Schema，解耦采集器与下游记忆层。
-  2. **天然保留“事后重算（Replay）”能力**：日后哪怕更换更强的语音识别（ASR）或事件切分算法，也能从 `L0` 原件无损重跑生成新版记忆。
-
-#### 2.1.3 Timelinize (timelinize/timelinize) — 本地多源个人时间线归档桌面端
-> **一句话看懂**：把分散在不同平台的消息、照片与位置导入本机，画成一条可离线回放的统一人生时间轴。 ｜ **仓库**：https://github.com/timelinize/timelinize
-
-- **1. 核心解决的问题**：个人多年的照片、社交消息、地理位置轨迹散落在不同产品中，缺乏一款能够跨平台按“同一时间、同一个人或同一个地点”联合回溯的本机桌面归档工具。
-- **2. 使用的方法**：基于 Go 与本地 SQLite/文件系统构建多源导入引擎（据公开项目文档），把跨服务导出的数据统一解析为带来源、UTC 时间戳与关联实体（人物、地点、媒体附件）的时间线节点，并提供桌面/Web 时间轴界面呈现。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 想回溯某天出差或某次项目会议的全部记录，得分别打开相册、地图时间线、聊天导出和本地文档手动对表。 | 同一时间窗口内的照片、位置与消息收敛在同一条本地时间线上交汇呈现，完全不依赖云厂商是否继续运营。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **用统一 UTC 时间戳作为跨渠道聚合的第一主键**：录音、剪贴板、网页阅读和软件切换模态迥异，最可靠的第一道对齐锚点就是精确时间戳。
-  2. **同时支持“实时采集”与“历史包批量导入”**：除了后台守护进程持续收集新增动作，还需保留历史数据导出包的冷启动导入入口。
-
-#### 2.1.4 Dogsheep (dogsheep.github.io) — 单文件 SQLite 个人数据仓库范式
-> **一句话看懂**：给每个常用网站写一个小巧 Python 命令行工具，把个人数据统统倒进一个 SQLite 文件里随手用 SQL 和网页搜索。 ｜ **项目主页**：https://dogsheep.github.io/
-
-- **1. 核心解决的问题**：个人在 GitHub、Twitter、健康 App 等平台导出的数据虽然躺在硬盘上，却只是一堆无法关联查询的死 JSON/CSV 文件，很难快速提问或分析。
-- **2. 使用的方法**：践行 **“SQLite 个人数据仓库（Personal Data Warehouse）”**——为每个单一平台提供微 CLI（如 `github-to-sqlite`、`google-takeout-to-sqlite`），把记录写入标准 SQLite 数据表，再配合兄弟工具 `Datasette` 立刻免费获得全文搜索（FTS5）、关联视图和 JSON API。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 辛苦导出的数据包躺进硬盘吃灰成为“电子坟墓”，临时想查一个跨平台问题还得现写脚本拼数据。 | 单文件 SQLite 配合两行 SQL 即可跨源 Join 查询与秒级全文搜索，无需运维数据库集群且单文件即可备份迁移。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **锁定本仓 MVP 存储技术栈为 `SQLite + FTS5`**：单机即跑、零外部服务运维压力，极其契合个人使用与开源社区推广。
-  2. **沿用“一源一小工具 + 统一合流”哲学**：保持 `record-for-agent`（录音）与 `ClipContext`（剪贴板）各自专注极致轻量，再汇总至统一的 Hub 库。
-
-</details>
+| 方案拼图模块 | 收敛状态 | 依据来源（L2 已入选 / L1 待选） | 当前已敲定设计 / 下一步待你筛选的问题 |
+| :--- | :---: | :--- | :--- |
+| **1. 网页行为与自动收藏数据格式** | ✅ 已出兼容草案 | 源自 `No.01 Promnesia` | 采用 `WebBehaviorContextEvent`（兼容扩展 `context-event.schema.json`：增加 `summary`、`excerpts`、`curation_tier`、`interactions`、`episode_id`、`links`） |
+| **2. 浏览器端交互形态（UI）** | ✅ 已出原型方向 | 源自 `No.01 Promnesia` | 采用**原位双向上下文侧边栏**：展示上游触发原因 + 算法自动整理的本页摘要/摘录 + 同 `episode_id` 跨渠道动作 |
+| **3. 全局溯源与 URL 对齐底线** | ✅ 已出工程约束 | 源自 `No.01 Promnesia` | 所有 `L0/L1` 事件必须带可回跳 `provenance.locator`；跨渠道 URL 在写库早期统一归一化为 `url_norm` |
+| **4. 网页正文纯净抽取与页内高亮信号** | ⏳ 待从 L1 筛选 | L1 候选：`#7 Defuddle & Clipper`、`#8 Readability`、`#9 WorldBrain Memex`、`#24 web-recap` | 你审阅 L1 表后确认：网页抽取组合是否选用 `Defuddle + Readability`、是否吸收 Memex 划词提权规则与 Ollama 初筛？ |
+| **5. 桌面时间骨架、剪贴板与 Shell 开发态** | ⏳ 待从 L1 筛选 | L1 候选：`#5 ActivityWatch`、`#6 Maccy/ClipContext`、`#11 screenpipe (对照)`、`#12 Atuin` | 待确认桌面窗口与终端轨迹如何与已合入的 `ClipContext` 汇合成 `episode_id` 分段依据 |
+| **6. 离线语音采集、转写与本地底座** | ⏳ 待从 L1 筛选 | L1 候选：`#2 HPI`、`#3 Timelinize`、`#4 Dogsheep`、`#10 Omi`、`#14 FunASR/SenseVoice/sherpa-onnx` | 待确认单机存储 `SQLite + FTS5` 与 `record-for-agent` 本地离线 ASR 的整合细节 |
+| **7. 跨渠道记忆演进、检索协议与防退化** | ⏳ 待从 L1 筛选 | L1 候选：`#15 OpenViking`、`#16 Graphiti`、`#17 Mem0`、`#18 Letta`、`#19 cognee` 及论文池 #1–#18 | 待筛选 L2/L3 状态更新策略、渐进加载 MCP 工具面及抗 Context Rot / 隐式冲突约束 |
 
 ---
 
-### 2.2 端侧感官与桌面 / 浏览器采集（10 项）
-
-> 决定“能从电脑、浏览器、手腕和终端里低功耗采出什么真实信号，又必须绕开哪些噪音源”。
-
-| # | 项目 | 采集通道 | 对本项目的核心启发与取舍 |
-| :---: | :--- | :--- | :--- |
-| 5 | **[ActivityWatch](https://github.com/ActivityWatch/activitywatch)** | 桌面窗口 + 空闲 AFK | ✅ 直接复用作时间骨架；照搬 **Heartbeat 合并** + 把 **AFK 间隙当 Episode 边界** |
-| 6 | **[Maccy](https://github.com/p0deje/Maccy)** (+ `ClipContext`) | macOS 剪贴板 | ✅ 本仓已并入 `ClipContext`；须补**当前窗口标题**与 `nspasteboard.org` 密码过滤 |
-| 7 | **[Defuddle](https://github.com/kepano/defuddle) & [Obsidian Clipper](https://github.com/obsidianmd/obsidian-clipper)** | 网页纯净 Markdown 正文 | ✅ 浏览器正文首选 Extractor：去导航广告保公式代码，直接吐干净 Markdown |
-| 8 | **[Mozilla Readability](https://github.com/mozilla/readability)** | 网页 DOM 启发式基线 | ✅ 作为 `Defuddle` 在非常规老网页抽取出错时的 Fallback 兜底引擎 |
-| 9 | **[WorldBrain Memex](https://github.com/WorldBrain/Memex)** | 网页划词高亮与全文检索 | ✅ 借鉴其**“静默建索 + 人工划词/复制大幅提权”**的注意力权重模型 |
-| 10 | **[Omi](https://github.com/BasedHardware/omi)** | 可穿戴语音采集流水线 | 🔍 验证了离线语音端战略价值；学习其“拾音转写 → 对话结构化 → 待办/记忆”三层解耦 |
-| 11 | **[screenpipe](https://github.com/screenpipe/screenpipe) & [OpenRecall](https://github.com/openrecall/openrecall)** | 全时屏幕截图 OCR | ❌ **只作对照组、不做主力**：噪声高且每月占 20–30GB；`screenpipe` 已转商用许可不可复用 |
-| 12 | **[Atuin](https://github.com/atuinsh/atuin)** | Shell 结构化命令行历史 | ✅ 用 `command + cwd + exit_code + duration` 5 个极轻字段轻松识别开发者排错轨迹 |
-| 13 | **[Dawarich](https://github.com/Freika/dawarich)** | 自托管长期 GPS 轨迹 | 🔖 统一 Schema 预留可选 `location / place` 属性位，强化“时间+地点”回忆线索 |
-| 14 | **[FunASR](https://github.com/modelscope/FunASR) · [SenseVoice](https://github.com/FunAudioLLM/SenseVoice) · [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx)** | 全本地离线语音识别技术栈 | ✅ 补齐 `record-for-agent` 最后一环：全离线 VAD + 中英高精 ASR + 说话人区分，隐私录音零上传 |
-
-> 💡 **本组研究启发**：这 10 个项目清晰暴露出两条截然不同的采集路线差异——**低功耗、高意图本地信道**（语音、macOS 剪贴板、有效停留网页正文、桌面窗口骨架）与 **24/7 全时截屏 OCR** 在信噪比、资源代价与许可边界上差距明显，如何划定主力信道与兜底边界是后续定义任务范围的重点。
-
-<details>
-<summary>📖 点击展开 2.2 全部 10 项完整四维精读（问题 / 方法 / Before vs. After / 启示）</summary>
-
-#### 2.2.1 ActivityWatch (ActivityWatch/activitywatch) — 桌面窗口焦点与空闲监测骨架
-> **一句话看懂**：在后台低功耗记录你在电脑上每个软件、窗口停留了多久，并识别什么时候离开了电脑（AFK）。 ｜ **仓库**：https://github.com/ActivityWatch/activitywatch
-
-- **1. 核心解决的问题**：无论是复盘个人注意力，还是让 AI 理解背景，往往都缺一条精确记下“每天哪段时间焦点究竟在哪款软件、哪个网页，以及什么时候离开电脑”的客观时间骨架。
-- **2. 使用的方法**：采取**本地服务（`aw-server`）+ 独立采集插件（`aw-watcher-window` / `aw-watcher-afk` / `aw-watcher-web`）**架构；精髓是 **Heartbeat（心跳）合并机制**——只有当聚焦窗口没变且距离上次状态报告在心跳窗内时，只延长上一条记录的时长（`duration`），不新写记录。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 每秒定时写死日志迅速撑爆存储空间，而且人离开电脑去吃饭的挂机时间也被误算成高专注工作。 | 数据库里只保留紧凑干净的“聚焦应用时间段”和明确剔除挂机时段的 `AFK` 区间，精准勾勒全日工作切片。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **直接复用其 `localhost:5600` 数据与 Heartbeat 合并思路**：Phase 1 先读取现成 ActivityWatch 时间线充当“时间骨架”，并照搬心跳合并来压缩浏览器/窗口焦点写放大。
-  2. **把 `AFK`（离开电脑）间隙当作天然的 `Episode` 分段边界**：键盘鼠标停歇超过几分钟，往往就是上一段思考工作告一段落的分水岭。
-
-#### 2.2.2 Maccy (p0deje/Maccy) + 本仓 ClipContext — 高意图剪贴板监听与 MCP 暴露
-> **一句话看懂**：像记事本历史一样留下你每一次主动按 `Cmd+C` 复制的重要文本/图片，跳过密码后交给 Agent 按需翻阅。 ｜ **仓库**：https://github.com/p0deje/Maccy
-
-- **1. 核心解决的问题**：系统默认剪贴板只能存最新 1 条，跨应用搬运的报错日志、代码片段和链接一旦新复制就被冲掉；而常见剪贴板管理软件只服务人手粘贴，不会暴露给 AI Agent 调用。
-- **2. 使用的方法**：Maccy 通过低功耗轮询系统变更计数器（`NSPasteboard.changeCount`）捕获每次复制，并遵循 `nspasteboard.org` 约定排除密码管理器与敏感条目；本仓已并入的 **`ClipContext`** 在此基础上生成带单调版本号（`revision`）与 SHA-256 指纹的本地 `clipboard.json` 快照，开放只读 `recent / search / get` MCP 接口。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 刚在不同软件间倒腾过一段报错或参考参数，转身就被新复制覆盖；AI 完全不了解你刚手动筛选过什么内容。 | 每次显式 `Cmd+C` 都成为天然带有高意图的干净文本信号，带来源 App、时间戳和指纹留存并可供 Agent 秒级查询。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **把剪贴板列为仅次于语音的一级高信噪比文字通道**：体积极小且经过人手主动选取，极少废话。
-  2. **补全当前缺口与隐私防线**：接下来需为 `ClipContext` 补充**当前窗口标题**与**粘贴去向 App**（提升跨源关联准确度），同时死守 `nspasteboard.org` 过滤规则绝不记录密码凭证。
-
-#### 2.2.3 Defuddle (kepano/defuddle) & Obsidian Web Clipper — 现代网页高纯度正文抽取
-> **一句话看懂**：一键剥光现代网页里花哨的导航栏、推荐列表和广告脚本，只提炼最干净的 Markdown 文章正文与元数据。 ｜ **仓库**：https://github.com/kepano/defuddle · https://github.com/obsidianmd/obsidian-clipper
-
-- **1. 核心解决的问题**：如果直接保存网页完整 HTML 源码，里边超过 70% 都是导航条、广告脚本和推荐卡片，直接喂给大模型既烧钱又容易导致检索跑偏。
-- **2. 使用的方法**：`defuddle` 面向现代网页 DOM 专门剔除无关样式与侧栏结构，保留代码块、数学公式和文章结构（标题/作者/发布日期），输出清爽的 **Markdown 格式正文**；`obsidian-clipper` 则将其做成成熟三端浏览器扩展并支持内容高亮划词。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 要么只留一条随时可能 404 或失效的裸 URL，要么整页抓取混入大批侧边栏推荐词，污染向量库和上下文。 | 一段高纯度、既方便人读回味又可直接用于 AI 推理与去重指纹计算的干净 Markdown 文本快照。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **网页采集遵循“有效停留门控 + Defuddle 正文抽取”**：只在确定用户真正认真看了一会儿页面（或做了复制高亮）后才提取 Markdown 落盘，兼顾低存储体积与高信息密度。
-  2. **把 Markdown 作为 `L1` 文本载体标准**：对大模型和人类日常查看工具（如 Obsidian）完全通用。
-
-#### 2.2.4 Mozilla Readability (mozilla/readability) — 网页正文抽取启发式标准基线
-> **一句话看懂**：Firefox 浏览器“阅读视图”的核心算法库，能靠文字和链接密度在各种千奇百怪的老网站里猜出正文位置。 ｜ **仓库**：https://github.com/mozilla/readability
-
-- **1. 核心解决的问题**：早期以及众多异构老旧网页根本不使用标准的 `<article>` 标签，逐个网站手写 CSS 选择器抓取正文根本维护不过来。
-- **2. 使用的方法**：用纯 JS 实现的通用 DOM 启发式打分引擎——统计各节点下的段落长度、标点数量、超链接占比（链接密密麻麻通常是目录导航或广告栏），并按父级累加评分稳定识别主文章区域。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 每遇到一个小众博客或技术老站点就得手写一条 XPath 规则，网页一改版爬虫当场报错。 | 一套零人工配置、久经十几年浏览器实战检验的通用算法直接搞定绝大部分长文阅读页面。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **作为浏览器采集器的“双引擎兜底（Fallback）”**：首选 `Defuddle`（输出 Markdown 与现代框架兼容度更好），当遇到非常规或老旧结构页面抽取出错时，自动回退到 `Readability` 兜底保召回。
-
-#### 2.2.5 WorldBrain Memex (WorldBrain/Memex) — 已读网页全文库与人工高亮加权
-> **一句话看懂**：不用特地点击收藏夹，所有你认真看过的网页正文都会自动索引，还能顺手划高亮、加备注。 ｜ **仓库**：https://github.com/WorldBrain/Memex
-
-- **1. 核心解决的问题**：普通浏览器历史只存了网址和网页标题，遇到“我明明上个月读过一篇文章讲到某个概念，但我记不起标题和网站域名”的情况彻底搜不到。
-- **2. 使用的方法**：浏览器扩展在页面加载浏览后自动抓取正文存入本地全文索引库，并提供网页原位划词高亮、打标签和专题 Space 归类功能，让日常搜索不再只依赖外部搜索引擎。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 记不住书签没关系，但没点收藏又想不起确切标题的文章在浏览器历史里基本相当于大海捞针。 | 看过的每一篇网页全文内容都变成可按正文中任何一个冷门关键词瞬间召回的私人知识池。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **引入“静默后台建索 + 显式动作大幅提权”权重模型**：网页静默停留只给予基础记录；一旦用户在页面上做了**划词选中、高亮批注或复制动作**，注意力权重（Attention Score）应当成倍放大并优先供给 Agent。
-
-#### 2.2.6 Omi (BasedHardware/omi) — 可穿戴语音捕获与“对话转待办记忆”管线
-> **一句话看懂**：专门捕捉你离开电脑桌后的线下随口对话与面对面沟通，自动转文字并提炼出总结与待办事项。 ｜ **仓库**：https://github.com/BasedHardware/omi
-
-- **1. 核心解决的问题**：人们在散步、开会、线下茶歇时蹦出的最重要决定和灵感几乎都不经过键盘输入，普通录音笔录完几小时整段干音极少有人有耐心回听。
-- **2. 使用的方法**：通过可穿戴拾音硬件与 App 端结合开放后端流水线（据公开项目文档）：先用 **VAD（语音活动检测，只挑出有人说话的片段，去掉沉默空白）** 切段转文字，接着把每场对话流交给大模型抽取标题、概要、`action_items`（待办动作）与独立长期 `memories`（记忆事实）。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 离开办公桌的线下交流完全沦为 AI 上下文盲区，事后翻 2 小时整条音频如同噩梦。 | 线下语音自然沉淀为按发言段对齐的结构化摘要、待办列表和可查记忆事实，无缝汇入个人数字大脑。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **直接印证本仓 `record-for-agent` 录音采集前端的高战略价值**：线下对话是所有软件插件完全触及不到的稀缺高密上下文。
-  2. **学习其清晰的三段式解耦架构**：前端专注低功耗持久拾音 + 分段上传；后端按“原始音频分段 + 转写（`L0/L1`）→ 对话主题归纳（`L2`）→ 记忆提取（`L3`）”顺序异步处理。
-
-#### 2.2.7 screenpipe & OpenRecall — 全时桌面截屏 OCR（对照组与边界警示）
-> **一句话看懂**：每隔几秒把整个电脑屏幕拍张照片做文字识别（OCR），把屏幕出现过的所有字符都存起来随时翻找。 ｜ **仓库**：https://github.com/screenpipe/screenpipe · https://github.com/openrecall/openrecall
-
-- **1. 核心解决的问题**：许多封闭软件（微信电脑窗口、视频播放画面、只读弹窗、PDF 图片）没有开放任何导出 API，也没有被用户手动复制，导致纯文本采集端出现“视觉看不见”的盲区。
-- **2. 使用的方法**：后台高频/定期截取当前屏幕帧并运行本地 OCR 提取画面文字，连同软件/窗口名、可选系统音频一起写入本地 SQLite + FTS5 全文库（`screenpipe` 用 Rust 实现并内置 REST/MCP；`OpenRecall` 走轻量 Python 实现）。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 屏幕上几分钟前闪过的报错弹窗、封闭聊天窗内容一旦划走，没有手抄就很难再查到记录。 | 电脑屏幕上出现过的几乎一切静态文字都被拍照识别并进入时间线库。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **明确不做“24/7 全时录屏 OCR”为主力路线（作为反面对照组研究）**：全时截屏 OCR 会持续吃掉可观 CPU 电量与每月数十 GB 磁盘空间，充斥大量重复画面噪声和极高隐私风险（密码窗/私聊同屏泄露），且 `screenpipe` 已更改为商业许可（不可复用代码）。
-  2. **确立按需兜底原则**：95% 场景靠低噪高频渠道（语音/剪贴板/浏览器/窗口）足够；仅在未来确有必要时考虑“只在复制或关键时刻触发一次当前焦点窗口辅助读取”。
-
-#### 2.2.8 Atuin (atuinsh/atuin) — 结构化 Shell 命令历史时间线
-> **一句话看懂**：把终端里杂乱无章的纯文本命令历史，改造成记录目录、耗时和报错退出码的结构化数据库。 ｜ **仓库**：https://github.com/atuinsh/atuin
-
-- **1. 核心解决的问题**：系统自带 `.zsh_history` 极简纯文本既常莫名截断丢失，又完全不记录命令是在哪个目录下运行的、跑成功没、耗时几秒。
-- **2. 使用的方法**：用 Rust 重写命令行 Hook 后端，每次回车执行命令后，把**命令全文、工作目录 `cwd`、执行时间、耗时 `duration`、退出码 `exit` 以及会话 ID**写入本地 SQLite，并支持多机端到端加密同步与高速 `Ctrl+R` 检索。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 在终端里搜上周跑过的一行复杂编译参数，根本分不清当时在哪个项目目录下、那次到底执行成功还是失败了。 | 五个极轻量字段构成清晰可信的工程排错时间线，一条条件搜索秒定位特定项目的有效构建历史。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **学习“用最轻的结构字段推出最高层语义”**：仅靠 `cwd + exit_code + command` 就能帮编程 Agent 自动识别“你正在改哪个项目、一连报错 5 次后终于靠哪条指令修通了”，是绝佳的开发态 Context。
-
-#### 2.2.9 Dawarich (Freika/dawarich) — 自托管个人长期物理位置轨迹
-> **一句话看懂**：把本属于云大厂的谷歌时间线（Google Timeline）收归私有服务器或本机，自主掌管几十年物理移动地点历史。 ｜ **仓库**：https://github.com/Freika/dawarich
-
-- **1. 核心解决的问题**：主流地图厂商的位置历史功能正收紧云端能力或难以编程对外访问，导致人常年物理出差、到访城市与场所的数据无法跟日常数字笔记打通。
-- **2. 使用的方法**：提供可一键 Docker 自托管的位置历史平台，兼容 Google Takeout 历史包以及手机端 OwnTracks / Overland 等实时定位点上报，自动聚合成**常访地点（Places / Visits）**与轨迹可视化地图并暴露开放 API。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 地理位置被封在云巨头 App 黑盒子里，问 AI“我去年秋天去上海那次聊了什么”时无法把地点线索串起来。 | 数年的物理坐标与地点标签掌握在自己可控数据库内，能够直接按时间和地名辅助回忆事件。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **为统一事件模型预留轻量的 `location / place` 属性位**：不一定立刻 24 小时开高精度 GPS 耗电（可通过 `record-for-agent` 前台录音坐标或 Wi-Fi/蓝牙场景映射取得），但“**时间 + 地点**”是人类唤醒记忆的最强组合索引之一。
-
-#### 2.2.10 FunASR / SenseVoice / sherpa-onnx — 全本地离线语音识别技术栈
-> **一句话看懂**：一套完全跑在你自己电脑或手机上、断网也能高精度转写“中英混读+自动加标点+区分说话人”的免费开源语音全家桶。 ｜ **仓库**：[FunASR](https://github.com/modelscope/FunASR) · [SenseVoice](https://github.com/FunAudioLLM/SenseVoice) · [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx)
-
-- **1. 核心解决的问题**：全天录音绝不可能把私密对话上传云端商业 ASR 接口（既有巨额 API 账单又有极端隐私风险），而老式离线开源语音模型普遍存在中英混杂翻车严重、没有标点断句、部署依赖繁琐的问题。
-- **2. 使用的方法**：三者各司其职组成黄金本地管线：`FunASR` 提供端到端语音工程骨架（**VAD 静音切除 + ASR 识别 + PUNC 标点恢复 + 说话人分离**）；`SenseVoice` 模型主攻极低延迟、中文及中英混合高精度转写，同时顺手打上笑声、情绪与环境音事件标签；`sherpa-onnx` 则基于 ONNX Runtime 把它们编译打包为**零沉重 Python 环境依赖、全平台端侧 CPU 高速直跑**的部署引擎。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 要么被迫咬牙把私人语音发上云端服务器；要么在本地转写出一长坨没标点、英文全错的乱码文本根本没法给 Agent 读。 | 在本地笔记本甚至移动端离线跑出带标点、流畅识别中英文术语的精准对话稿，兼顾零上传成本与绝对隐私安全。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **补齐当前音频通道最急需的最后一块拼图（本地转写 + 说话人区分）**：在接入 `record-for-agent` 消费流水线时，优先采用 `sherpa-onnx` + `SenseVoice / FunASR` 本地批处理与流式引擎。
-  2. **把“谁在说话（`Speaker_X` vs `Self`）”与“时间戳”挂钩**：后续加入声纹聚类区分本人与访客后，语音转写对 AI 推理的可用度会跃升一个台阶。
-
-</details>
-
----
-
-### 2.3 Agent 记忆与 Context 基础设施（5 项）
-
-> 当数据采集进来后，主流开源记忆引擎如何解决“爆炸、冲突、Token 预算与检索精度”？
-
-| # | 项目 | 一句话看懂它的核心范式 | 对本项目的核心启发 |
-| :---: | :--- | :--- | :--- |
-| 15 | **[OpenViking](https://github.com/volcengine/OpenViking)** | `viking://` 虚拟文件系统：先看目录摘要再按需拉详文 | 采纳 **L0/L1/L2 渐进加载** 作为 `L4` MCP 输出标准，绝不一次倒整日原文 |
-| 16 | **[Graphiti](https://github.com/getzep/graphiti)** | 带**双时间轴**的动态知识图谱，冲突时闭废旧边不删除 | 确立 `L3` 知识演进规则：事实边带 `valid_at / invalid_at` + **BM25+向量+图混合召回** |
-| 17 | **[Mem0](https://github.com/mem0ai/mem0)** (+ Chrome Ext) | `ADD/UPDATE/DELETE` 压缩核心事实 + 浏览器跨 AI 注入 | 验证“个人记忆跨平台共享”高价值；但 `DELETE` 绝不可直接销毁 `L0/L1` 原事件 |
-| 18 | **[Letta](https://github.com/letta-ai/letta)** | 把 OS 分页内存（Core / Recall / Archival）交给 Agent 自管理 | 我们专注做好底层的 **`Recall & Archival` MCP 工具** + 学习其夜间异步整理 |
-| 19 | **[cognee](https://github.com/topoteretes/cognee)** | 异步 `ECL` 管线同时驱动图数据库与向量语义库 | 启发一种设计思路：**“实时轻采集”与“后台异步慢认知（Cognify）”或许需要彻底解耦** |
-
-> 💡 **本组研究启发**：这些记忆基础设施大多假定“输入已经是干净对话文本”，较少直接面对物理世界端侧高噪信号；如何把**上游真实感官采集与事件聚合**同下游**分层渐进加载 + 双时序演进 + 后台异步整理**衔接起来，是当前值得继续探索的关键拼图。
-
-<details>
-<summary>📖 点击展开 2.3 全部 5 项完整四维精读（问题 / 方法 / Before vs. After / 启示）</summary>
-
-#### 2.3.1 OpenViking (volcengine/OpenViking) — `viking://` 分层渐进按需加载上下文库
-> **一句话看懂**：不要像普通向量库那样把文章拆碎混在一起盲捞，而是把所有记忆做成“有目录大纲的文件夹”，让 AI 先看摘要再点开详文。 ｜ **仓库**：https://github.com/volcengine/OpenViking
-
-- **1. 核心解决的问题**：传统扁平向量检索（Flat RAG）丢失目录上下文与前后背景联系，为了凑齐信息往往一次性往 Prompt 里塞海量长文切片，导致 Token 巨额浪费和注意力失焦。
-- **2. 使用的方法**：提出面向 Agent 的**虚拟文件系统上下文数据库范式（`viking://` URI）**，为同一节点分层维护三个颗粒度视图：**`L0` 一句话概览（`.abstract.md`）→ `L1` 核心大纲（`.overview.md`）→ `L2` 完整原始正文**，检出时先通过目录+低成本摘要缩圈定位，确认相关后再渐进加载原文。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 向量检索一顿盲搜抓回几十段没头没尾、上下文割裂的文字块，直接把大模型上下文塞满。 | 智能体像翻阅整理得井井有条的档案目录一样，“先扫描概要目录定位、再只翻看真正有关那几页的原文”。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **直接采纳进我们的 `L4` MCP 输出契约**：绝不把 2 小时录音转写原文一股脑倒进会话里，设计工具支持 `level="abstract" | "overview" | "full"` **按需下钻展开**。
-  2. **兼顾极高透明度**：基于文件系统/目录抽象的记忆人眼也可读可改，彻底消除“黑盒向量库不知里面存了啥”的失控感。
-
-#### 2.3.2 Graphiti (getzep/graphiti) — 双时序动态演进知识图谱引擎
-> **一句话看懂**：专门解决“现实事实天天在变，新决策推翻旧计划后 AI 却新旧记忆混淆乱答”的动态图谱底座。 ｜ **仓库**：https://github.com/getzep/graphiti
-
-- **1. 核心解决的问题**：普通向量检索和传统静态知识图谱只会傻傻追加记录，当发生“上个月计划用框架 A，今天决定改用框架 B”时，新旧事实往往在查询时互相打架甚至让大模型输出折中幻觉。
-- **2. 使用的方法**：作为 Zep 背后的开源图引擎，构建基于 **Episode / Entity / Community 三层子图与双时序感知（Bi-temporal，记录每条关系边在现实世界生效的起止时间 `valid_at / invalid_at` 以及入库时间）** 的增量图谱；写入发现状态冲突时**关闭旧边有效期而非直接抹除历史**，查询采用**向量相似度 + BM25 关键词 + 图邻接混合召回**。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| “以前用 A”和“现在改 B”两条高相似记录同时被召回，大模型分不清先后而答错；修改旧图谱往往被迫全库重抽。 | 既能零冲突准确回答“当前有效事实是 B”，又能追溯“何时曾经用过 A 并在哪次讨论切换的”，且支持快速增量入库。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **将“双时间轴标记 + 关闭旧区间”定为本仓 `L3` 状态知识的标准准则**：个人工作项与项目方案是强时效演化流，每条事实都应带有时间区间标记和冲突覆盖指针。
-  2. **检索端采用混合召回优于纯向量**：人名、工程代号、文件ID 精确匹配靠 `FTS5 / BM25` 与实体关联图，语义泛查再配 Embedding。
-
-#### 2.3.3 Mem0 (mem0ai/mem0 & mem0-chrome-extension) — 动态记忆整理与跨 AI 扩展注入
-> **一句话看懂**：每次聊天或读取信号后自动提炼精简“个人事实卡片”并去重合并，还能装进 Chrome 扩展把这份记忆共享给 ChatGPT 和 Claude。 ｜ **仓库**：https://github.com/mem0ai/mem0
-
-- **1. 核心解决的问题**：每次在网页开新聊天或在不同 AI 工具间切换都要像个复读机一样重讲个人背景，而简单无脑囤积对话记录又会让记忆池快速胀破并互相打架。
-- **2. 使用的方法**：采用**两阶段写时整理流水线（Extract → Update）**：先结合邻近对话提取候选记忆事实，再搜索老记忆让 LLM 决策执行 **`ADD`（新增）/ `UPDATE`（合并覆盖）/ `DELETE`（剔除过时）/ `NOOP`（无需改动）**，将记忆压缩到极高密度；并配合浏览器扩展 `mem0-chrome-extension` 直接跨网页 AI 框注入记忆。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 在 ChatGPT 调教好的项目背景一换 Claude 全得重新输入；长期对话全历史塞进模型既贵又慢。 | 以极轻量、低冗余的事实池在不同 AI 平台间流通复用，大幅砍掉重复解释背景与历史上下文 Token 开销。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **验证了“把个人上下文掌握在用户手中，跨多个 AI 助手通用”是核心刚需场景**：通过统一 MCP 与扩展入口注入所有日常工位工具。
-  2. **警惕并规避其有损销毁短板**：`Mem0` 式的 `UPDATE/DELETE` 只能用来整理高层总结（`L3` 工作卡片），**绝不可用于修改/删除 `L0/L1` 原始事件**，防止大模型误判删掉珍贵原貌。
-
-#### 2.3.4 Letta (letta-ai/letta) — 类操作系统虚拟内存的有状态 Agent 框架
-> **一句话看懂**：把操作系统的“内存 + 硬盘分页”搬给大模型，让 Agent 可以像程序员读写文件一样自己决定记住什么、去库里翻什么。 ｜ **仓库**：https://github.com/letta-ai/letta
-
-- **1. 核心解决的问题**：传统大模型运行模式只是外面代码死板塞 5 条 RAG 文本进来，模型自己完全无权修改记忆或发现信息不够时主动回去多翻几页旧记录。
-- **2. 使用的方法**：源自 MemGPT 论文，把上下文空间划分为类似操作系统存储层次的三块：**窗口常驻核心记忆 Core Memory（类似 RAM，可直接读写改写个人核心设置）+ 外部历史检索库 Recall Memory + 长期深档案库 Archival Memory**，直接为 Agent 配备内存管理与后台整理工具（Sleep-time Agent）。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 外部 RAG 检索一锤子定生死，没捞全上下文时模型只会干瞪眼或者瞎猜。 | 智能体从无状态算子变身为有状态管家，信息没找够就自己调用工具按时间翻旧账，还会在空闲时段异步理顺记忆。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **借用其“外挂档案工具权 + 夜间异步整理（Sleep-time Compute）”范式**：白天高频工作只轻量写 `L0/L1`，夜间或电脑空闲再在后台算 `L2 Episode` 与摘要，彻底不卡顿交互。
-  2. **明确本项目的系统定位边界**：我们不重造又一个聊天套壳 Runtime，而是专为 Claude Code / Cursor / Letta 等所有客户端供给高质 `Recall / Archival` 记忆能力的通用 MCP 基础设施。
-
-#### 2.3.5 cognee (topoteretes/cognee) — 异步 ECL 图 + 向量混合构建管线
-> **一句话看懂**：把原始零碎个人资料，按标准化三步异步流水线同时炼成“好搜的语义向量”和“能串联关系的知识图谱”。 ｜ **仓库**：https://github.com/topoteretes/cognee
-
-- **1. 核心解决的问题**：个人项目里要想同时跑通“向量模糊搜”与“知识图谱多跳推理”，常要自己编写脆弱且难以更换存储后端的大把 ETL 胶水代码。
-- **2. 使用的方法**：采用强类型 `DataPoint` 扩展模型作为统一原语，构建全异步 **ECL（Extract 采集提取 → Cognify 认知拆块/实体抽取 → Load 双模落库）** 编排管线，支持同步打通图数据库与向量库后端，并提供多种混合图-向量检索模式（`SearchType`）。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 向量脚本与图谱脚本各干各的经常数据失步，换一个底层存储库整套解析代码都要大动手术。 | 像搭积木一样定义如 `WebPage`、`ClipboardItem` 等强类型数据点，交由一套异步管线同步维护语义与结构关联。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **借鉴其“实时轻采集”与“异步慢认知（Cognify）”完全解耦思路**：所有采集器只管毫秒级写入事件流水（绝不在前台卡等大模型推理），实体提取、关系对齐全放后台排队推进。
-
-</details>
-
----
-
-### 2.4 主动式个人上下文与“第二大脑”应用（5 项）
-
-> 底层底座搭稳后，上层“主动日报、定时巩固、本地小模型摘要”有哪些成功经验与雷区？
-
-| # | 项目 | 一句话看懂产品形态 | 对本项目的核心启发 |
-| :---: | :--- | :--- | :--- |
-| 20 | **[MineContext](https://github.com/volcengine/MineContext)** | 不等你问，后台看懂全天桌面活动后主动生成日报与待办 | **每日简报 + 漏项提醒** 是绝佳 `L4` 出口，但须建在低噪信道上 |
-| 21 | **[Khoj](https://github.com/khoj-ai/khoj)** | 私有本地文档检索 + 多客户端接入 + 定时自动研究任务 | 学习其 **Nightly Synthesis（夜间批巩固）** 折叠全天流水账 |
-| 22 | **[Second-Me](https://github.com/mindverse/Second-Me)** | 个人分层记忆建模 + 微调本地模型形成私有“数字分身” | **确立阶段边界**：近期工作记忆坚决走检索，不急于早早微调权重 |
-| 23 | **[personal-ai-memory](https://github.com/marswangyang/personal-ai-memory)** | 极轻量 Chrome 浏览轨迹接入私有本地记忆的小闭环 | 提示一条产品现实：如果无法**单机五分钟轻量跑通**，重依赖很容易劝退个人使用者 |
-| 24 | **[web-recap](https://github.com/robzolkos/web-recap) & [Reading-Watch-List](https://github.com/swetas7/Reading-Watch-List-Extension-Local-LLM)** | 汇总浏览与待读文章，直接喂给本地 Ollama 自动摘要 | **用本地小模型做网页初筛与两句摘要**，零云端成本且保护隐私 |
-
-> 💡 **本组研究启发**：从上层应用形态看，轻量部署门槛、夜间异步合成摘要与本地小模型降噪展现了明确方向；至于具体是先走检索辅助还是后续结合微调偏好建模，仍有待结合实际使用场景继续验证与界定。
-
-<details>
-<summary>📖 点击展开 2.4 全部 5 项完整四维精读（问题 / 方法 / Before vs. After / 启示）</summary>
-
-#### 2.4.1 MineContext (volcengine/MineContext) — 主动感知日报与待办推动伙伴
-> **一句话看懂**：不用等你主动开口提问，在桌面后台默默看完你一天的操作，下班前主动递给你今日进展总结与可能漏掉的待办事项。 ｜ **仓库**：https://github.com/volcengine/MineContext
-
-- **1. 核心解决的问题**：纯被动搜索引擎有个致命弱点——“人忙完一天经常连自己到底忘了跟进啥事都想不起来，根本不会想起来主动去搜索”。
-- **2. 使用的方法**：作为“主动式上下文感知（Proactive）桌面 AI 伙伴”，持续收集屏幕切片、文档和工作动作形成带生命周期的 Context 卡片，随后后台定时聚合梳理出**工作日报、行动待办（Todo）提取与关联任务主动提示**。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 每天复盘写日志时盯着混乱的浏览器和聊天窗口一小时，很多口头约定的小跟进悄无声息石沉大海。 | 系统静默完成一天的事件归并，主动推送出结构清晰、可点击追溯来源的今日回顾与待办清单。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **把“每日摘要 + 漏项提醒”规划为 `L4` 主动推送层的自然衍生品**：等底层的音频、剪贴板和有效阅读通道合流跑稳后，再优雅生成高质量低打扰简报，避免开局即重陷截屏高耗陷阱。
-
-#### 2.4.2 Khoj (khoj-ai/khoj) — 私有本地知识检索 + 多终端定时自动化
-> **一句话看懂**：连接你电脑上的本地私有大模型，把 Obsidian 笔记和 PDF 变成可以多软件随时呼叫聊天、还能定闹钟自动总结的私人 AI 中枢。 ｜ **仓库**：https://github.com/khoj-ai/khoj
-
-- **1. 核心解决的问题**：拥有大量 Markdown/PDF 私人资料后，人既担心把私人知识传给商业闭源云端，又希望能直接从 Emacs、Obsidian 或聊天软件里提问甚至设置每日自动晨报任务。
-- **2. 使用的方法**：打造支持纯自托管部署的开源个人 AI 平台——原生兼容本地 Ollama/LlamaCpp 开源模型与向量语义索引，打通编辑器/Web/桌面/聊天多客户端入口，并提供 **Automations（定时或条件触发自动任务）** 能力。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 本地知识库始终只是冷冰冰的纯文本静态盘，找内容只能精准匹配单词，每天固定整理也全靠人工手打提示词。 | 多端就手即可安全隐私提问私有文档，日常汇总简报全权交由后台定时任务悄然运行。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **借其“夜间自动合成机制（Nightly/Weekly Synthesis）”强化长期记忆沉淀**：通过定时批处理将一天零散跨模态记录折叠为干净易读的 Markdown 档案，直接同时喂给人类回顾工具（Obsidian）与大模型检索库。
-
-#### 2.4.3 Second-Me (mindverse/Second-Me) — 个人记忆分层与本地权重微调“数字分身”
-> **一句话看懂**：不只往提示词里塞几条检索片段，而是试着把你的个人笔记与偏好训练微调进一个属于你自己的本地小模型分身里。 ｜ **仓库**：https://github.com/mindverse/Second-Me
-
-- **1. 核心解决的问题**：哪怕外挂检索拼了几段记忆碎片，通用大模型写出来的语气和看问题的思维方式往往还是透着一股浓浓的标准化“AI 味”，不懂你的长期价值观和独特思考习惯。
-- **2. 使用的方法**：提出基于 **HMM（Hierarchical Memory Modeling）的 L0→L1→L2 个人记忆整理与 Me-Alignment 对齐算法**，指导用户在个人设备本地将大量沉淀语料训练/微调出可持久承载自我思维模式的私有 **AI Self（数字分身）**。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 外挂记忆的通用大模型仍像随叫随到却并不了解你的“陌生外包助理”。 | 演化出一个极高私人契合度、说话风格和认知背景原生贴近本人的可控本机分身。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **切记划分好工作流时间边界：先做检索协议，后期才碰微调**：对于变化以天甚至小时为单位的项目细节（昨天遇到的报错、上午改的会期），微调不仅严重滞后还极易张冠李戴编造幻觉；**前期稳步推进 `SQLite/时间轴/图谱 + MCP` 检索主架构**，积累数月稳定性格表达后再探索模型微调对齐。
-
-#### 2.4.4 personal-ai-memory (marswangyang/personal-ai-memory) — 极轻 Chrome 浏览上下文私有记忆注入
-> **一句话看懂**：懒得折腾复杂图库集群容器的轻量派探索：就用简单的浏览器扩展 + 轻量本地后端把看过的内容融进聊天 AI。 ｜ **仓库**：https://github.com/marswangyang/personal-ai-memory
-
-- **1. 核心解决的问题**：不少主流企业级 Agent 记忆方案动辄需要一口气配齐 Docker、独立向量集群与图数据库，极高部署门槛吓退了真正只想立刻自用的个人开发者。
-- **2. 使用的方法**：走极致轻量“Chrome 浏览器插件采集上网片段 + 本地极简存储服务”路线（据早期仓库调查记录），尝试以最小运行负担打通日常网页阅读与对话记忆。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 只是想让助手顺手记住刚浏览的技术资料，却因为服务器环境太重望而却步。 | 以轻量单机小闭环实现初步“浏览轨迹转私有记忆注入”体验。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **敬畏开源落地的“五分钟开箱可用定律（Low Friction）”**：如果一个个人开源基座不能在五分钟内单机安装运行起来，绝大多数用户就不会真正天天挂在电脑上；本项目必须坚持默认轻依赖。
-
-#### 2.4.5 web-recap & Reading-Watch-List-Extension-Local-LLM — 浏览汇聚与本地小模型摘要
-> **一句话看懂**：对攒了一堆打开的标签页和待读文章，直接调用你本机的 Ollama 免费模型悄悄总结归类，正文绝不传云端。 ｜ **仓库**：[web-recap](https://github.com/robzolkos/web-recap) · [Reading-Watch-List](https://github.com/swetas7/Reading-Watch-List-Extension-Local-LLM)
-
-- **1. 核心解决的问题**：每天打开上百个浏览器标签页或往“稍后阅读”塞进几篇文章却从不翻开回头看，同时又不敢为了摘要整理把全部浏览正文发上收费的第三方云模型 API。
-- **2. 使用的方法**：利用浏览器插件收集当日标签/待读网页正文文本，接入**跑在本地电脑里的开源小模型（如 Ollama）**，离线做内容去噪判断、两句要点总结和主题分类梳理。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 浏览器标签越开越多却患上信息失忆症，云端自动摘要账单贵又不放心涉密网页。 | 零云端 API 费用且网页明文完全不出本地设备，下班前获得清爽的结构化每日浏览简报。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **把“本地小模型前置过滤 + 两句初筛摘要”引入浏览器入库流水线**：判断一篇网页究竟是无意义登录页还是高营养技术长文、生成 `L0` 简短摘要，完全胜任于本地开源小模型零成本消费，把高价大模型的珍贵注意力留给复杂跨渠道归纳。
-
-</details>
-
----
-
-## 三、 学术论文与评测基准索引与四维精读（16 篇）
-
-> [!NOTE]
-> **检索核实说明**：本仓库按严谨原则标注检索核实状态——个别待进一步核验条目（`PM-Bench` 的 `arXiv:2607.12385` 仅见于一组搜索结果、`Nemori` 标题-ID 对应关系部分核验、`From Memory to Action` 收录于 OpenReview 暂未见 arXiv 编号）均如实保留提示。完整独立排版见 [papers-blogs-digest.md](docs/research/papers-blogs-digest.md)。
-
-### 3.1 连续生活流与 Agent 长期记忆评测（7 篇）
-
-| # | 论文 / 基准 | 一句话看懂它揭露了什么核心痛点 | 出处与链接 |
-| :---: | :--- | :--- | :--- |
-| 1 | **LifeDialBench** | 多模态生活流 + 在线评测下，**重度有损压缩记忆经常打不过简单原文检索 RAG** | [arXiv:2604.11182](https://arxiv.org/abs/2604.11182) |
-| 2 | **STALE** | 计划悄悄变了却没明说删旧记忆：前沿模型在隐式冲突下最高准确率仅 **~55.2%** | [arXiv:2605.06527](https://arxiv.org/abs/2605.06527) |
-| 3 | **PM-Bench** | 7 天模拟长周期与前瞻提醒评测 *(最佳 F1 ~65.1%)*，写时切分粗糙会放大失效 *(单一检索源)* | [arXiv:2607.12385](https://arxiv.org/abs/2607.12385) · [GitHub](https://github.com/genglinliu/PMBench) |
-| 4 | **MemoryCD** | 多年跨域持续写入会因低质噪声淹没高意图与矛盾积压而逐渐退化 | [arXiv:2603.25973](https://arxiv.org/abs/2603.25973) |
-| 5 | **From Memory to Action** | 最大掉点在**“记忆拿在手里之后、转化为具体行动之前”**（背得出来 ≠ 会做对） | OpenReview *(无确认 arXiv 号)* |
-| 6 | **LongMemEval** | 检验跨会话提取、时间推算、知识更新与**记不清时坦诚拒答（Abstention）** | [arXiv:2410.10813](https://arxiv.org/abs/2410.10813) |
-| 7 | **LoCoMo** | 超长多会话连续对话沙盒，证明硬塞全历史仍难搞定跨会话多跳先后推理 | [arXiv:2402.17753](https://arxiv.org/abs/2402.17753) |
-
-> 💡 **本组研究启发**：7 篇评测把三个棘手的问题摆到了台面上——**有损摘要常跑不过简单原文检索（*LifeDialBench*）、隐式旧状态冲突极易误导模型（*STALE*），以及“背得出不等于用得对”（*From Memory to Action*）**，这些都是界定任务目标与验收标准时绕不开的题眼。
-
-<details>
-<summary>📖 点击展开 3.1 全部 7 篇论文完整四维精读（问题 / 方法 / Before vs. After / 启示）</summary>
-
-#### 3.1.1 LifeDialBench — 多模态连续生活流 + 对话联合在线评测
-> **一句话看懂**：别只测“聊完 50 句天还记得什么”，真正要测的是**手表录音、行程、画面等真实连续生活流与对话交织**时，AI 还记不记得前因后果。 ｜ **出处**：`arXiv:2604.11182` · https://arxiv.org/abs/2604.11182
-
-- **1. 核心解决的问题**：过去绝大多数长记忆数据集只有纯文本闲聊，缺乏现代 AI 陪伴硬件真实面对的**跨模态被动生活流（Lifelogging）与主动对话交织输入**，且忽视时间因果在线回放。
-- **2. 使用的方法**：构造连续多模态生活流 + 多轮对话基准（含第一视角真实日常流与模拟长程流），严格按照**时间因果在线流式协议**（严格禁止“偷看未来消息”）评估信息提取、跨模态融合推理与状态更新。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 记忆系统只需把几十轮纯文本聊得不错就能拿高分，但面对“结合昨天线下发生的事回答今天问题”频频抓瞎。 | 在线流式实测揭露出**“复杂重型有损摘要记忆系统，往往反而打不过保留原始粒度的简单 RAG 基线”**的反直觉事实。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **原始证据链（`L0/L1`）绝不可在摘要后销毁**：早期觉得无关紧要的细节（比如随手记的一串参数），几天后可能正是关键线索，**摘要只作目录导航，回答必须回溯原文**。
-  2. **建一套“个人脱敏流式评测集”**：设计融合“语音 + 剪贴板 + 浏览”的合成与脱敏时间线剧本，严守时间因果回放做自我验收。
-
-#### 3.1.2 STALE — 记忆过时与“隐式冲突”专项基准
-> **一句话看懂**：日常生活中人很少对着 AI 喊“请把上个月记忆删掉”，新事件悄悄覆盖了旧计划——这篇论文专门测 AI 会不会傻傻拿着过时旧记忆当真。 ｜ **出处**：`arXiv:2605.06527` · https://arxiv.org/abs/2605.06527
-
-- **1. 核心解决的问题**：人从一周前的“打算用方案 A”悄悄切换为这周的“改写方案 B 代码”，却从未显式口头宣布“方案 A 作废”；通用评测几乎从不考核记忆系统的**隐式冲突识别与过时记忆抑制（Memory Staleness）**。
-- **2. 使用的方法**：构建聚焦**状态演进、计划撤销与隐式替代**的评测集（覆盖 `400` 个场景、`1200` 条查询），对比朴素向量追加策略与专门提出的时间演化抑制方案（如 `CUPMem`）。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 新旧两条陈述因为语义关键词几乎一模一样，纯向量检索会把两周前已作废的旧决定一起喂给模型造成严重幻觉。 | 实测显示即便前沿大模型在隐式冲突下最好成绩也仅约 **`55.2%`**，把**有效时间区间与状态覆盖**推升为记忆系统生死线。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **彻底区隔“不可变档案（`L0/L1`）”与“会过期的真相视图（`L3`）”**：底表原封不动记录历史上发生过什么；但供实时问答的 `L3` 状态与图边必须带 `valid_from / valid_to / superseded_by`。
-  2. **检索默认给近邻事件加时效权重**：不要把半年前的剪贴板记录和今天正在编辑的文件以同等权重端上桌。
-
-#### 3.1.3 PM-Bench — 长期个人记忆与前瞻性回忆评测
-> **一句话看懂**：不仅测“过去发生了什么”，更测 AI 能不能在未来的某个正确时间点**“顺嘴主动提醒你昨天留下的未完意图（前瞻记忆）”**。 ｜ **出处**：`arXiv:2607.12385` · https://arxiv.org/abs/2607.12385 · [GitHub](https://github.com/genglinliu/PMBench) *(注：arXiv 编号仅见于单一检索结果，引用前建议复核)*
-
-- **1. 核心解决的问题**：大多数记忆测试停留在“你问它答”的回溯式问答（Retrospective），忽视了个人助手在跨数天多源日程中的习惯沉淀与**前瞻性意图触发（Prospective Memory，即“到时候记得提醒我”）**。
-- **2. 使用的方法**：构造跨越连续 `7` 天模拟生活流的个人长期记忆评测框架（配套 `PMBench` 仓库），测试模型从海量杂乱碎片中提取潜在待办/偏好，并在正确触发场景出现时唤醒记忆的能力。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 用几段“我喜欢美式咖啡”的简单对话测出高分，掩盖了长周期真实噪音下主动记忆崩溃的问题。 | 即便经过优化，7 天模拟前瞻记忆基准的最佳 F1 仅约 **`65.1%`**，凸显写入端切分粗劣与噪声淹没依然是核心瓶颈。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **重点投资“写入端（Write Path）”结构清洗**：别把所有希望寄托于查询时的向量重排——原始事件切分干不干净、意图锚点抓得准不准决定了记忆上限。
-  2. **为“缺口提醒与待办触发（Gap / Proactive Trigger）”留好数据出口**：前瞻记忆能力正是本计划高阶阶段打通主动辅助的重要评价尺度。
-
-#### 3.1.4 MemoryCD — 多年跨域个人行为持续演化与抗退化研究
-> **一句话看懂**：模拟真实用户在好几年、跨多个软件/产品领域里的连续行为，研究记忆库越攒越大后为什么会越来越不准、怎么防止“记忆腐化”。 ｜ **出处**：`arXiv:2603.25973` · https://arxiv.org/abs/2603.25973
-
-- **1. 核心解决的问题**：多数评测只是静态切一个瞬间快照库来做检索，忽视了现实中随着用户数年行为持续追加和跨域习惯迁移，系统面对**矛盾叠加与低信噪比积压**时的性能衰退。
-- **2. 使用的方法**：基于真实跨年多领域用户行为数据，构建长时间连续写入演化场景下的记忆冲突管理与跨域个性化维持基准框架。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 记忆系统前三天刚装好时表现极佳，连续记满几个月、混入海量重复废话和前后矛盾修改后命中率急剧下降。 | 明确揭示**低价值噪音淹没高意图信号**与缺乏写时冲突巩固，才是跨域长期个人记忆失效的主因。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **采集阶段必须自带“注意力权重（Attention Score）与去重指纹”**：网页晃眼扫过 3 秒权重接近 `0`；相同报错连续复制 5 次只记次数加权而绝不存 5 份冗余垃圾。
-  2. **确立“写时指纹合并 + 周期性夜间冲突整理”双防线**，保证系统用一年比用第一周更懂你而不是更糊涂。
-
-#### 3.1.5 From Memory to Action — “记得住”≠“做得对”的行动鸿沟研究
-> **一句话看懂**：光记住用户偏好和历史没用！论文一针见血地指出：最大失误往往发生在**记忆明明已经顺利召回手里，Agent 却没能把它转化为正确行动**。 ｜ **出处**：OpenReview *(调研确认收录于 OpenReview；暂未对应到 arXiv 编号)*
-
-- **1. 核心解决的问题**：现有基准用 QA 问答考“模型能不能把往事背出来”，但工具型 AI 助手的真正使命是依据记忆在关键一步做出正确选择与动作执行。
-- **2. 使用的方法**：构建必须依赖过往用户偏好和上下文经验才能做对决策的多步工具行动评测流程，从最终动作完成质量而非单纯口头回答准确性来评判记忆系统好坏。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 记忆框架拼命把大段无关过往经验全塞进上下文以提升 QA 命中率，反而混淆视线导致模型选错工具或传错参数。 | 实证发现**最大掉点就落在“记忆已可用之后、转化为具体行动之前”**，倒逼系统优先提供精确服务于动作的简洁上下文。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **正中本仓库命名“Instrumentality（工具效用导向）”靶心**：评判本计划成功与否不是看“能多好聊回忆录”，而是**“把本地上下文接给编程/办公 Agent 后，能否减少人工解释并一次做对决策”**。
-  2. **按下游消费场景裁剪返回视图**：编程场景优先吐“刚刚报错剪贴板 + 当前工程活跃讨论”；决策场景优先吐“相关约束与待办”。
-
-#### 3.1.6 LongMemEval — 长期交互式对话五大核心记忆标尺
-> **一句话看懂**：业内最权威的长对话记忆“体检表”，一口气考五个真功夫：单轮提取、跨对话推理、时间推算、知识更新、**不知则拒答**。 ｜ **出处**：`arXiv:2410.10813` · https://arxiv.org/abs/2410.10813
-
-- **1. 核心解决的问题**：常见“大海捞针（NIAH）”评测只测机器复制粘贴单句文本的能力，完全测不出跨越数十天多段会话、涉及顺序推算、状态变更与防瞎编的真实助手记忆力。
-- **2. 使用的方法**：打造长周期多会话交互评测基准，明确定义五项正交评估维度：**单/多会话信息提取、跨会话关联推理、时间推理（Temporal Reasoning）、知识更新、弃权拒答（Abstention，找不到记忆时坦诚说不知道）**，并检验时间戳显式查询扩展与索引粒度调优方法。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 以为模型支持 128K 捞针 99% 就等于有记忆，忽略了实战里最致命的“时间搞乱、新旧搞混、记不清就胡编”。 | 成为检验 Zep、Mem0 等商业与开源记忆引擎的标准标尺，证明**显式时间感知索引 + 检索后重排**收益巨大。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **给每条检索结果硬性挂上时间戳与相对时间锚点**：没有精确时间的碎片知识遇到“我上周五之前说的那个方案”必死无疑。
-  2. **落实“弃权拒答（Abstention）”红线**：当本地库没记录某件事或置信度不足时，MCP 工具明确返回空列表/低置信提示，严禁模型替用户强行“脑补”缺失记忆。
-
-#### 3.1.7 LoCoMo — 超长跨度多会话连续对话沙盒
-> **一句话看懂**：针对横跨几周、几百轮对话及多模态内容的早期长程对话评测数据集，揭示长上下文模型在多跳串联上的退化。 ｜ **出处**：`arXiv:2402.17753` · https://arxiv.org/abs/2402.17753
-
-- **1. 核心解决的问题**：早期对话数据集往往不到几十轮且集中在同一次会话内，根本测不出跨越长达数周多会话与图文交替的记忆衰减问题。
-- **2. 使用的方法**：结合人物画像与动态事件演化图驱动并配合严格人工校验，构建出横跨数十个时间分散会话、包含数百回合与图像分享的超长对话测试集，评估单跳/多跳/时序/总结全场景问答。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 短会话窗口内看似靠暴力硬塞历史即可解决所有记忆问题，掩盖了真实跨周场景的衰退。 | 证实在超长多会话下，哪怕把全部聊天直接拼进模型长窗口，跨会话多跳归纳与先后顺序判断依然明显落后人类水平。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **“时间跨度聚簇 + 主题/实体多跳链”缺一不可**：不能指望把全月语音文字直接塞进超长窗口，必须先按主题/实体聚出结构化关联与时间段摘要。
-
-</details>
-
----
-
-### 3.2 事件分割、情景记忆与系统架构（6 篇）
-
-> 如何把无限延续的时间流切成一个个完整故事（Episode），并与动态知识共同演化？
-
-| # | 论文 | 一句话看懂核心方案 | 链接 |
-| :---: | :--- | :--- | :--- |
-| 8 | **EM-LLM** | 靠 **“惊喜度峰值”** 自适应切分情景块 + 召回时连带捞取前后相邻碎片 | [arXiv:2407.09450](https://arxiv.org/abs/2407.09450) |
-| 9 | **Episodic Memory** | 论证**带有时间地点的亲历情景（Episode）**绝不能被静态三元组事实替代 | [arXiv:2502.06975](https://arxiv.org/abs/2502.06975) |
-| 10 | **Zep** | `Episode → Entity → Community` 双时序图谱，低延迟兼具时间精确性 | [arXiv:2501.13956](https://arxiv.org/abs/2501.13956) |
-| 11 | **Mem0** | 提取后用 `ADD/UPDATE/DELETE/NOOP` 动态压紧个人核心状态卡 | [arXiv:2504.19413](https://arxiv.org/abs/2504.19413) |
-| 12 | **Nemori** | 基于自然边界对齐与预测误差校准的自组织记忆思路 *(标题-ID 部分核验)* | [arXiv:2508.03341](https://arxiv.org/abs/2508.03341) |
-| 13 | **Memory for Autonomous LLM Agents** | 基于 POMDP 抽象出 **`Write – Manage – Read` 三轴生命周期**大综述 | [arXiv:2603.07670](https://arxiv.org/abs/2603.07670) |
-
-> 💡 **本组研究启发**：这组系统与论文提供了一个可供参照的拆解框架——让**亲历情景（`L2 Episode`）保真留下过程现场**，让**语义知识（`L3`）追踪带有效期的状态**，并用 `Write – Manage – Read` 三轴来审视任何方案的短板。
-
-<details>
-<summary>📖 点击展开 3.2 全部 6 篇论文完整四维精读（问题 / 方法 / Before vs. After / 启示）</summary>
-
-#### 3.2.1 EM-LLM — 把认知“事件分割理论”装进大模型无限记忆流
-> **一句话看懂**：不再机械每隔 512 个字硬切一刀，而是让模型监测“话题/惊喜度突然拐弯的地方”自动切分自然事件，检索时还顺带捞出前邻后舍完整叙事。 ｜ **出处**：`arXiv:2407.09450`（ICLR 2025）· https://arxiv.org/abs/2407.09450
-
-- **1. 核心解决的问题**：把长达百万字的连续输入流强行按固定 Token 长度机械切块，经常把一段完整的逻辑讨论腰斩在半句话中间，导致 RAG 检索支离破碎。
-- **2. 使用的方法**：借鉴人类心理学事件分割理论（EST），在线计算大模型对下一词的**预测惊喜度（Bayesian Surprise）峰值**并用注意力图边界精修算法把连续流划成完整的 **Episodic Events（情景事件）**；检索采取“向量找核心相似事件 + **顺手拓展相邻前后时间片**”两阶段融合策略。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 固定分块搜出一堆断章取义的半截上下文，事件因果关系和发生经过被切碎丢失。 | 记忆边界对齐真实的语义/场景拐点，“邻居扩展召回”完美恢复事件的来龙去脉。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **坚决弃用“每隔几分钟机械切一段”**：用 **“AFK 空闲断开 + 应用/工作区切换 + 语义主题偏移”** 复合信号来自然划定我们的 `L2 Episode` 边界。
-  2. **MCP 工具必须支持“前后邻居查看”**：找到一条关键线索后，允许 Agent 顺手拉取同一 `Episode` 前后 10 分钟内跨渠道（如当时复制的剪贴板/浏览页）关联片段。
-
-#### 3.2.2 Episodic Memory is the Missing Piece for Long-Term LLM Agents
-> **一句话看懂**：严厉指出当前 AI 记忆的最大通病——只顾着提炼“冷冰冰的百科事实（Semantic）”，却扔掉了“带着具体时间地点踩坑经过的亲历情景（Episodic）”。 ｜ **出处**：`arXiv:2502.06975` · https://arxiv.org/abs/2502.06975
-
-- **1. 核心解决的问题**：绝大多数记忆库会把经历过的一场长谈压扁抽成三五条“用户喜欢 Python”“数据库选 SQLite”之类的干瘪事实，彻底失去“在什么背景下、为什么犯过错、后来怎么绕开”的过程记忆。
-- **2. 使用的方法**：从认知科学角度系统界定情景记忆的五大本质特征，强调**时空唯一锚点、过程细节完整保真以及与语义知识库分离共建但双向联动**的架构准则。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 记忆里全是去语境的标签短句，遇到需要复盘某次历史教训或场景迁移的问题时完全哑火。 | 在理论层确立了“**情景日志档案（`Episode`）与提炼语义知识（`Entity/Fact`）永远并行共存、不可替代**”的核心公理。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **启发探索 `L2（情景档案）` 与 `L3（实体事实）` 双层并存、互不替代的思路**：如果引入语义提炼，`L3` 可负责追踪“用户当前状态与偏好”，`L2` 则保留“周二下午讨论经过 + 同步翻看文档 + 复制报错”的完整情景现场。
-
-#### 3.2.3 Zep — 基于双时序知识图谱的智能体记忆架构
-> **一句话看懂**：开源图引擎 Graphiti 背后的系统论文：用“原文情景 → 动态实体边 → 主题社区”三层图谱加上双时间轴，既答对变迁又跑得飞快。 ｜ **出处**：`arXiv:2501.13956` · https://arxiv.org/abs/2501.13956
-
-- **1. 核心解决的问题**：传统平铺 RAG 分块既看不懂跨越多个实体跳点的隐藏关联，又搞不定事实随着日期变更发生新旧推翻，而全历史直接硬塞大窗口又贵又慢。
-- **2. 使用的方法**：构建三层图谱架构：**Episode 子图**（原始输入保真存证）→ **Semantic Entity 子图**（带物理有效起止时间与系统写入时间双轴的关系边，冲突时不删而是失效旧边）→ **Community 子图**（高层聚类概览），检索联合向量、BM25 关键词与图邻接遍历异步组装精简上下文。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 面对跨多人多事的关联提问和计划修改极其容易出错；把所有历史送进对话耗时动辄十几秒且 Token 暴涨。 | 以明显更小的上下文注入量和极低查询延迟，给出兼顾**时效精准度**与**结构推理力**的回答。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **把“从每条推理结论都能顺着指针查回原 `Episode`”作为工程铁律**：绝不允许图谱脱离原始依据自己演化成脱缰幻觉机器。
-  2. **把耗时的图抽取计算全面放进后台异步队列**，确保采集端和前沿问答检索毫秒响应不卡顿。
-
-#### 3.2.4 Mem0 — 面向生产级长对话的极简写时合并记忆
-> **一句话看懂**：如何在不把几十万字历史全塞给大模型的前提下，低成本维护一个时刻自动去重、合并更新的小巧核心记忆库。 ｜ **出处**：`arXiv:2504.19413` · https://arxiv.org/abs/2504.19413
-
-- **1. 核心解决的问题**：把日益长大的全部历史对话每次推理都带在 Prompt 里太烧钱太缓慢，而简单的只增不改（Append-only）抽取很快就会长出成堆自相矛盾的废话记录。
-- **2. 使用的方法**：提出并实证对比纯向量版本（Mem0）和结合关系图的增强版本（`Mem0g`），核心是在每次写新记忆时对比近似旧记忆，精准选择 **`ADD` / `UPDATE` / `DELETE` / `NOOP`** 动作保持记忆池紧凑精悍。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 长期对话携带全文成本与 P95 延迟飙高；朴素抽碎片方案随着矛盾增加准确度迅速衰退。 | 大幅压缩每次注入提示词的记忆 Token 体积与端到端延迟，同时保持高质量状态一致性。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **借其思路维护 `L3` 高频“工作记忆状态卡”**：如用户当下主力编程语言、进行中的项目代号、固定工作习惯，随时零负担注入各类 AI 工具开场。
-  2. **绝不直接对底层日志用其破坏性 `DELETE`**：`UPDATE/DELETE` 仅作用于高层摘要索引视图，原始 `L0/L1` 必须保留审计溯源链。
-
-#### 3.2.5 Nemori — 基于边界对齐与认知校准的自组织记忆
-> **一句话看懂**：模仿大脑“只重点记住意料之外的新变化，不被反复重复的琐事占满脑容量”的边界分割与自组织整理方法。 ｜ **出处**：`arXiv:2508.03341` · https://arxiv.org/abs/2508.03341 *(注：标题与 arXiv ID 的对应关系当前为部分核验状态)*
-
-- **1. 核心解决的问题**：僵化的定时定量总结往往反复重复录入已经记录过的常态背景，既浪费算力又稀释了关键的认知转折信号。
-- **2. 使用的方法**：结合认知科学启发探索自然情景边界对齐（Boundary Alignment）与基于“预测-校准（Predict-Calibrate）”偏差驱动的增量记忆整理思路。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 流水账式周期小结到处都是同质废话，真正代表工作拐点的新变化被埋没在重复总结中。 | 算力和索引重心天然聚集在**“超出过往预测的新增信息量”**上，记忆结构更加紧致高纯。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **给前端采集管道加上“信息增益（惊喜度）闸门”**：连续切屏百次毫无变化的常驻工作台无需反复总结；**出现陌生术语、首次遇到报错或推翻既有决策**才触发高权重提炼入库。
-
-#### 3.2.6 Memory for Autonomous LLM Agents — 智能体记忆三轴综述
-> **一句话看懂**：目前最全面清晰的大模型记忆“学术总图鉴”：不管市面上冒出多少花哨框架，其实全都能拆进 **写入（Write）— 管理（Manage）— 读取（Read）** 三条轴线对比诊断。 ｜ **出处**：`arXiv:2603.07670` · https://arxiv.org/abs/2603.07670
-
-- **1. 核心解决的问题**：学术界与开源圈关于 Agent 记忆的方案五花八门（长窗口、RAG、图谱、微调、虚拟内存），缺一套统一的数学与架构语言让工程师一目了然比较优劣。
-- **2. 使用的方法**：用部分可观测马尔可夫决策过程（**POMDP**）对智能体记忆形式化定义，确立 **Write（如何感知筛选写入）– Manage（如何合并演化及遗忘）– Read（何时以何种粒度注入决策）** 三轴生命周期，系统归类现有载体、更新机制与测试手段。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 容易陷入“向量数据库 vs 知识图谱二选一”的局部工具误区，顾头不顾尾。 | 手握端到端“写作-治理-读取”系统设计地图，一眼排查任何方案瓶颈究竟卡在写脏数据、不会更新过时，还是检索粒度失调。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **确立为本仓周期性架构体检三原则**：
-     - **`Write`**：靠高信噪比本地传感器 + 去重降噪保源头纯净；
-     - **`Manage`**：靠后台 `Episode` 聚类与双时序冲突标废防长期腐化；
-     - **`Read`**：靠 `L0/L1/L2` 渐进按需 MCP 接口直供下游行动。
-
-</details>
-
----
-
-### 3.3 经典奠基文献（3 篇）
-
-> 横跨信息检索、认知心理学与终身计算二十年的三块理论压舱石。
-
-| # | 经典文献 | 一句话看懂奠基贡献 | 来源 |
-| :---: | :--- | :--- | :--- |
-| 14 | **Personal Knowledge Graphs** | 正式定义以 **“我（User）”为宇宙中心锚点** 串联私密与公开知识的个人图谱 | Balog & Kenter, *ICTIR 2019* · [DBLP](https://dblp.org/rec/conf/ictir/BalogK19) (`DOI:10.1145/3341981.3344241`) |
-| 15 | **Event Segmentation Theory (EST)** | 人脑按 **预测误差骤升** 自动切分连续流成为自然故事的认知第一原理 | Zacks et al., *Psychological Bulletin 2007* |
-| 16 | **MyLifeBits & LSC** | 二十年终身全记录实证：**“存下来很简单，不沦为只写不读的数据坟墓才是生死线”** | Gemmell et al., *CACM 2006* · [lifelogsearch.org](http://lifelogsearch.org/) |
-
-> 💡 **本组研究启发**：三篇经典文献共同提出了三个基础研究命题——**跨渠道人物/项目实体如何对齐（PKG）**、**如何利用物理/行为跃变界定自然事件边界（EST）**，以及**如何避免建成“只写不读的数据坟墓”（MyLifeBits 二十年教训）**。
-
-<details>
-<summary>📖 点击展开 3.3 全部 3 篇奠基文献完整四维精读（问题 / 方法 / Before vs. After / 启示）</summary>
-
-#### 3.3.1 Personal Knowledge Graphs: A Research Agenda (Balog & Kenter, *ICTIR 2019*)
-> **一句话看懂**：在 ChatGPT 诞生前就率先明确定义了什么叫“以我自己为宇宙中心的私人知识图谱（PKG）”及其四大技术基石。 ｜ **出处**：`DOI:10.1145/3341981.3344241` · [DBLP](https://dblp.org/rec/conf/ictir/BalogK19)
-
-- **1. 核心解决的问题**：早期知识图谱只关心 Wikidata 那样的公开大百科，学术上一直空缺针对“以单一个体为原点、混合私密交往与公共知识”的个性化图谱研究框架。
-- **2. 使用的方法**：系统界定 **个人知识图谱（PKG）** 的四个核心维度：**自我中心视角（Egocentric）、私有记录+公开知识连接共生、结构化语义关系，以及随个体人生经历动态演化**。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 个人通讯录、文档和网页收藏互相完全无关，只是平铺直叙的一张张死表。 | 勾勒出后来几乎所有个人 AI 记忆、个人第二大脑图谱软件的共同理论骨架。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **多渠道的最终粘合剂是“以人为原点的共享实体主键（Entity Disambiguation）”**：必须设计机制把录音提到的同事“老王”、剪贴板里的邮件地址和 Git 提交作者收敛回同一个实体主键，彻底贯穿所有孤岛渠道。
-
-#### 3.3.2 Event Segmentation Theory · EST (Zacks et al., *Psychological Bulletin* 2007)
-> **一句话看懂**：人眼和人耳面对的时间流明明从不断开，为什么人脑总能干脆分清“刚刚那件事”和“现在这件”？心理学实证给出答案：**预测误差突增之处，即是事件边界。** ｜ **出处**：Zacks et al., *Psychological Bulletin* 2007
-
-- **1. 核心解决的问题**：物理世界的感知输入是连续流（Stream），没有像书本标点那样自带的分段符；智能系统在没有人工标“开始/结束”时如何客观切割“一件件事”？
-- **2. 使用的方法**：通过大量认知行为与脑神经实验论证：大脑持续维护着“当前事件心理模型”预测下一刻发生什么；只要预期稳定就归为同一事件；一旦场景、人物、空间或核心意图陡然切换，**预测误差（Prediction Error）陡升**，系统触发瞬态边界把前面那段打包封装为独立情景事件。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 要么完全凭感觉胡乱划线分段，要么僵化按每 10 分钟强切，破坏人类认知结构。 | 找到跨越 17 年依然指导 `EM-LLM` 等前沿大模型记事算法的认知计算“第一性原理”。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **提供不烧大模型 Token 的免费 `Episode` 切分武器**：无需每分钟调用昂贵大模型判断聊完了没——当传感器测到 **“用户离开电脑 AFK > 5 分钟 / 活跃软件从 IDE 切成微信 / 录音里说话人与空间声景改变”** 这些物理跃变叠加时，就是极精准的自然事件切分边界。
-
-#### 3.3.3 MyLifeBits & Lifelog Search Challenge (LSC)
-> **一句话看懂**：微软 Gordon Bell 用二十年亲身实验回答一个问题：“把一辈子看过的书、拍过的照、说的话全数字化存下来之后，究竟会遇到什么坑？” ｜ **出处**：Gemmell, Bell & Lueder, *CACM* 2006 · http://lifelogsearch.org/
-
-- **1. 核心解决的问题**：检验个人全生平多模态终身数字化记录在超大规模异构积累后的真正工程瓶颈——到底难在硬盘存储，还是难在索引检索？
-- **2. 使用的方法**：`MyLifeBits` 作为历史上持续时间最长的个人全纪录先驱系统，率先建立跨媒体持久 ID、关联链接与属性分类；2018 年延续至今的年度竞赛 **LSC（Lifelog Search Challenge）** 更进一步用可穿戴相机+位置+数字行为真实库考校人类与机器极速交互定位特定事件片段的速度与准度。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 以为只要传感器买得全、硬盘够大存下全部生活碎片，未来自然就能“万物皆可回想”。 | 二十年先驱实践与 LSC 竞赛用无数教训证明：**极易沦为只写不读的电子坟墓；低摩擦结构化归因 + 支持“之前/之后”时间邻接查询才是生死线**。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **防重蹈“数字松鼠坟墓”覆辙的最高警戒线**：每次准备接入新传感渠道前必须先问三个问题——进库结构是什么、如何低耗时被 LLM 翻找出来用、过期噪音怎么安全销毁？
-
-</details>
-
----
-
-## 四、 技术博客、工程报告与系统规范（6 篇）
-
-> 来自工程一线关于上下文管理、十年防弃坑架构及操作系统隐私边界的硬核经验。
-
-| # | 来源与标题 | 一句话核心准则 | 原文链接 |
-| :---: | :--- | :--- | :--- |
-| 1 | **Anthropic Engineering**：Effective context engineering for AI agents | 只送最小高信号 Token 集，其余走工具 **Just-in-Time 按需取回** | [anthropic.com](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) |
-| 2 | **Chroma Report**：Context Rot | 远未塞满大窗口时模型准确率就已衰退——**相似干扰废话最伤智力** | [research.trychroma.com](https://research.trychroma.com/context-rot) |
-| 3 | **Karlicoss (`beepb00p.xyz`)**：Exobrain 系列博文 | **Local-first + 原件不动 + 极度克制**，个人基建才能跑过十年不弃坑 | [beepb00p.xyz](https://beepb00p.xyz/) |
-| 4 | **Simon Willison**：Personal Data Warehouses | 用微 CLI 采集 + **单文件 SQLite** + Datasette 零门槛建个人数仓 | [simonwillison.net](https://simonwillison.net/2020/Nov/14/personal-data-warehouses/) |
-| 5 | **`nspasteboard.org` & macOS 15.4+ 剪贴板规范** | 密码机密标记内存级物理跳过（零落盘）+ 遵循 `NSPasteboard.accessBehavior` | [nspasteboard.org](http://nspasteboard.org/) · [Apple Docs](https://developer.apple.com/documentation/appkit/nspasteboard) · [mjtsai.com](https://mjtsai.com/blog/) |
-| 6 | **浏览器有效停留三层信号规范** | `Page Visibility` ∩ `windows.onFocusChanged` ∩ `chrome.idle` 滤掉挂机后台噪声 | [Chrome idle](https://developer.chrome.com/docs/extensions/reference/api/idle) · [MDN Page Visibility](https://developer.mozilla.org/en-US/docs/Web/API/Page_Visibility_API) |
-
-> 💡 **本组研究启发**：一线工程报告反复验证了两类约束方向——**入口必须滤掉挂机噪声与机密敏感信息（防 Context Rot 污染与泄露风险）**，同时保持**单机轻存储 + 按需工具拉取**，避免系统既臃肿又让大模型越塞越笨。
-
-<details>
-<summary>📖 点击展开 第四节 全部 6 篇工程报告与规范完整四维精读（问题 / 方法 / Before vs. After / 启示）</summary>
-
-#### 4.1 Effective context engineering for AI agents — Anthropic 智能体上下文工程指南
-> **一句话看懂**：做 AI Agent 别再只抠 Prompt 话术修辞了，核心竞争力在于**如何在稀缺注意预算里，用工具按需把最小高信噪比上下文精准端到模型嘴边**。 ｜ **出处**：https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents
-
-- **1. 核心解决的问题**：Agent 进入动辄跑几十分钟的多步工作循环后，工程团队若继续把海量工具手册与全部过往记录死板塞进提示词，上下文会迅速爆表并导致推理注意力严重稀释。
-- **2. 使用的方法**：正式提出从“提示词工程”演进到 **Context Engineering（上下文工程）**，总结长程智能体四大支柱工具箱：**动态上下文浓缩压缩（Compaction）、外挂结构化笔记板（Structured Note-taking）、基于工具按需即时抓取（Just-in-Time Retrieval），以及子智能体隔离（Sub-agent Isolation）**。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 把所有记忆统统硬拼进长 System Prompt“指望模型自己挑”，结果响应变慢且遗漏关键约束。 | 像操作系统精确管理内存带宽一样，在真正要调用决策的那一刻用轻量索引动态取回精准那几行原文。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **敲定本项目最高级输出形态：外部结构化笔记与 `Just-in-Time MCP Server`**——绝不强行给每条日常对话默认往头顶硬塞几千字背景，而是给 Agent 一张简洁的“当前在干嘛卡片 + 一组可按需细查的工具”。
-
-#### 4.2 Context Rot — 长上下文输入变多为什么反而让 LLM 变笨？
-> **一句话看懂**：别听厂商吹什么“百万上下文窗口装得下一切”，Chroma 用大规模受控实验证明：**塞进去的无关上下文和相似干扰越多，大模型智力掉得越快。** ｜ **出处**：https://research.trychroma.com/context-rot
-
-- **1. 核心解决的问题**：自从模型宣称支持超长输入窗口后，业界蔓延起一种危险懒政思潮——“以后直接把全年所有聊天/日志原封不动灌进窗口就行，不用搞记忆清理或分层检索了吧？”
-- **2. 使用的方法**：控制变量构建多维度长上下文评测（逐步拉长无关背景、增加语义相似的干扰项 Distractors、调整目标位置），在多家前沿开源和闭源大模型上绘制性能衰减曲线。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 盲信模型广告标称的“200K / 1M 无损读取能力”，一股脑把低质量废话全文硬喂。 | 铁证显示**远未触及窗口极限时模型准确率就已显著开始下滑（Context Rot，上下文腐烂）**；相似干扰信息更是精准毒药。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **彻底击碎“靠大窗口硬吞个人历史”幻想，确立本项目存在刚需**：把一周毫无筛选的口水录音和乱切标签页全塞进去只会拉垮模型智商；**去重、切分 `Episode`、过时降权、精选高信号召回**是模型再大也省不掉的必经环节。
-
-#### 4.3 HPI / Promnesia / Exobrain 系列工程文集 (`beepb00p.xyz`)
-> **一句话看懂**：一个连续运营自己个人知识基础设施超过多年的人，写给后来者最忠恳的 **“如何避免半年写完就弃坑（防过度设计）”** 经验帖。 ｜ **出处**：https://beepb00p.xyz/
-
-- **1. 核心解决的问题**：市面上 95% 的个人数字系统都在作者热情耗尽后因为格式变动、同步复杂或环境太重在半年内烂尾死掉，开发者急需一套**能活 5～10 年**的超稳个人基础设施法则。
-- **2. 使用的方法**：高度务实极简主义原则集合——**Local-first（本地为先）与纯文本/SQLite 优先、原始采集数据与下游算力完全解耦、先做出一个每天真用得上的最小实用出口（如 Promnesia 网页反查）、极度克制引入重型分布式服务**。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 刚起手就搭微服务+集群搜索+云原生同步管线，源码还没联调完自己就彻底维护不动弃坑。 | 跑出一套换几台电脑、换几代 AI 模型都依然能丝滑迁移复用的长寿数字外脑（Exobrain）。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **全项目的防过度设计（Anti-Overengineering）压舱石**：Phase 1 就老实聚焦稳好少数高价值真实渠道，守牢 `L0` 格式简单透明底线，确保哪怕十年后项目换血了，今天录下的生活资产也能原封无损拿出来再用。
-
-#### 4.4 Personal Data Warehouses: Reclaiming Your Data — Simon Willison
-> **一句话看懂**：不需要 Airflow 和大数据集群，用几个轻巧小脚本加上一个 SQLite 单文件，普通开发者一个周末就能把被大厂圈走的数据拿回自己手里分析。 ｜ **出处**：https://simonwillison.net/2020/Nov/14/personal-data-warehouses/
-
-- **1. 核心解决的问题**：普通个人开发者想把散落在 GitHub、笔记与健康工具里的历史足迹收回来做统一分析，却被“搭建数据仓库（Data Warehouse）”听上去高不可攀的重型架构名词吓退。
-- **2. 使用的方法**：倡导以**单文件 SQLite 充当核心个人数据仓库**，按每个数据源写几十行独立 `*-to-sqlite` 小命令入库，然后零配置叠加 `Datasette` 立刻拥有可读网页后台与标准化查询接口。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 以为建个人数仓就得懂消息队列和列式大数据引擎，迟迟迈不出第一步。 | 单机零成本、零依赖跑通高可用私有查询库，随时关联任意多表回答跨源历史问题。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **再次背书本仓统一底座技术路径（`SQLite + FTS5 + 轻量化向量扩展`）**：开源仓库要想有人愿意 `clone` 运行自用，安装必须克制到极致，绝不绑定重型外置服务集群。
-
-#### 4.5 `nspasteboard.org` 与 macOS 15.4+ `NSPasteboard.accessBehavior` 剪贴板规范
-> **一句话看懂**：收集剪贴板必须死守的双重隐私技术标准：**识别密码管理器打上的秘密标记绝不落盘**，并诚实适配现代 macOS 系统的隐私弹窗授权模型。 ｜ **出处**：[nspasteboard.org](http://nspasteboard.org/) · [Apple NSPasteboard Docs](https://developer.apple.com/documentation/appkit/nspasteboard) · [mjtsai.com](https://mjtsai.com/blog/)
-
-- **1. 核心解决的问题**：桌面工具如果不分青红皂白静默保存系统剪贴板，极其容易把刚复制出来的数据库密码、银行验证码或 API Key 明文送进历史库并泄露给模型；同时在 macOS 15.4+ 上盲读还会频频撞上隐私拦截弹框。
-- **2. 使用的方法**：结合跨应用社区统一协议 **`nspasteboard.org`**（监听并主动直接丢弃携带 `ConcealedType` 机密、`TransientType` 瞬态、`AutoGeneratedType` 标记的内容）以及 Apple 官方推出的 **`NSPasteboard.accessBehavior` 与只测类型的 `detect*` 接口**（不触发弹窗前先探测可安全忽略场景，合法弹窗引导用户设为“始终允许”）。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 剪贴工具不小心把 1Password 复制的密钥明文落盘送进上下文，成为毁灭级安全后门，且动辄弹出异常权限打扰提示。 | 在内容尚未写入硬盘的内存门控瞬间完成机密剥离拦截，同时完美遵从原生 OS 权限机制。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **定性为本仓桌面采集代码（`ClipContext` 等）的强制安全红线（Must-Have）**：必须在事件进内存过滤阶段就结合**密码软件黑名单 + `nspasteboard.org` 特殊标记 + 密钥/熵值正则（如 `gitleaks` 规则）**完成物理跳过，绝不允许先写后删。
-  2. **透明建立信任感**（注意：`macOS 26` 是否默认全面强制弹窗机制仍在待核实列表，架构预先做合规兼容）。
-
-#### 4.6 浏览器有效停留三层信号规范（Chrome `idle` + `windows.onFocusChanged` + MDN `Page Visibility`）
-> **一句话看懂**：开着 50 个网页标签页挂机一夜绝对不算“认真读了一晚上”！只有**页面正亮在前台 + 浏览器窗获焦 + 键鼠人在电脑前**三条件同时为真，才配记为有效阅读。 ｜ **出处**：[Chrome idle API](https://developer.chrome.com/docs/extensions/reference/api/idle) · [MDN Page Visibility API](https://developer.mozilla.org/en-US/docs/Web/API/Page_Visibility_API)
-
-- **1. 核心解决的问题**：无论是读取浏览器自带 SQLite 历史表还是粗暴监听标签页打开事件，都会灌入大量一秒关掉的误点链接和丢在后台吃灰三天的空闲页，严重拉垮注意权重判断。
-- **2. 使用的方法**：采用浏览器扩展官方提供的三道正交门控实时求交集：
-  1. `document.visibilityState`（判断该标签页是不是正切在窗口眼前显示，不是后台选项卡）；
-  2. `chrome.windows.onFocusChanged`（判断浏览器整个软件窗口是不是正站在操作系统前景，而不是你切去看终端或 IDE 了）；
-  3. `chrome.idle`（阈值设为例如 15 秒，确认键鼠有人持续微动或处于 active，不是电脑锁屏或你人离开喝茶了）。
-- **3. 解决前后的对照**：
-
-| ❌ 解决前 (Before) | ✅ 解决后 (After) |
-| :--- | :--- |
-| 随手点开丢后台一宿的新闻页在记录里占比最高，反而盖过了真正认真对照思考 3 分钟的核心技术文档。 | 精准累算出真实活跃停留时长（`Effective Dwell Time`），跨过阈值（或发生选中复制动作）才触发 `Defuddle` 抽取高价值 Markdown 入库。 |
-
-- **4. 对「Context 补全计划」的提示与指示**：
-  1. **确定 `channels/browser/` 扩展采集器的金标准准入逻辑**：在源头就靠这套廉价无消耗规则直接滤掉 80% 无关点开与后台挂机垃圾流量，大大省下后面 LLM 检索分析的算力预算。
-
-</details>
-
----
-
-## 五、 仓库结构与已接入采集端
+## 📚 附录：专题研究归档与仓库结构
+
+### 专题研究文档归档
+
+| 专题文档 | 里面有什么 | 最适合什么时候读 |
+| :--- | :--- | :--- |
+| [重点项目启发与格式设计 · design-reflections.md](docs/research/design-reflections.md) | **L2 深度推演专库**：记录每个入选重点项目的吸收点、缺失剖析、对比表与统一格式 JSON 样例 | 看完首页 L2 摘要后，深入看协议细节与 JSON 示例 |
+| [开源项目四维精读 · projects-digest.md](docs/research/projects-digest.md) | **24 项** 开源项目的完整“问题 / 方法 / Before vs. After / 启示”独立长文归档 | 在 L1 初筛表中看中某个编号，想读它完整拆解时 |
+| [论文与博客四维精读 · papers-blogs-digest.md](docs/research/papers-blogs-digest.md) | **16 篇论文 + 6 篇工程报告/规范** 的完整通俗四维拆解档案 | 想核对某篇基准/论文的数据实验细节与来源时 |
+| [12 条采集渠道优先级对比 · channels.md](docs/research/channels.md) | 语音 / 浏览 / 剪贴板 / AI 对话 / 窗口 / Shell / 手机 / IM 的评估、工作量与红线 | 评估新传感器接入优先级与注意力评分公式细节 |
+| [整合方法与架构选型 · integration-methods.md](docs/research/integration-methods.md) | 11 个先驱字段 Schema 对照、6 种融合策略横评、`L0 → L4` 架构及 MCP 工具草案 | 准备进入整体 Hub 融合与架构选型设计时 |
+| [音频通道实盘盘点 · channel-audio.md](docs/research/channel-audio.md) | 已合入原型 `record-for-agent` 的 SQLite 布局、事件流、已有 MCP 与 5 大待补缺口 | 对接/改造本仓语音采集端代码时 |
+| [剪贴板通道实盘盘点 · channel-clipboard.md](docs/research/channel-clipboard.md) | 已合入原型 `ClipContext` 的 `clipboard.json`、增量/撤销指纹与缺口 | 扩展桌面剪贴板监听代码时 |
+| [早期全景调研初稿 · landscape.md](docs/research/landscape.md) | 立项初期对 Dark Context、生态空档与端侧硬件路线的草拟笔记 *(结论以后续篇为准)* | 回顾立项早期思考起点 |
+| [架构设计草案 · RFC-0001](docs/rfc/0001-context-integration.md) · [事件协议 Schema](schema/context-event.schema.json) | `L0 → L4` 分层架构规范草案 + `ContextEvent` JSON Schema 校验文件 | 实际落地事件数据结构与接入校验时 |
+
+### 仓库目录结构
 
 ```text
 context-instrumentality-project/
-├── README.md                              # 研究型项目首页索引与交互式精读手册
+├── README.md                              # 首页：L1 初筛总表 → L2 重点收录 → L3 方案拼图工作台
 ├── ROADMAP.md                             # 分阶段演进路线图
 ├── CONTRIBUTING.md                        # 开源协作指南
 ├── assets/
@@ -953,6 +184,7 @@ context-instrumentality-project/
 │   ├── rfc/
 │   │   └── 0001-context-integration.md    # RFC-0001：个人多源 Context 整合架构与分层规范
 │   └── research/
+│       ├── design-reflections.md          # L2 重点项目启发、缺失剖析与统一格式演进设计
 │       ├── projects-digest.md             # 24 项开源项目四维精读完整归档
 │       ├── papers-blogs-digest.md         # 16 篇论文 + 6 篇博客与规范四维精读完整归档
 │       ├── channels.md                    # 12 条 Context 采集渠道优先级、信噪比与可行性分析
@@ -962,7 +194,7 @@ context-instrumentality-project/
 │       └── landscape.md                   # Dark Context 概念与生态版图初稿
 ├── schema/
 │   ├── README.md                          # 事件规范说明
-│   └── context-event.schema.json          # L1 统一 ContextEvent JSON Schema
+│   └── context-event.schema.json          # L1 统一 ContextEvent JSON Schema（已兼容扩展）
 ├── channels/
 │   ├── README.md                          # 多渠道采集总览与接入约束
 │   ├── audio/record-for-agent/            # 已合入：macOS 低功耗多源录音与状态采集原型
