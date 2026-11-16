@@ -15,6 +15,7 @@
 
 | 你的目标 | 建议时间 | 推荐读法 |
 | :--- | :---: | :--- |
+| **先看我们重点吸收了哪些高价值设计** | 2 分钟 | 直接看下方独立板块 [⭐ 重点收录：高启发项目与格式推演](#-重点收录高启发项目与格式推演持续追加) 及深度文档 [design-reflections.md](docs/research/design-reflections.md) |
 | **快速了解调研全貌** | 3 分钟 | 顺着 [第二至四节](#二-开源项目分类索引与四维精读24-项) 每组的 **速查表 + `💡 本组研究启发`** 扫一遍 |
 | **逐个深度学习 46 项先驱/论文** | 20–40 分钟 | 在本页直接点开感兴趣的 `📖 点击展开本组完整四维精读`，或跳转纯长文归档：[projects-digest.md](docs/research/projects-digest.md) · [papers-blogs-digest.md](docs/research/papers-blogs-digest.md) |
 | **决定采集源与架构实现** | 15 分钟 | 依次精读 [渠道优先级对比](docs/research/channels.md) → [整合方法与架构选型](docs/research/integration-methods.md) → [RFC-0001](docs/rfc/0001-context-integration.md) |
@@ -24,6 +25,8 @@
 ## 目录导航
 
 - [一、 本仓库专题研究归档](#一-本仓库专题研究归档)
+- [⭐ 重点收录：高启发项目与格式推演（持续追加）](#-重点收录高启发项目与格式推演持续追加)
+  - [No.01 · Promnesia — 算法自动收藏整理与整体行为流 Web Context 格式](#no01--promnesia--算法自动收藏整理与整体行为流-web-context-格式)
 - [二、 开源项目分类索引与四维精读（24 项）](#二-开源项目分类索引与四维精读24-项)
   - [2.1 个人数据统一与时间线归档（4 项）](#21-个人数据统一与时间线归档4-项)
   - [2.2 端侧感官与桌面 / 浏览器采集（10 项）](#22-端侧感官与桌面--浏览器采集10-项)
@@ -54,6 +57,27 @@
 
 ---
 
+## ⭐ 重点收录：高启发项目与格式推演（持续追加）
+
+> **板块定位**：不同于下方 24 项项目的“广度调研索引”，本板块专门收录在探索过程中**对我们定义产品形态与底层协议有直接启发**的项目，按 **「💎 看中的核心价值 → 🧩 缺失的整体 Context 拼图 → 📐 我们的格式/机制推演」** 进行规整。
+
+| 编号 | 启发源项目 | 我们看中的核心价值 | 补齐的缺失拼图 | 推演产物与协议落点 |
+| :---: | :--- | :--- | :--- | :--- |
+| **No.01** | **[Promnesia](https://github.com/karlicoss/promnesia)** | 算法自动收藏与整理 browsed 网页 + 浏览器原位侧边栏展示 | 补充触发前因（Trigger）、注意力自动收藏分级与跨渠道行为链 | `WebBehaviorContextEvent`（[第 01 号推演](docs/research/design-reflections.md) · [Schema](schema/context-event.schema.json)） |
+
+### No.01 · Promnesia — 算法自动收藏整理与整体行为流 Web Context 格式
+
+- **💎 看中的核心价值**：
+  1. **算法驱动的自动收藏与内容整理**：根据真实浏览行为（停留时长、滚动深度、选中/复制/高亮、7 天回访）对网页自动分级（`transient` 略过噪音 / `auto_curated` 自动提炼摘要与摘录 / `pinned` 显式收藏），免去手动管书签负担。
+  2. **浏览器侧边栏“原位叠加”体验**：直接在当前标签页侧边栏浮现关联上下文，无需切出浏览器搜索。
+- **🧩 离“整体用户行为 Context”还缺什么**：
+  - Promnesia 的原子记录只是孤立的 `Visit(norm_url, dt, context, locator)`，只能回答“这个 URL 以前在哪出现过”，缺少**阅读前因（Trigger）**、**页内注意力分级（Attention & Curation Tier）**以及**后续跨渠道行为链（Follow-up Action / Episode）**。
+- **📐 我们推演并采纳的格式（`WebBehaviorContextEvent`）**：
+  - 以 `episode_id` + `links[]`（`triggered_by` / `copied_to`）串联前因后果，以 `context.curation_tier` + `context.interactions` 标记自动收藏等级，以 `content.summary` + `content.excerpts[]` 同时服务**浏览器双向侧边栏 UI**与**Agent MCP 分层召回**。
+  - [📄 阅读第 01 号完整推演与 JSON 样例 · design-reflections.md](docs/research/design-reflections.md) ｜ [🧩 查看已扩展的事件 Schema · context-event.schema.json](schema/context-event.schema.json)
+
+---
+
 ## 二、 开源项目分类索引与四维精读（24 项）
 
 > [!NOTE]
@@ -65,7 +89,7 @@
 
 | # | 项目 | 一句话看懂它解决什么问题 | 对本项目的核心启发 |
 | :---: | :--- | :--- | :--- |
-| 1 | ⭐ 重点收录 **[Promnesia](https://github.com/karlicoss/promnesia)** | 重访网页时自动从侧边栏浮现以前在哪里聊过/记过这个链接 | 每条事件保留 `locator` + URL 归一化；进一步启发我们设计**算法自动收藏整理 + 浏览器双向上下文侧边栏 + 整体行为流 `WebBehaviorContextEvent` 格式**（[第 01 号格式演进推演](docs/research/design-reflections.md)） |
+| 1 | **[Promnesia](https://github.com/karlicoss/promnesia)** · [⭐ 重点收录](#no01--promnesia--算法自动收藏整理与整体行为流-web-context-格式) | 重访网页时自动从侧边栏浮现以前在哪里聊过/记过这个链接 | 每条事件必须保留能跳回源文件的 **`locator` 定位符** + **URL 归一化**（扩展推演见上方 [重点收录 No.01](#no01--promnesia--算法自动收藏整理与整体行为流-web-context-格式)） |
 | 2 | **[HPI](https://github.com/karlicoss/HPI)** | 把各平台混乱的数据导出格式翻译为统一 Python 调用接口 | 确立 **`L0` 原始导出不可变落盘 + `L1` 统一抽象**，换模型可随时重算 |
 | 3 | **[Timelinize](https://github.com/timelinize/timelinize)** | 把照片、位置、消息导入本地画成可离线回放的人生时间轴 | **UTC 时间轴是全渠道公共主键**，并须留好实时与历史批导入双入口 |
 | 4 | **[Dogsheep](https://dogsheep.github.io/)** | 用微型 CLI 采集器把各方数据倒进单文件 SQLite 个人数据仓库 | 提示可重点评估的轻量化底座：**SQLite + FTS5**，单机零运维即跑 |
