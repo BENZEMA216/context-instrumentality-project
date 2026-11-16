@@ -2,12 +2,12 @@
   <img src="assets/eva-context-banner.png" alt="CONTEXT 补全计划 · The Context Instrumentality Project" width="100%" />
 </p>
 
-[🏠 首页索引（当前页）](#context-补全计划--the-context-instrumentality-project) ｜ [📡 采集渠道调研](docs/research/channels.md) ｜ [🧩 整合方法与架构](docs/research/integration-methods.md) ｜ [📦 开源项目精读 (24)](docs/research/projects-digest.md) ｜ [📄 论文与博客精读 (22)](docs/research/papers-blogs-digest.md) ｜ [💡 启发与格式设计](docs/research/design-reflections.md) ｜ [🎙️ 音频通道](docs/research/channel-audio.md) ｜ [📋 剪切板通道](docs/research/channel-clipboard.md)
+[📊 Google Sheet 在线筛选总表](https://docs.google.com/spreadsheets/d/1ggWJjSIKsgY5Wro-GPciEo9AhJOD4gEi-DQv5uCHRbg/edit) ｜ [🏠 首页索引（当前页）](#context-补全计划--the-context-instrumentality-project) ｜ [📡 采集渠道调研](docs/research/channels.md) ｜ [🧩 整合方法与架构](docs/research/integration-methods.md) ｜ [📦 开源项目精读 (24)](docs/research/projects-digest.md) ｜ [📄 论文与博客精读 (22)](docs/research/papers-blogs-digest.md) ｜ [💡 启发与格式设计](docs/research/design-reflections.md) ｜ [🎙️ 音频通道](docs/research/channel-audio.md) ｜ [📋 剪切板通道](docs/research/channel-clipboard.md)
 
 # Context 补全计划 · The Context Instrumentality Project
 
 > **探索与任务定义阶段 · 逐级筛选与方案演进工作台**  
-> 本项目仍处于**探索与任务定义阶段**。我们不提前下僵化的结论，而是以首页作为**“初筛总表 → 重点深挖 → 方案收敛”**的工作台：先用统一表格简要展示候选先驱与研究脉络；当你认为某个项目确实有价值并拍板关注后，再进入重点收录区做技术/UI 深度剖析与格式推演，逐级筛选并拼合出最终方案。
+> 本项目仍处于**探索与任务定义阶段**。我们不提前下僵化的结论，而是以首页及配套的 **[📊 Google Sheet 在线筛选工作台](https://docs.google.com/spreadsheets/d/1ggWJjSIKsgY5Wro-GPciEo9AhJOD4gEi-DQv5uCHRbg/edit)** 作为**“初筛总表 → 重点深挖 → 方案收敛”**的工作台：先用统一表格简要展示候选先驱与研究脉络；当你认为某个项目确实有价值并拍板关注后，再进入重点收录区做技术/UI 深度剖析与格式推演，逐级筛选并拼合出最终方案。
 
 ---
 
@@ -34,7 +34,7 @@ flowchart LR
 
 | 筛选层级 | 在解决什么问题 | 准入条件与产出 | 查看位置 |
 | :---: | :--- | :--- | :--- |
-| **L1 · 初筛总表** | 快速扫完先驱项目“在解决什么、用了什么技术/UI、有没有可用应用”，降低信息过载 | 全量列出 **24 项开源项目 + 22 篇论文/报告** 简要分析；详细背景保留在独立档案中 | [下方 L1 表格](#-第一级l1候选项目初筛简要分析总表24-项) |
+| **L1 · 初筛总表** | 快速扫完先驱项目“在解决什么、用了什么技术/UI、有没有可用应用”，降低信息过载 | 全量列出 **24 项开源项目 + 22 篇论文/报告** 简要分析；详细背景保留在独立档案中 | [下方 L1 表格](#-第一级l1候选项目初筛简要分析总表24-项) · [📊 Google Sheet 同步表](https://docs.google.com/spreadsheets/d/1ggWJjSIKsgY5Wro-GPciEo9AhJOD4gEi-DQv5uCHRbg/edit) |
 | **L2 · 重点收录** | 只对真正打动我们的项目做耗时深挖，追问它离“整体用户行为 Context”还差哪一步 | 经你确认有价值后收录：拆解技术/UI 亮点 → 剖析缺失 → 推演并兼容扩展 Schema | [下方 L2 专区](#-第二级l2重点收录与深度分析你确认有价值后深挖) · [design-reflections.md](docs/research/design-reflections.md) |
 | **L3 · 方案收敛** | 防止调研停留在零散点子，把通过筛选的设计积木逐步拼成完整可执行方案 | 持续追踪哪些模块已有定稿草案、哪些环节正等待从 L1 池继续挑人补位 | [下方 L3 拼图](#-第三级l3正在收敛的context-补全计划方案拼图) · [context-event.schema.json](schema/context-event.schema.json) |
 
@@ -43,8 +43,9 @@ flowchart LR
 ## 📋 第一级（L1）：候选项目初筛简要分析总表（24 项）
 
 > [!NOTE]
-> **怎么用这两张表？**  
-> 本节只给客观、紧凑的**初筛简要分析**（完整“问题 / 方法 / Before vs. After”四维详卡已完整归档在 [projects-digest.md](docs/research/projects-digest.md) 与 [papers-blogs-digest.md](docs/research/papers-blogs-digest.md)）。看到你觉得有意思的项目，直接在对话里点名编号（如“展开看看 #7、#15”），我们再将值得保留的设计推进 L2 深度推演。
+> **怎么用这两张表（配套在线 Google Sheet）？**  
+> - **在线交互筛选**：已同步整理到 **[📊 Google Sheet 筛选工作台](https://docs.google.com/spreadsheets/d/1ggWJjSIKsgY5Wro-GPciEo9AhJOD4gEi-DQv5uCHRbg/edit)**（内含 `L1_开源项目初筛_24项`、`L1_论文与报告初筛_22篇`、`L2_重点收录深度剖析`、`L3_方案收敛拼图` 共 4 张分表，支持直接在表格 **H 列下拉框** 切换筛选状态）。  
+> - **仓库详卡阅读**：本节只给客观、紧凑的**初筛简要分析**（完整“问题 / 方法 / Before vs. After”四维详卡已归档在 [projects-digest.md](docs/research/projects-digest.md) 与 [papers-blogs-digest.md](docs/research/papers-blogs-digest.md)）。看到有意思的项目，直接在表格标选或在对话里点名编号（如“展开看看 #7、#15”），我们再推进 L2 深度推演。
 
 ### 1.1 开源项目初筛简要分析总表（24 项）
 
