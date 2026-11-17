@@ -36,7 +36,8 @@
               "note": {"type": "string"}
             }
           }
-        }
+        },
+        "markdown_locator": {"type": "string", "description": "Path or URI to generated clean Markdown artifact"}
       }
     },
     "context": {
@@ -71,6 +72,15 @@
           "relation": {"type": "string", "description": "triggered_by | copied_to | discussed_in | same_anchor ..."},
           "confidence": {"type": "number", "minimum": 0, "maximum": 1}
         }
+      }
+    },
+    "location": {
+      "type": "object",
+      "properties": {
+        "lat": {"type": "number"},
+        "lon": {"type": "number"},
+        "place_name": {"type": "string"},
+        "stay_id": {"type": "string"}
       }
     },
     "provenance": {

@@ -14,11 +14,16 @@
 ## 目录导航
 
 - [🔄 我们的研究与设计方法：三级逐级筛选漏斗](#-我们的研究与设计方法三级逐级筛选漏斗)
-- [📋 第一级（L1）：候选项目初筛简要分析总表（24 项）](#-第一级l1候选项目初筛简要分析总表24-项)
-  - [1.1 开源项目初筛简要分析总表（24 项）](#11-开源项目初筛简要分析总表24-项)
+- [📋 第一级（L1）：候选项目初筛简要分析总表（28 项）](#-第一级l1候选项目初筛简要分析总表28-项)
+  - [1.1 开源项目初筛简要分析总表（28 项）](#11-开源项目初筛简要分析总表28-项)
   - [1.2 学术论文与工程报告初筛速查表（22 篇）](#12-学术论文与工程报告初筛速查表22-篇)
-- [⭐ 第二级（L2）：重点收录与深度分析（你确认有价值后深挖）](#-第二级l2重点收录与深度分析你确认有价值后深挖)
+- [⭐ 第二级（L2）：重点收录与深度分析（5 组重点推演）](#-第二级l2重点收录与深度分析5-组重点推演)
   - [No.01 · Promnesia — 算法自动收藏整理与整体行为流 Web Context 格式](#no01--promnesia--算法自动收藏整理与整体行为流-web-context-格式)
+  - [No.02 · HPI — L0 原档不可变落盘与增量 SQLite 缓存三层架构](#no02--hpi--l0-原档不可变落盘与增量-sqlite-缓存三层架构)
+  - [No.03 · Timelinize — 三维时空主轴与跨平台身份归一](#no03--timelinize--三维时空主轴与跨平台身份归一)
+  - [No.04 · 浏览器纯净 Context 联合管线（Defuddle + Readability + 极简 Memex）](#no04--浏览器纯净-context-联合管线defuddle--readability--极简-memex)
+  - [No.05 · 录音手表 App 与位置轨迹 App 技术移植方案](#no05--录音手表-app-与位置轨迹-app-技术移植方案)
+  - [附：表格批注重点问题快速结论（#5 ActivityWatch · #11 screenpipe · #23 淘汰原因）](#附表格批注重点问题快速结论5-activitywatch--11-screenpipe--23-淘汰原因)
 - [🧩 第三级（L3）：正在收敛的「Context 补全计划」方案拼图](#-第三级l3正在收敛的context-补全计划方案拼图)
 - [📚 附录：专题研究归档与仓库结构](#-附录专题研究归档与仓库结构)
 
@@ -28,53 +33,57 @@
 
 ```mermaid
 flowchart LR
-    L1["L1 初筛池（46 项候选）\n先用统一表格给简要分析：\n问题 + 方法/UI形态 + 初筛看点"] -->|"你审阅并点名确认有价值"| L2["L2 重点收录与深度剖析\n技术实现 / UI体验 / 缺失拼图\n-> 推演统一数据结构与机制"]
-    L2 -->|"逐级筛选 · 积木沉淀"| L3["L3 「Context 补全计划」最终方案\n各渠道采集 + 行为链协议 + Agent MCP"]
+    L1["L1 初筛池（28 项项目 + 22 篇文献）\n统一表格展示简要分析 + 批注问题\n供快速审阅筛选"] -->|"你标选/批注确认重点后深挖"| L2["L2 重点收录与深度剖析（No.01–No.05）\n拆解关键技术/UI/差异融合\n-> 推演统一格式与三层存储"]
+    L2 -->|"逐级筛选 · 积木拼合"| L3["L3 「Context 补全计划」方案收敛\nL0 raw -> L1 SQLite -> L2 Markdown\n+ 浏览器 / 手表 / 位置 / Agent MCP"]
 ```
 
-| 筛选层级 | 在解决什么问题 | 准入条件与产出 | 查看位置 |
+| 筛选层级 | 在解决什么问题 | 当前推进状态 | 查看位置 |
 | :---: | :--- | :--- | :--- |
-| **L1 · 初筛总表** | 快速扫完先驱项目“在解决什么、用了什么技术/UI、有没有可用应用”，降低信息过载 | 全量列出 **24 项开源项目 + 22 篇论文/报告** 简要分析；详细背景保留在独立档案中 | [下方 L1 表格](#-第一级l1候选项目初筛简要分析总表24-项) · [📊 Google Sheet 同步表](https://docs.google.com/spreadsheets/d/1ggWJjSIKsgY5Wro-GPciEo9AhJOD4gEi-DQv5uCHRbg/edit) |
-| **L2 · 重点收录** | 只对真正打动我们的项目做耗时深挖，追问它离“整体用户行为 Context”还差哪一步 | 经你确认有价值后收录：拆解技术/UI 亮点 → 剖析缺失 → 推演并兼容扩展 Schema | [下方 L2 专区](#-第二级l2重点收录与深度分析你确认有价值后深挖) · [design-reflections.md](docs/research/design-reflections.md) |
-| **L3 · 方案收敛** | 防止调研停留在零散点子，把通过筛选的设计积木逐步拼成完整可执行方案 | 持续追踪哪些模块已有定稿草案、哪些环节正等待从 L1 池继续挑人补位 | [下方 L3 拼图](#-第三级l3正在收敛的context-补全计划方案拼图) · [context-event.schema.json](schema/context-event.schema.json) |
+| **L1 · 初筛总表** | 快速扫完先驱项目“在解决什么、技术/UI 形态、初步看点”，记录批注筛选 | **28 项项目**（含针对性补充 4 项）+ **22 篇文献**；已标出入选/待了解/备选/淘汰状态 | [下方 L1 表格](#-第一级l1候选项目初筛简要分析总表28-项) · [📊 Google Sheet 同步表](https://docs.google.com/spreadsheets/d/1ggWJjSIKsgY5Wro-GPciEo9AhJOD4gEi-DQv5uCHRbg/edit) |
+| **L2 · 重点收录** | 对你标为高价值和点名追问的项目逐一做技术深挖、对比融合与方案移植 | 已展开 **No.01–No.05 五组深度推演**（含浏览器融合管线、HPI 三层架构、手表/位置 App 方案） | [下方 L2 专区](#-第二级l2重点收录与深度分析5-组重点推演) · [design-reflections.md](docs/research/design-reflections.md) |
+| **L3 · 方案收敛** | 把通过筛选的设计积木陆续装配为统一协议与端侧工程蓝图 | 核心格式、Markdown 产物规范、浏览器抽取及手表/位置方案已有草案；记忆整合进入下一轮筛选 | [下方 L3 拼图](#-第三级l3正在收敛的context-补全计划方案拼图) · [context-event.schema.json](schema/context-event.schema.json) |
 
 ---
 
-## 📋 第一级（L1）：候选项目初筛简要分析总表（24 项）
+## 📋 第一级（L1）：候选项目初筛简要分析总表（28 项）
 
 > [!NOTE]
-> **怎么用这两张表（配套在线 Google Sheet）？**  
-> - **在线交互筛选**：已同步整理到 **[📊 Google Sheet 筛选工作台](https://docs.google.com/spreadsheets/d/1ggWJjSIKsgY5Wro-GPciEo9AhJOD4gEi-DQv5uCHRbg/edit)**（内含 `L1_开源项目初筛_24项`、`L1_论文与报告初筛_22篇`、`L2_重点收录深度剖析`、`L3_方案收敛拼图` 共 4 张分表，支持直接在表格 **H 列下拉框** 切换筛选状态）。  
-> - **仓库详卡阅读**：本节只给客观、紧凑的**初筛简要分析**（完整“问题 / 方法 / Before vs. After”四维详卡已归档在 [projects-digest.md](docs/research/projects-digest.md) 与 [papers-blogs-digest.md](docs/research/papers-blogs-digest.md)）。看到有意思的项目，直接在表格标选或在对话里点名编号（如“展开看看 #7、#15”），我们再推进 L2 深度推演。
+> **怎么用这两张表（已双向同步在线 Google Sheet）？**  
+> - **在线交互筛选与批注**：已完整同步至 **[📊 Google Sheet 筛选工作台](https://docs.google.com/spreadsheets/d/1ggWJjSIKsgY5Wro-GPciEo9AhJOD4gEi-DQv5uCHRbg/edit)**（内含 `L1_开源项目初筛_24项`、`L1_论文与报告初筛_22篇`、`L2_重点收录深度剖析`、`L3_方案收敛拼图` 4 张分表，且表格 J 列已逐条附上对你 I 列批注的详细回应与 `#25`–`#28` 补充项）。  
+> - **本轮已完成第一轮筛选对齐**：你在表格中的批注与状态已全部同步到下方总表与 [design-reflections.md](docs/research/design-reflections.md)。
 
-### 1.1 开源项目初筛简要分析总表（24 项）
+### 1.1 开源项目初筛简要分析总表（28 项）
 
-| # | 方向 | 项目（仓库 · 详卡） | 1. 解决什么问题（简要） | 2. 核心方法与 UI / 应用形态 | 3. 初筛看点（供你判断是否深挖） | 筛选状态 |
-| :---: | :---: | :--- | :--- | :--- | :--- | :---: |
-| 1 | 归档 | **[Promnesia](https://github.com/karlicoss/promnesia)** · [详卡](docs/research/projects-digest.md) | 重访网页时找回以前在聊天、笔记里讨论/保存过它的上下文 | 多源索引器 + URL 归一化 + 本地 SQLite；**有完整 Chrome/Firefox 侧边栏扩展 + 后端** | 原位侧边栏交互、自动挖掘链接历史与 `locator` 溯源机制 | ⭐ 已入选 L2 ([No.01](#no01--promnesia--算法自动收藏整理与整体行为流-web-context-格式)) |
-| 2 | 归档 | **[HPI](https://github.com/karlicoss/HPI)** · [详卡](docs/research/projects-digest.md) | 统一微信/浏览器/GitHub 等混乱导出格式 | 原档不动落盘 + Python `my.*` 迭代器适配层；**纯 Python 库 / CLI（无 GUI）** | `L0` 原件不可变落盘与下游重算解耦原则 | ⏳ 待你审阅筛选 |
-| 3 | 归档 | **[Timelinize](https://github.com/timelinize/timelinize)** · [详卡](docs/research/projects-digest.md) | 将多平台消息/照片/位置汇成离线人生时间轴 | Go 解析引擎 + 本地 SQLite/文件库；**完整本地桌面 / Web 时间轴应用** | UTC 跨渠道公共主键，兼容批导入与实时事件 | ⏳ 待你审阅筛选 |
-| 4 | 归档 | **[Dogsheep](https://dogsheep.github.io/)** · [详卡](docs/research/projects-digest.md) | 让吃灰的多平台导出数据可直接联合 SQL/全文查询 | `*-to-sqlite` 微型 CLI 集群；**CLI + Datasette 网页查询界面** | **单文件 SQLite + FTS5** 零运维轻量存储底座 | ⏳ 待你审阅筛选 |
-| 5 | 采集 | **[ActivityWatch](https://github.com/ActivityWatch/activitywatch)** · [详卡](docs/research/projects-digest.md) | 客观记录桌面软件焦点时长与离开电脑区间（AFK） | 模块化 Watcher + Heartbeat 状态合并 + REST API；**完整桌面托盘 + Web 看板** | AFK 间隙切分任务段（Episode）与心跳去重合并 | ⏳ 待你审阅筛选 |
-| 6 | 采集 | **[Maccy](https://github.com/p0deje/Maccy)** (+ ClipContext) · [详卡](docs/research/projects-digest.md) | 保留系统每次复制片段并防密码泄露 | 监听 `NSPasteboard.changeCount` + `nspasteboard.org` 过滤；**macOS 状态栏应用 / MCP 原型** | 高意图低噪文本通道，可作本仓已有剪贴板端演进参考 | ⏳ 待你审阅筛选 |
-| 7 | 采集 | **[Defuddle](https://github.com/kepano/defuddle) & [Clipper](https://github.com/obsidianmd/obsidian-clipper)** · [详卡](docs/research/projects-digest.md) | 剥除网页导航/广告脚本，只提炼纯净文章 Markdown | 现代 DOM 结构识别 + 去噪转 Markdown；**开源 JS 库 + 成熟浏览器剪藏扩展** | 浏览器正文高纯度抽取候选首选，保代码与公式 | ⏳ 待你审阅筛选 |
-| 8 | 采集 | **[Mozilla Readability](https://github.com/mozilla/readability)** · [详卡](docs/research/projects-digest.md) | 无需手写选择器即可抽取各类老旧异构网页正文 | DOM 文本与超链接密度启发式打分；**纯 JS 库（Firefox 阅读模式内核）** | 与 `Defuddle` 搭配做双引擎 Fallback 兜底 | ⏳ 待你审阅筛选 |
-| 9 | 采集 | **[WorldBrain Memex](https://github.com/WorldBrain/Memex)** · [详卡](docs/research/projects-digest.md) | 记住读过的网页正文关键词与页内手工重点 | 浏览器本地全文库 + 网页原位划词高亮/批注；**完整浏览器扩展 + 本地同步应用** | **“静默建索 + 划词/高亮提权”** 注意力评分模型 | ⏳ 待你审阅筛选 |
-| 10 | 采集 | **[Omi](https://github.com/BasedHardware/omi)** · [详卡](docs/research/projects-digest.md) | 捕捉离开电脑桌的线下对话并转成摘要与待办 | VAD 切段 + ASR 转写 + 对话抽取 `action_items`；**可穿戴硬件 / App + 开源后端** | 录音到待办的三层解耦，与本仓 `record-for-agent` 互补 | ⏳ 待你审阅筛选 |
-| 11 | 采集 | **[screenpipe](https://github.com/screenpipe/screenpipe) & [OpenRecall](https://github.com/openrecall/openrecall)** · [详卡](docs/research/projects-digest.md) | 解决无 API 封闭窗口内文字“看不见”的问题 | 定期截屏帧 + 本地 OCR 写入 SQLite；**桌面后台守护 + Web 回溯 UI** | **对照组参考**：全时截屏耗电/占盘且有商用许可限制 | ⏳ 待你审阅筛选 |
-| 12 | 采集 | **[Atuin](https://github.com/atuinsh/atuin)** · [详卡](docs/research/projects-digest.md) | 让终端 Shell 历史带目录、耗时与退出码 | Shell Hook 写入结构化 SQLite；**完整 CLI + 交互式 `Ctrl+R` TUI** | 极轻 5 字段精准刻画开发者调试与排错轨迹 | ⏳ 待你审阅筛选 |
-| 13 | 采集 | **[Dawarich](https://github.com/Freika/dawarich)** · [详卡](docs/research/projects-digest.md) | 私有掌控多年物理出行轨迹与常访地点标签 | 自托管定位上报汇总 + 地点聚类；**完整 Docker 自托管 Web 地图台** | 为核心 Schema 预留可选 `location / place` 线索 | ⏳ 待你审阅筛选 |
-| 14 | 采集 | **[FunASR](https://github.com/modelscope/FunASR) · [SenseVoice](https://github.com/FunAudioLLM/SenseVoice) · [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx)** · [详卡](docs/research/projects-digest.md) | 离线高精度中英混读语音转写、加标点与说话人分离 | VAD + 流式/离线 ASR + ONNX C++ 端侧推理；**模型套件 / C++ / Python 推理引擎** | 本地语音隐私零上传，补齐音频通道关键一环 | ⏳ 待你审阅筛选 |
-| 15 | 记忆 | **[OpenViking](https://github.com/volcengine/OpenViking)** · [详卡](docs/research/projects-digest.md) | 解决扁平向量 RAG 切片碎裂且狂烧 Token 问题 | `viking://` 虚拟文件系统 + L0/L1/L2 分层按需展开；**Context 数据库引擎 + SDK** | **分层渐进加载**作为 Agent MCP 出口契约候选 | ⏳ 待你审阅筛选 |
-| 16 | 记忆 | **[Graphiti](https://github.com/getzep/graphiti)** · [详卡](docs/research/projects-digest.md) | 解决现实决策变更后新旧记忆打架的动态演进问题 | 双时序图谱（`valid_at / invalid_at`）+ 混合召回；**Python 服务 / MCP / 图谱引擎** | **不删旧史、关闭旧边**的双时间轴冲突消解规范 | ⏳ 待你审阅筛选 |
-| 17 | 记忆 | **[Mem0](https://github.com/mem0ai/mem0)** (+ Chrome Ext) · [详卡](docs/research/projects-digest.md) | 跨多 AI 平台共享精简的个人核心记忆卡 | 两阶段抽取 `ADD/UPDATE/DELETE`；**SDK / 托管服务 + Chrome 跨平台注入扩展** | 跨 AI 网站侧边注入思路，同时需警惕有损删除原文风险 | ⏳ 待你审阅筛选 |
-| 18 | 记忆 | **[Letta](https://github.com/letta-ai/letta)** · [详卡](docs/research/projects-digest.md) | 让 Agent 像 OS 管理内存一样自主翻查深历史 | Core / Recall / Archival 分层 + 夜间异步整理；**Agent Runtime + 管理面板 UI** | 夜间空闲异步整理（Sleep-time）与 MCP 工具定位边界 | ⏳ 待你审阅筛选 |
-| 19 | 记忆 | **[cognee](https://github.com/topoteretes/cognee)** · [详卡](docs/research/projects-digest.md) | 打通语义向量模糊搜与知识图谱关系多跳检索 | 强类型 `DataPoint` + 异步 `ECL` 管线；**Python 框架 + 轻量可视化 UI** | 毫秒轻采集与后台慢认知（Cognify）异步解耦 | ⏳ 待你审阅筛选 |
-| 20 | 应用 | **[MineContext](https://github.com/volcengine/MineContext)** · [详卡](docs/research/projects-digest.md) | 人不主动搜索时容易遗忘全天事项与隐含待办 | 后台活动聚合 + 主动工作日报 / Todo 提取；**完整桌面端应用** | `L4` 主动日报/漏项提醒展示形态（但避开重截屏采集） | ⏳ 待你审阅筛选 |
-| 21 | 应用 | **[Khoj](https://github.com/khoj-ai/khoj)** · [详卡](docs/research/projects-digest.md) | 私有文档本地 AI 问答与定时研究摘要汇总 | 本地 LLM 接入 + 多端插件 + 定时 Automations；**完整 Web/桌面端 + Obsidian/Emacs 插件** | **Nightly Synthesis** 夜间把日流水折叠成干净 Markdown | ⏳ 待你审阅筛选 |
-| 22 | 应用 | **[Second-Me](https://github.com/mindverse/Second-Me)** · [详卡](docs/research/projects-digest.md) | 让助手真正懂长期偏好与个人风格而非千篇一律 AI 腔 | 分层记忆对齐 + 本地小模型微调（Me-Alignment）；**完整桌面端 + 本地训练应用** | 明确“近期动态靠检索，长期风格才考虑微调”的阶段边界 | ⏳ 待你审阅筛选 |
-| 23 | 应用 | **[personal-ai-memory](https://github.com/marswangyang/personal-ai-memory)** · [详卡](docs/research/projects-digest.md) | 用低依赖极简方式让浏览器记忆服务私有对话 | Chrome 插件采集 + 轻量本地后端；**开源轻量扩展 + 小型本地服务** | 提醒遵守开源个人工具“5 分钟零重依赖跑通”底线 | ⏳ 待你审阅筛选 |
-| 24 | 应用 | **[web-recap](https://github.com/robzolkos/web-recap) & [Reading-Watch-List](https://github.com/swetas7/Reading-Watch-List-Extension-Local-LLM)** · [详卡](docs/research/projects-digest.md) | 待读清单/多标签页积压且不愿将网页正文上传云端 | 收集浏览正文 + 调用本地 Ollama 总结分类；**轻量化 Chrome 扩展原型** | 浏览器侧“本地小模型低成本初筛与两句摘要”可行范例 | ⏳ 待你审阅筛选 |
+| # | 方向 | 项目（仓库 · 详卡） | 1. 解决什么问题 & 核心技术 / UI 形态 | 2. 你的批注 / 关键看点回应 | 筛选状态 |
+| :---: | :---: | :--- | :--- | :--- | :---: |
+| 1 | 归档 | **[Promnesia](https://github.com/karlicoss/promnesia)** · [详卡](docs/research/projects-digest.md) | 重访网页找回历史关联上下文；多源索引 + URL 归一化 + SQLite；**Chrome/Firefox 侧边栏** | 算法自动收藏分级 + 原位双向侧边栏 + `WebBehaviorContextEvent` 起点 | ⭐ 已入选 L2 ([No.01](#no01--promnesia--算法自动收藏整理与整体行为流-web-context-格式)) |
+| 2 | 归档 | **[HPI](https://github.com/karlicoss/HPI)** · [详卡](docs/research/projects-digest.md) | 统一各平台导出格式；原档不动落盘 + `dal.py` + `@cachew` SQLite 增量缓存（纯 Python） | **回应「技术细节很关键」**：已深挖 `raw/` 不覆盖原件 + `@cachew` 随时删除重算机制 | ⭐ 已入选 L2 ([No.02](#no02--hpi--l0-原档不可变落盘与增量-sqlite-缓存三层架构)) |
+| 3 | 归档 | **[Timelinize](https://github.com/timelinize/timelinize)** · [详卡](docs/research/projects-digest.md) | 多平台消息/照片/位置离线时间轴；Go 引擎 + Blob 去重 + 桌面/Web 界面 | 推动 Schema 根级落地 `location` 字段，确立“时间 × 地点 × 人物”三维主轴 | ⭐ 已入选 L2 ([No.03](#no03--timelinize--三维时空主轴与跨平台身份归一)) |
+| 4 | 归档 | **[Dogsheep](https://dogsheep.github.io/)** · [详卡](docs/research/projects-digest.md) | 导出包 SQL/全文检索；微型 CLI + 单文件 SQLite/FTS5 + Datasette 网页后台 | **底座范式参考**：与 `#2 HPI` 上下游绝配，零运维单文件全文底座 | 🔍 待进一步了解 |
+| 5 | 采集 | **[ActivityWatch](https://github.com/ActivityWatch/activitywatch)** · [详卡](docs/research/projects-digest.md) | 桌面窗口焦点与空闲 AFK 记录；Heartbeat 合并 + `localhost:5600` API + Web 看板 | **回应「与苹果屏幕时间区别」**：精细到窗口标题/URL、开源可编程、带 AFK 切段（见 [快速结论](#附表格批注重点问题快速结论5-activitywatch--11-screenpipe--23-淘汰原因)） | 🔍 待进一步了解 |
+| 6 | 采集 | **[Maccy](https://github.com/p0deje/Maccy)** (+ ClipContext) · [详卡](docs/research/projects-digest.md) | 监听 `NSPasteboard.changeCount` + `nspasteboard.org` 过滤密码 | **确认自研基座**：继续演进本仓 `ClipContext`，补窗口标题与浏览器 `copied_to` 关联 | 🏠 本仓自研基座 |
+| 7 | 采集 | **[Defuddle](https://github.com/kepano/defuddle) & [Clipper](https://github.com/obsidianmd/obsidian-clipper)** · [详卡](docs/research/projects-digest.md) | 现代 DOM 去噪抽取纯净正文转 Markdown（保代码块/公式/Frontmatter）；JS 库 + 扩展 | **回应「联合前面网页项目」**：作为浏览管线一级主抽，吐出干净 Markdown 存盘 | ⭐ 已入选 L2 ([No.04](#no04--浏览器纯净-context-联合管线defuddle--readability--极简-memex)) |
+| 8 | 采集 | **[Mozilla Readability](https://github.com/mozilla/readability)** · [详卡](docs/research/projects-digest.md) | 老旧异构网页正文 DOM 启发式打分；Firefox 阅读模式纯 JS 内核 | **回应「与 7 的区别和融合」**：`Defuddle` 主抽现代文档 + `Readability` 兜底老旧页 | ⭐ 已入选 L2 ([No.04](#no04--浏览器纯净-context-联合管线defuddle--readability--极简-memex)) |
+| 9 | 采集 | **[WorldBrain Memex](https://github.com/WorldBrain/Memex)** · [详卡](docs/research/projects-digest.md) | 已读网页本地全文 + 原位划词高亮；完整浏览器扩展 | **回应「输入侧如何简化」**：砍掉手动弹窗，只靠 `selectionchange` 停顿与 `copy` 自动入摘录并提权 | ⭐ 已入选 L2 ([No.04](#no04--浏览器纯净-context-联合管线defuddle--readability--极简-memex)) |
+| 10 | 采集 | **[Omi](https://github.com/BasedHardware/omi)** · [详卡](docs/research/projects-digest.md) | 线下随口对话捕捉转摘要与待办；可穿戴硬件 / App + VAD + ASR | **回应「手表 App 技术移植」**：提炼端侧 VAD 省电门控、离线续传、15s 声纹区分与封口出 Markdown | ⭐ 已入选 L2 ([No.05](#no05--录音手表-app-与位置轨迹-app-技术移植方案)) |
+| 11 | 采集 | **[screenpipe](https://github.com/screenpipe/screenpipe) & [OpenRecall](https://github.com/openrecall/openrecall)** · [详卡](docs/research/projects-digest.md) | 定时桌面截屏 + 本地 OCR；后台守护 + Web 回溯台 | **回应「用在哪儿与用户反馈」**：社区反馈持续开导致高功耗/占盘；仅作快捷键单帧捉屏或会议低频抽帧用例（见 [快速结论](#附表格批注重点问题快速结论5-activitywatch--11-screenpipe--23-淘汰原因)） | 🔍 待进一步了解 |
+| 12 | 采集 | **[Atuin](https://github.com/atuinsh/atuin)** · [详卡](docs/research/projects-digest.md) | 终端 Shell 结构化历史（目录/耗时/退出码）；Rust CLI + TUI | **赞同批注 (`only for developer`)**：定位为程序员高阶可选插件，不作大众必选项 | ⚙️ 开发者可选模块 |
+| 13 | 采集 | **[Dawarich](https://github.com/Freika/dawarich)** · [详卡](docs/research/projects-digest.md) | 自托管长期物理定位与常访地点聚类；Docker Web 地图台 | **回应「先行改造成 App」**：配合 `#27 Overland` 零耗电采集 -> Hub 聚类 `StayPoint` 合并每日足迹 | ⭐ 已入选 L2 ([No.05](#no05--录音手表-app-与位置轨迹-app-技术移植方案)) |
+| 14 | 采集 | **[FunASR](https://github.com/modelscope/FunASR) · [SenseVoice](https://github.com/FunAudioLLM/SenseVoice) · [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx)** · [详卡](docs/research/projects-digest.md) | 全离线中英混读语音转写、标点与声纹分离；C++/Swift/ONNX 引擎 | **ASR 选型锁定**：端侧用 `sherpa-onnx + SenseVoice-Small + FSMN-VAD + CAM++` | ⭐ 已入选 L2 ([No.05](#no05--录音手表-app-与位置轨迹-app-技术移植方案)) |
+| 15 | 记忆 | **[OpenViking](https://github.com/volcengine/OpenViking)** · [详卡](docs/research/projects-digest.md) | `viking://` 虚拟目录 L0/L1/L2 分层渐进加载上下文 | **向量化备选**：下一轮重点评审的分层检索 MCP 契约候选 | 🗂️ 架构备选池 |
+| 16 | 记忆 | **[Graphiti](https://github.com/getzep/graphiti)** · [详卡](docs/research/projects-digest.md) | 双时序动态知识图谱（`valid_at / invalid_at`）不删旧边消解冲突 | **整合备选**：下一轮重点评审，主要解决计划更新冲突 | 🗂️ 架构备选池 |
+| 17 | 记忆 | **[Mem0](https://github.com/mem0ai/mem0)** (+ Chrome Ext) · [详卡](docs/research/projects-digest.md) | `ADD/UPDATE/DELETE` 动态记忆池 + 跨 AI 网页扩展注入 | **整合备选**：借其跨网页 AI 注入形式，严禁直接 DELETE 原始事件 | 🗂️ 架构备选池 |
+| 18 | 记忆 | **[Letta](https://github.com/letta-ai/letta)** · [详卡](docs/research/projects-digest.md) | 类 OS 虚拟内存（Core / Recall / Archival）+ 夜间异步整理 | **整合备选**：重点借用夜间 Sleep-time 定时整合生成每日 Markdown | 🗂️ 架构备选池 |
+| 19 | 记忆 | **[cognee](https://github.com/topoteretes/cognee)** · [详卡](docs/research/projects-digest.md) | 强类型 `DataPoint` + 异步 `ECL` 管线同时驱动图+向量库 | **整合备选**：参考其“毫秒轻采集与后台慢认知解耦”编排 | 🗂️ 架构备选池 |
+| 20 | 应用 | **[MineContext](https://github.com/volcengine/MineContext)** · [详卡](docs/research/projects-digest.md) | 后台桌面活动聚合主动日报/待办；完整桌面端 | **尊重判断淘汰**：其唯一可留的每日 Markdown 复盘已由 `Khoj/HPI` 路线覆盖 | ❌ 暂不采纳 |
+| 21 | 应用 | **[Khoj](https://github.com/khoj-ai/khoj)** · [详卡](docs/research/projects-digest.md) | 本地文档问答 + 定时 Nightly Synthesis 摘要；Web/桌面/Obsidian 插件 | **确立核心原则**：**“Markdown 一定是 context 整理的一个产物”**，落地为 L2 输出层 | ⭐ 已入选 L2 ([No.02](#no02--hpi--l0-原档不可变落盘与增量-sqlite-缓存三层架构)) |
+| 22 | 应用 | **[Second-Me](https://github.com/mindverse/Second-Me)** · [详卡](docs/research/projects-digest.md) | 个人记忆分层 + 本地小模型微调形成数字分身 | **同意先搁置**：近期专注检索/协议/产物闭环，暂不做模型权重微调 | ❌ 暂不采纳 |
+| 23 | 应用 | **[personal-ai-memory](https://github.com/marswangyang/personal-ai-memory)** · [详卡](docs/research/projects-digest.md) | 极简 Chrome 插件抓取网页正文进私有对话的早期小 Demo | **回应「Demo 没看懂」**：确属缺少架构与可用 UI 的简陋早期原型，已被 `#1/#7/#24` 完全覆盖 | ❌ 暂不采纳 |
+| 24 | 应用 | **[web-recap](https://github.com/robzolkos/web-recap) & [Reading-Watch-List](https://github.com/swetas7/Reading-Watch-List-Extension-Local-LLM)** · [详卡](docs/research/projects-digest.md) | 汇集待读/标签页正文并调用本地 Ollama 免费摘要分类 | **浏览器方向确认**：纳入 L2 浏览联合管线，零云端上传跑两句摘要与标签 | ⭐ 已入选 L2 ([No.04](#no04--浏览器纯净-context-联合管线defuddle--readability--极简-memex)) |
+| 25 | 整理/补充 | **[Karakeep (原 Hoarder)](https://github.com/karakeep-app/karakeep)** | 自托管智能书签 + 全页快照 + AI 自动打标/摘要；完整 Web/移动端/扩展 | **🆕 针对性填充**：为你看重的“自动收藏与卡片展示”提供开源 UI 与自动打标参照 | 🆕 建议补充收录 |
+| 26 | 采集/补充 | **[ChatGPT Exporter / Web LLM 轨迹](https://github.com/pionxzh/chatgpt-exporter)** | 浏览器内向 ChatGPT / Claude / Gemini 提问的高密思维流一键导成 Markdown/JSON | **🆕 针对性填充**：补齐 `ai_chat` 渠道，串联“问 AI 起因 -> 查网页 -> 写代码”前因链 | 🆕 建议补充收录 |
+| 27 | 采集/补充 | **[Overland (iOS / Watch 低功耗定位)](https://github.com/aaronpk/Overland-iOS)** | 利用 iOS `Significant Location Change` + 离线 SQLite 队列零额外耗电攒批上报 | **🆕 针对性填充**：直接充当 `#13 Dawarich` 位置轨迹 App 先行方案的手机端采集底座 | 🆕 建议补充收录 |
+| 28 | 产物/补充 | **[Obsidian Local REST API & Frontmatter 规范](https://github.com/coddingtonbear/obsidian-local-rest-api)** | 将各渠道整理的 Markdown 摘要带标准 YAML 元数据（`id/episode_id/location`）增量写库 | **🆕 针对性填充**：直接落地 `#21` “Markdown 是整理产物”路线，人机共读无缝联动 | 🆕 建议补充收录 |
 
 ---
 
@@ -110,48 +119,83 @@ flowchart LR
 
 ---
 
-## ⭐ 第二级（L2）：重点收录与深度分析（你确认有价值后深挖）
+## ⭐ 第二级（L2）：重点收录与深度分析（5 组重点推演）
 
-> **板块规则**：只有经过你在 L1 表中审阅并确认“这个项目确实有价值 / 思路对味”后，我们才会为其立项 **L2 重点收录**：深挖其技术实现与 UI 体验 → 明确我们要吸收的部分 → 指出它在**整体用户行为 Context**上的空白 → 推演进我们的统一协议（目前入选：**1 / 24**）。
+> **板块规则**：经你在 Google Sheet 中标为 `⭐ 已入选 L2` 或点名追问技术细节后，在这里拆解核心原理、融合路径与协议落地，详细对比与代码示例全量收录于 [design-reflections.md](docs/research/design-reflections.md)。
 
-| 编号 | 启发源项目 | 你拍板保留的核心价值 | 离整体用户行为 Context 还缺什么 | 推演出的设计 / 协议落点 |
-| :---: | :--- | :--- | :--- | :--- |
-| **No.01** | **[Promnesia](https://github.com/karlicoss/promnesia)** | ① 算法自动收藏与内容整理 browsed 网页；② 浏览器侧边栏原位展示 | 仅存孤立 `Visit(norm_url, dt, context, locator)`，缺前因动机、注意力收藏分级与跨渠道后续行为链 | `WebBehaviorContextEvent` · [完整推演](docs/research/design-reflections.md) · [Schema](schema/context-event.schema.json) |
+| 编号 | 启发源 / 组合 | 核心吸取的价值 | 落地产物与 Schema 演进 |
+| :---: | :--- | :--- | :--- |
+| **No.01** | **[Promnesia](https://github.com/karlicoss/promnesia)** | 算法自动收藏整理 + 浏览器双向上下文侧边栏 | `WebBehaviorContextEvent` (`curation_tier`, `excerpts`, `episode_id`, `links`) |
+| **No.02** | **[HPI](https://github.com/karlicoss/HPI)** (+ `#4 Dogsheep` + `#21 Khoj` 产物原则) | 原档按日期不可变落盘 + `dal.py` + `@cachew` 增量 SQLite 缓存 + **Markdown 整理产物** | 「`L0 raw/` -> `L1 SQLite+@cachew` -> `L2 Markdown`」三层存储与 `content.markdown_locator` |
+| **No.03** | **[Timelinize](https://github.com/timelinize/timelinize)** | `Item` 统一节点 + Blob 去重 + 跨平台 Entity 归并 + 三维时空工作台 | Schema 根级新增 `location{lat, lon, place_name, stay_id}`，打通时间×空间×实体 |
+| **No.04** | **`#7 Defuddle` + `#8 Readability` + `#9 Memex(极简)` + `#24 web-recap` + `#25 Karakeep`** | 现代 Markdown 抽取 + 老网页兜底 + 无弹窗隐式划词高亮 + 端侧 Ollama 摘要 | 浏览器纯净 Context 五步联合采集流水线（兼顾人类 Markdown 与 Agent 低 Token） |
+| **No.05** | **`#10 Omi` + `#14 SenseVoice/sherpa-onnx` + `#13 Dawarich` + `#27 Overland`** | 端侧 VAD 省电 + BLE 续传 + 15s 本人声纹 + 离线高精中英 ASR + 超省电 iOS 轨迹聚类 | 手表录音 App (`record-for-agent`) 4 项移植设计 + 位置轨迹 App 最小先行改造方案 |
 
 ### No.01 · Promnesia — 算法自动收藏整理与整体行为流 Web Context 格式
 
-- **🔍 技术实现与 UI 形态核实亮点**：
-  - **技术底层**：用可插拔 Python 索引器 + `cannon.py` URL 归一化（去追踪参数、统一斜杠）+ 文本/AST 上下文提取，写入本地 SQLite（关键结构包含规范化 `url`、时间戳 `dt`、上下文片段 `context` 与源定位符 `locator`），并由本地轻量 HTTP 服务响应反查。
-  - **UI 与可用性**：提供完整可用的 **Chrome / Firefox WebExtension + 服务端**（`pip install promnesia` 即跑），包含标签页角标命中数提示、网页链接历史标记及**原位侧边栏（Sidebar Overlay）**展示与一键跳回源文件。
-- **💎 你看中并决定保留的核心价值**：
-  1. **算法自动收藏与内容整理**：不依赖人手工点收藏夹，根据真实网页浏览信号，自动筛掉过眼噪音，沉淀高质量摘要与摘录片段。
-  2. **浏览器侧边栏“原位展示”体验**：留在用户正在阅读的浏览器页面右侧原地浮现上下文，低打扰且无需额外切换 App 搜索。
-- **🧩 离“整体用户行为 Context”还缺什么**：
-  - Promnesia 的记录单元只是围绕单一 URL 聚合的孤立索引点 `Visit(norm_url, dt, context, locator)`，无法还原**网页浏览作为用户整体连续行为流的一环**：
-    - 不知“为什么打开这一页”（来自某段语音讨论、AI 对话还是剪贴板报错？）；
-    - 不区分 2 秒扫一眼的误点与 15 分钟精读并多次划词的文章；
-    - 看完网页后复制代码、切回 IDE 的后续行动与之断裂。
-- **📐 我们推演并采纳的格式（`WebBehaviorContextEvent`）**：
-  1. **行为与自动收藏分级**：在 `context` 下引入 `curation_tier`（`transient` / `auto_curated` / `pinned`）与 `interactions`（`selection_count`、`copy_count`、`highlight_count`），结合停留 `dwell_ms`、滚动 `scroll_depth` 与 `attention` 得分自动决定收藏与整理深度。
-  2. **分层自动整理产物**：在 `content` 下引入 `summary`（给侧边栏和 Agent 首轮召回省 Token）与 `excerpts[]`（带精确 DOM/行级 `locator` 与 `note` 的精选片段），长正文通过 `provenance.locator` 按需回溯。
-  3. **整体行为因果链**：在事件根级新增 `episode_id`（同一工作流编号）与 `links[]`（`triggered_by` / `copied_to` / `discussed_in` / `same_anchor` + `confidence`），让同一份结构既驱动**浏览器双向侧边栏**（前因 + 本页整理 + 同 Episode 历史），又直通 **Agent MCP 分层拉取**。
-  - 📄 完整对比表、Mermaid 流向与合法 JSON 示例：[design-reflections.md](docs/research/design-reflections.md) ｜ 🧩 协议定义：[schema/context-event.schema.json](schema/context-event.schema.json)
+- **🔍 核实实现与 UI**：Python 可插拔索引器 + `cannon.py` URL 归一化 + 本地 SQLite（`url, dt, context, locator`）；完整 Chrome/Firefox WebExtension 侧边栏与 `pip install promnesia` 后端。
+- **🧩 补齐整体 Context 缺失**：针对 Promnesia 只有孤立 `Visit` 的局限，扩展了 **`WebBehaviorContextEvent`**：用 `curation_tier`（`transient` / `auto_curated` / `pinned`）与 `interactions` 量化浏览注意力，用 `episode_id` + `links[]`（`triggered_by` / `copied_to`）串联跨渠道前因后果，同屏驱动**双向侧边栏 UI**与**Agent MCP**。
+- 📄 详版推演与合法 JSON 示例：[design-reflections.md · 第 01 号](docs/research/design-reflections.md#第-01-号推演--promnesia-karlicosspromnesia--算法自动收藏整理与整体行为流-web-context-格式)
+
+### No.02 · HPI — L0 原档不可变落盘与增量 SQLite 缓存三层架构
+
+- **🔍 关键技术细节深挖**（回应 *“这个技术细节还挺关键”*）：
+  1. **`raw/` 只增不改（Immutable L0）**：录音、剪贴板、网页快照等原件按日期落盘永不篡改，确保日后更换 ASR/切分算法可无损重放（Replay）。
+  2. **`dal.py` 数据访问隔离层**：底层文件格式再变，向上只暴露统一 Python `Iterator[Event]`。
+  3. **`@cachew` 增量 SQLite 缓存**：依据 Python 类型注解自动建 SQLite 表，结合原文件 `mtime/size/hash` 做细粒度缓存失效与流式重建；损坏或升级时随时可删库重建。
+  4. **`Result[T, Exception]` 容错流**：单条坏数据只包裹错误，绝不拖垮整条采集管道。
+- **📐 融合 `#21 Khoj`（*“Markdown 一定是整理产物”*）的三层规范**：`L0 raw/ 不可变原档` -> `L1 hub.sqlite (@cachew + FTS5)` -> `L2 markdown/`（带 YAML Frontmatter 的 `.md` 档案，路径记录在 `content.markdown_locator`）。
+- 📄 详版剖析：[design-reflections.md · 第 02 号](docs/research/design-reflections.md#第-02-号推演hpi-原档不可变架构与增量-sqlite-缓存)
+
+### No.03 · Timelinize — 三维时空主轴与跨平台身份归一
+
+- **🔍 核心亮点**：Go 单二进制应用、`Content-Addressable Blobs` 媒体去重、跨平台人物账号 Entity 归并，以及「时间线 + 地图 + 人物」三位一体离线回溯台。
+- **📐 协议落点**：在 [context-event.schema.json](schema/context-event.schema.json) 根级新增可选 **`location`（`lat` / `lon` / `place_name` / `stay_id`）**，即使手表录音没带 GPS，同时间段内只要手机位置通道有驻留点，Hub 也能自动跨源补全地点上下文。
+- 📄 详版剖析：[design-reflections.md · 第 03 号](docs/research/design-reflections.md#第-03-号推演timelinize-三维时空主轴与位置轨迹模型)
+
+### No.04 · 浏览器纯净 Context 联合管线（Defuddle + Readability + 极简 Memex）
+
+- **🔍 `#7 Defuddle` vs `#8 Readability` 核心区别与融合**：
+  - **`#7 Defuddle`** 专为现代技术网页与 Markdown 工作流打造，完整保留**代码块语言标签、LaTeX 公式与作者元数据**；
+  - **`#8 Readability`** 是经过十多年验证的传统文本密度 DOM 启发式基线（但常丢代码缩进与公式、仅吐 HTML）。
+  - **融合策略**：采用 **Defuddle 一级主抽 -> 若抽取异常/过空则自动 Fallback 至 Readability + Turndown 转 Markdown**。
+- **🔍 `#9 WorldBrain Memex` 输入侧极简方案**：彻底去掉手点弹窗和建 Space 负担，只用**“三层有效停留门控 + 监听 `selectionchange`（划词停顿 >1.2s）& `Cmd+C` 复制自动入 `excerpts[]` 并提权 `auto_curated`”**实现零心理负担的高权重自动收藏。
+- **🔍 `#24 web-recap` + `#25 Karakeep` 收口**：抽出后的干净正文用端侧 **Ollama 小模型** 生成 2 句 `summary` 与标签（明文绝不上云），同时写盘到 `markdown_locator` 并刷新侧边栏。
+- 📄 详版流水线：[design-reflections.md · 第 04 号](docs/research/design-reflections.md#第-04-号推演浏览器纯净-context-联合管线defuddle--readability--极简-memex)
+
+### No.05 · 录音手表 App 与位置轨迹 App 技术移植方案
+
+- **⌚ 适合移植到手表录音 App (`record-for-agent`) 的 4 项 `#10 Omi` 优化**：
+  1. **端侧能量/VAD 静音门控**：只录传有人声帧，相比连续全时录音大幅降低手表电量与蓝牙开销；
+  2. **离线 Store-and-Forward 环形队列**：断连手机时按精确时间戳与序号 `seq` 本地暂存 Opus 分片，重连自动续传；
+  3. **15 秒本人声纹注册**：提取一次本人声纹 Embedding，自动标出 `actor: "self"` vs `speaker_k`，让 Agent 分清谁在承诺；
+  4. **静音封口出双产物**：一段对话结束自动封装 `Episode`，同步生成带待办的 Markdown 会议纪要与结构化事件。
+- **🎙️ `#14` 离线 ASR 选型结论**：锁定 **`sherpa-onnx`（纯 C++/Swift 零 PyTorch 依赖，可进端侧） + `Silero/FSMN-VAD` + `SenseVoice-Small`（中英混读/情绪极低延迟） + `CAM++` 声纹分离**；桌面长音频精校备选 `FunASR Paraformer`。
+- **📍 `#13 Dawarich` + `#27 Overland` 位置轨迹 App 先行方案**：直接用开源 `Overland` 的 iOS **`Significant Location Change` + 运动状态识别 + 离线批量上报协议**接入本地 Hub，自动跑 **DBSCAN 驻留点聚类（`StayPoint` -> `stay_id`）**，并与同期录音自动合成每日足迹 Markdown。
+- 📄 详版架构图与参数表：[design-reflections.md · 第 05 号](docs/research/design-reflections.md#第-05-号推演录音手表-app-与位置轨迹-app-技术移植方案)
+
+### 附：表格批注重点问题快速结论（#5 ActivityWatch · #11 screenpipe · #23 淘汰原因）
+
+- **Q1：`#5 ActivityWatch` 与苹果自带「屏幕使用时间」的区别？** — ① **粒度**：苹果只有 App 总时长，AW 精确到每秒**具体窗口标题与网页 URL**；② **开放性**：苹果库受 SIP 保护封闭，AW 全开源且自带 `localhost:5600` 本地 REST API 供 Hub 读取；③ **挂机剔除**：自带 `aw-watcher-afk` 检测离开电脑间隙，可作 `Episode` 自然边界。
+- **Q2：`#11 screenpipe` 能用在哪儿与真实用户反馈？** — 社区正反馈在能读微信/腾讯会议共享 PPT 等无 API 封闭窗；但主要槽点是持续 OCR 导致 **Mac 风扇发热、掉电快与每月 20–30GB 体积**。如果要用，**绝不盲开 24/7**，仅用于“快捷键主动截一帧取字”或“录音会议期间低频抽帧看屏幕共享”。
+- **Q3：`#23 personal-ai-memory` Demo 为何没看懂？** — 该仓库只是非常早期的数百行玩具原型，缺结构化 Schema 与真实可用 UI，其合理点已被 `Promnesia + Defuddle + web-recap` 完全吸收，直接淘汰。
+- 📄 详细问答对照见 [design-reflections.md · 附：批注问答](docs/research/design-reflections.md#附google-sheet-批注重点问题集中解答)
 
 ---
 
 ## 🧩 第三级（L3）：正在收敛的「Context 补全计划」方案拼图
 
-> **收敛方式**：随着一个个项目从 **L1 初筛表** 被你挑进 **L2 深度推演**，我们把通过验证的设计积木陆续装配到下表中，最终汇聚形成完整的「Context 补全计划」工程方案。
+> **收敛方式**：随着重点项目进入 L2 深度推演，关键拼图已快速成型；后续待选部分仅剩“桌面焦点边界”和“高层跨渠道记忆整合”。
 
 | 方案拼图模块 | 收敛状态 | 依据来源（L2 已入选 / L1 待选） | 当前已敲定设计 / 下一步待你筛选的问题 |
 | :--- | :---: | :--- | :--- |
-| **1. 网页行为与自动收藏数据格式** | ✅ 已出兼容草案 | 源自 `No.01 Promnesia` | 采用 `WebBehaviorContextEvent`（兼容扩展 `context-event.schema.json`：增加 `summary`、`excerpts`、`curation_tier`、`interactions`、`episode_id`、`links`） |
-| **2. 浏览器端交互形态（UI）** | ✅ 已出原型方向 | 源自 `No.01 Promnesia` | 采用**原位双向上下文侧边栏**：展示上游触发原因 + 算法自动整理的本页摘要/摘录 + 同 `episode_id` 跨渠道动作 |
-| **3. 全局溯源与 URL 对齐底线** | ✅ 已出工程约束 | 源自 `No.01 Promnesia` | 所有 `L0/L1` 事件必须带可回跳 `provenance.locator`；跨渠道 URL 在写库早期统一归一化为 `url_norm` |
-| **4. 网页正文纯净抽取与页内高亮信号** | ⏳ 待从 L1 筛选 | L1 候选：`#7 Defuddle & Clipper`、`#8 Readability`、`#9 WorldBrain Memex`、`#24 web-recap` | 你审阅 L1 表后确认：网页抽取组合是否选用 `Defuddle + Readability`、是否吸收 Memex 划词提权规则与 Ollama 初筛？ |
-| **5. 桌面时间骨架、剪贴板与 Shell 开发态** | ⏳ 待从 L1 筛选 | L1 候选：`#5 ActivityWatch`、`#6 Maccy/ClipContext`、`#11 screenpipe (对照)`、`#12 Atuin` | 待确认桌面窗口与终端轨迹如何与已合入的 `ClipContext` 汇合成 `episode_id` 分段依据 |
-| **6. 离线语音采集、转写与本地底座** | ⏳ 待从 L1 筛选 | L1 候选：`#2 HPI`、`#3 Timelinize`、`#4 Dogsheep`、`#10 Omi`、`#14 FunASR/SenseVoice/sherpa-onnx` | 待确认单机存储 `SQLite + FTS5` 与 `record-for-agent` 本地离线 ASR 的整合细节 |
-| **7. 跨渠道记忆演进、检索协议与防退化** | ⏳ 待从 L1 筛选 | L1 候选：`#15 OpenViking`、`#16 Graphiti`、`#17 Mem0`、`#18 Letta`、`#19 cognee` 及论文池 #1–#18 | 待筛选 L2/L3 状态更新策略、渐进加载 MCP 工具面及抗 Context Rot / 隐式冲突约束 |
+| **1. 核心事件协议、时空坐标与 Markdown 产物规范** | ✅ 已出兼容草案 | `No.01 Promnesia` + `No.02 HPI` + `No.03 Timelinize` + `#21` + `#28` | 确立 **「`L0 raw/` 不可变原档 -> `L1 SQLite+@cachew` 可重算库 -> `L2` 带 Frontmatter `markdown/`」** 三层模型；Schema 已兼容扩展 `summary` / `excerpts` / `markdown_locator` / `curation_tier` / `interactions` / `episode_id` / `links` / `location` |
+| **2. 浏览器纯净采集管线与双向上下文侧边栏 UI** | ✅ 已出联合草案 | `No.01` + `No.04` (`#7/#8/#9/#24/#25/#26`) | 三层停留门控 -> `Defuddle(主) + Readability(备)` -> 极简无弹窗 `selectionchange/copy` 自动入摘录并提权 -> 本地 Ollama 写摘要 -> 双向侧边栏与 Markdown 双出口 |
+| **3. 录音手表 App 移植优化与本地离线 ASR 栈** | ✅ 已出移植选型 | `No.05` (`#10 Omi` + `#14 sherpa-onnx/SenseVoice`) | 手表端端侧 VAD 省电门控 + BLE 离线续传 + 15s 本人声纹标 `self` + 封口出 Markdown 纪要；推理引擎锁定 `sherpa-onnx + SenseVoice-Small + FSMN-VAD + CAM++` |
+| **4. 位置轨迹 App 先行改造与跨源时空合流** | ✅ 已出先行草案 | `No.03 Timelinize` + `No.05` (`#13 Dawarich` + `#27 Overland`) | 复用 `Overland` iOS `Significant Location Change` 上报 -> Hub 聚类 `StayPoint` 生成 `stay_id` -> 与同期手表录音合成每日足迹 Markdown |
+| **5. 桌面剪贴板、窗口焦点骨架与截屏边界** | 🟡 半收敛（已答疑） | 已拍板 `#6 自研 ClipContext`；待确认 `#5 ActivityWatch` / `#11 screenpipe` / `#12(可选)` | 已答疑 AW vs 屏幕时间区别及 screenpipe 触发式按需用例；待确认是否将 AW 空闲间隙直接纳为桌面 `Episode` 分段骨架 |
+| **6. 跨渠道记忆整合、冲突消解与 Agent MCP 协议** | ⏳ 待从备选池筛选 | `#15 OpenViking` / `#16 Graphiti` / `#17 Mem0` / `#18 Letta` / `#19 cognee` 及 L1 论文池 | 采集主干已明晰，下一轮重点结合 `#15–#19` 与 `LifeDialBench/STALE` 收敛双时序状态边与 `MCP` 渐进召回协议 |
+| **7. 明确暂缓 / 淘汰边界** | 🛑 已收敛排除 | `#20 MineContext` / `#22 Second-Me` / `#23 personal-ai-memory` | 排除大厂重全时截屏整包方案（`#20`）、早期模型微调（`#22`）及简陋玩具 Demo（`#23`） |
 
 ---
 
@@ -161,7 +205,7 @@ flowchart LR
 
 | 专题文档 | 里面有什么 | 最适合什么时候读 |
 | :--- | :--- | :--- |
-| [重点项目启发与格式设计 · design-reflections.md](docs/research/design-reflections.md) | **L2 深度推演专库**：记录每个入选重点项目的吸收点、缺失剖析、对比表与统一格式 JSON 样例 | 看完首页 L2 摘要后，深入看协议细节与 JSON 示例 |
+| [重点项目启发与格式设计 · design-reflections.md](docs/research/design-reflections.md) | **L2 深度推演专库**：完整涵盖 **No.01–No.05 深度技术解析**、JSON Schema 样例及 Google Sheet 批注全部问答 | 看完首页 L2 摘要后，深入看代码/工程细节与格式样例 |
 | [开源项目四维精读 · projects-digest.md](docs/research/projects-digest.md) | **24 项** 开源项目的完整“问题 / 方法 / Before vs. After / 启示”独立长文归档 | 在 L1 初筛表中看中某个编号，想读它完整拆解时 |
 | [论文与博客四维精读 · papers-blogs-digest.md](docs/research/papers-blogs-digest.md) | **16 篇论文 + 6 篇工程报告/规范** 的完整通俗四维拆解档案 | 想核对某篇基准/论文的数据实验细节与来源时 |
 | [12 条采集渠道优先级对比 · channels.md](docs/research/channels.md) | 语音 / 浏览 / 剪贴板 / AI 对话 / 窗口 / Shell / 手机 / IM 的评估、工作量与红线 | 评估新传感器接入优先级与注意力评分公式细节 |
@@ -169,13 +213,13 @@ flowchart LR
 | [音频通道实盘盘点 · channel-audio.md](docs/research/channel-audio.md) | 已合入原型 `record-for-agent` 的 SQLite 布局、事件流、已有 MCP 与 5 大待补缺口 | 对接/改造本仓语音采集端代码时 |
 | [剪贴板通道实盘盘点 · channel-clipboard.md](docs/research/channel-clipboard.md) | 已合入原型 `ClipContext` 的 `clipboard.json`、增量/撤销指纹与缺口 | 扩展桌面剪贴板监听代码时 |
 | [早期全景调研初稿 · landscape.md](docs/research/landscape.md) | 立项初期对 Dark Context、生态空档与端侧硬件路线的草拟笔记 *(结论以后续篇为准)* | 回顾立项早期思考起点 |
-| [架构设计草案 · RFC-0001](docs/rfc/0001-context-integration.md) · [事件协议 Schema](schema/context-event.schema.json) | `L0 → L4` 分层架构规范草案 + `ContextEvent` JSON Schema 校验文件 | 实际落地事件数据结构与接入校验时 |
+| [架构设计草案 · RFC-0001](docs/rfc/0001-context-integration.md) · [事件协议 Schema](schema/context-event.schema.json) | `L0 → L4` 分层架构规范草案 + `ContextEvent` JSON Schema 校验文件（已兼容扩展 `location` 与 `markdown_locator`） | 实际落地事件数据结构与接入校验时 |
 
 ### 仓库目录结构
 
 ```text
 context-instrumentality-project/
-├── README.md                              # 首页：L1 初筛总表 → L2 重点收录 → L3 方案拼图工作台
+├── README.md                              # 首页：L1 初筛总表(28项) -> L2 重点收录(No.01-05) -> L3 方案拼图
 ├── ROADMAP.md                             # 分阶段演进路线图
 ├── CONTRIBUTING.md                        # 开源协作指南
 ├── assets/
@@ -185,7 +229,7 @@ context-instrumentality-project/
 │   ├── rfc/
 │   │   └── 0001-context-integration.md    # RFC-0001：个人多源 Context 整合架构与分层规范
 │   └── research/
-│       ├── design-reflections.md          # L2 重点项目启发、缺失剖析与统一格式演进设计
+│       ├── design-reflections.md          # L2 深度推演专库（No.01–No.05 + 批注问答）
 │       ├── projects-digest.md             # 24 项开源项目四维精读完整归档
 │       ├── papers-blogs-digest.md         # 16 篇论文 + 6 篇博客与规范四维精读完整归档
 │       ├── channels.md                    # 12 条 Context 采集渠道优先级、信噪比与可行性分析
