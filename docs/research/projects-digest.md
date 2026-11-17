@@ -1,29 +1,35 @@
-[🏠 首页索引](../../README.md) ｜ [📡 采集渠道调研](channels.md) ｜ [🧩 整合方法与架构](integration-methods.md) ｜ **📦 开源项目精读（本文）** ｜ [📄 论文与博客精读](papers-blogs-digest.md) ｜ [💡 启发与格式设计](design-reflections.md) ｜ [🎙️ 音频通道](channel-audio.md) ｜ [📋 剪切板通道](channel-clipboard.md)
+[🏠 首页索引](../../README.md) ｜ [📡 采集渠道调研](channels.md) ｜ [🧩 整合方法与架构](integration-methods.md) ｜ **📦 开源项目精读（本文 · 28 项）** ｜ [📄 论文与博客精读](papers-blogs-digest.md) ｜ [💡 启发与格式设计](design-reflections.md) ｜ [🎙️ 音频通道](channel-audio.md) ｜ [📋 剪切板通道](channel-clipboard.md)
 
-# 开源项目四维精读归档（24 项）
+# 开源项目四维精读归档（28 项）
 
-> 本文按**“问题 → 方法 → 解决前后对照 → 对「Context 补全计划」的启发”**四维卡片形式，拆解当前开源生态中最值得参考的 **24 项**个人上下文与 Agent 记忆项目。  
+> 本文按**“问题 → 方法 → 解决前后对照 → 对「Context 补全计划」的启发”**四维卡片形式，拆解当前开源生态中最值得参考的 **28 项**（24 项原初筛项目 + 4 项针对性补充）个人上下文与 Agent 记忆项目。  
 > 每组开头附有 **30 秒速读总结**，不读源码也能先抓住我们从该分类“抄什么作业、避什么坑”。
 
 ---
 
 ## 目录导航
 
-- [⭐ 重点收录：高启发项目与格式推演（持续追加）](#-重点收录高启发项目与格式推演持续追加)
+- [⭐ 重点收录：高启发项目与格式推演（No.01–No.06）](#-重点收录高启发项目与格式推演no01no06)
 - [一、 个人数据统一与时间线归档（4 项）](#一-个人数据统一与时间线归档4-项)
 - [二、 端侧感官与桌面 / 浏览器采集（10 项）](#二-端侧感官与桌面--浏览器采集10-项)
 - [三、 Agent 记忆与 Context 基础设施（5 项）](#三-agent-记忆与-context-基础设施5-项)
 - [四、 主动式个人上下文与“第二大脑”应用（5 项）](#四-主动式个人上下文与第二大脑应用5-项)
+- [五、 针对性补充收录：自动整理、AI 对话、低功耗定位与 Markdown 规范（4 项）](#五-针对性补充收录自动整理ai-对话低功耗定位与-markdown-规范4-项)
 
 ---
 
-## ⭐ 重点收录：高启发项目与格式推演（持续追加）
+## ⭐ 重点收录：高启发项目与格式推演（No.01–No.06）
 
-> 本专区汇总在项目调研中**对我们定义产品形态与统一数据结构最具直接启发**的先驱项目，按 **「💎 看中的核心价值 → 🧩 缺失的整体 Context 拼图 → 📐 我们的格式/机制推演」** 收录于广度精读目录之前。
+> 本专区汇总在项目筛选与批注过程中**进入 L2 深度推演并确立技术细节/格式方案**的重点项目组；完整技术/架构拆解请看 [design-reflections.md](design-reflections.md) 与 [context-event.schema.json](../../schema/context-event.schema.json)。
 
-| 编号 | 启发源项目 | 我们看中的核心价值 | 补齐的缺失拼图 | 推演产物与协议落点 |
+| 编号 | 启发源项目 / 组合 | 我们看中的核心价值 | 补齐的缺失拼图 | 推演产物与协议落点 |
 | :---: | :--- | :--- | :--- | :--- |
-| **No.01** | **[Promnesia](https://github.com/karlicoss/promnesia)** | 算法自动收藏与整理 browsed 网页 + 浏览器原位侧边栏展示 | 补充触发前因（Trigger）、注意力自动收藏分级与跨渠道行为链 | `WebBehaviorContextEvent`（[design-reflections.md](design-reflections.md) · [Schema](../../schema/context-event.schema.json)） |
+| **No.01** | **[Promnesia](https://github.com/karlicoss/promnesia)** | 算法自动收藏整理 browsed 网页 + 浏览器原位侧边栏 | 触发前因（Trigger）、注意力自动收藏分级与跨渠道行为链 | `WebBehaviorContextEvent`（[第 01 号](design-reflections.md#第-01-号推演--promnesia-karlicosspromnesia--算法自动收藏整理与整体行为流-web-context-格式)） |
+| **No.02** | **[HPI](https://github.com/karlicoss/HPI)** (+ `#4` + `#21`) | `raw/` 只读冷存、`dal.py` 解耦、`@cachew` SQLite 增量缓存 | 从“纯 Python 批处理”到“L0 原档 -> L1 SQLite -> L2 Markdown” | `content.markdown_locator`（[第 02 号](design-reflections.md#第-02-号推演hpi-原档不可变架构与增量-sqlite-缓存)） |
+| **No.03** | **[Timelinize](https://github.com/timelinize/timelinize)** | `Item` 统一节点、Blob 去重、Entity 归并与三维时空台 | 补充跨渠道物理地点上下文，使无 GPS 通道也能互填场所 | 根级 `location{lat, lon, place_name, stay_id}`（[第 03 号](design-reflections.md#第-03-号推演timelinize-三维时空主轴与位置轨迹模型)） |
+| **No.04** | **`#7`+`#8`+`#9`+`#24`+`#25`+`#26`** | 现代 Markdown 抽取 + 兜底 + 无弹窗划词提权 + Ollama 摘要 | 把零散网页插件融合为“停留门控 -> 抽取 -> 摘录 -> 侧边栏”闭环 | 浏览器联合采集管线（[第 04 号](design-reflections.md#第-04-号推演浏览器纯净-context-联合管线defuddle--readability--极简-memex)） |
+| **No.05** | **`#10 Omi`+`#14 ASR`+`#13`+`#27 Overland`** | 端侧 VAD 省电/续传/15s 声纹 + 离线高精 ASR + 超省电位置 App | 手表 App 技术移植 + 低功耗先行位置 App 与录音跨源合流 | 手表 & 位置先行改造方案（[第 05 号](design-reflections.md#第-05-号推演录音手表-app-与位置轨迹-app-技术移植方案)） |
+| **No.06** | **`#21 Khoj` + `#28 Obsidian Frontmatter`** | Nightly Synthesis 夜间折叠 + 带元数据 YAML 头 `.md` 档案 | 落实“Markdown 一定是整理产物”，实现 Obsidian 人机共读 | 标准化 L2 Markdown 规范（[第 02/05 号](design-reflections.md#2-结合-21-khoj-批注推演的三层存储产物规范)） |
 
 ### ⭐ No.01 · Promnesia (karlicoss/promnesia) — 算法自动收藏整理与整体行为流 Web Context 格式
 
@@ -33,8 +39,8 @@
 - **🧩 离“整体用户行为 Context”还缺什么**：
   - Promnesia 的底层索引条目只是孤立的 `Visit(norm_url, dt, context, locator)`，缺少**阅读前因（Trigger）**、**页内注意力分级（Attention & Curation Tier）**以及**后续跨渠道行为链（Follow-up Action / Episode）**。
 - **📐 我们推演并采纳的格式（`WebBehaviorContextEvent`）**：
-  - 以 `episode_id` + `links[]`（`triggered_by` / `copied_to`）串联前因后果，以 `context.curation_tier` + `context.interactions` 标记自动收藏等级，以 `content.summary` + `content.excerpts[]` 同时服务**浏览器双向侧边栏 UI**与**Agent MCP 分层召回**。
-  - [📄 完整推演与 JSON 样例 · design-reflections.md](design-reflections.md) ｜ [🧩 扩展事件 Schema · context-event.schema.json](../../schema/context-event.schema.json)
+  - 以 `episode_id` + `links[]`（`triggered_by` / `copied_to`）串联前因后果，以 `context.curation_tier` + `context.interactions` 标记自动收藏等级，以 `content.summary` + `content.excerpts[]` + `content.markdown_locator` 同时服务**浏览器双向侧边栏 UI**、**Markdown 档案**与**Agent MCP 分层召回**。
+  - [📄 完整推演与 JSON 样例（含 No.01–No.06） · design-reflections.md](design-reflections.md) ｜ [🧩 扩展事件 Schema · context-event.schema.json](../../schema/context-event.schema.json)
 
 ---
 
@@ -494,3 +500,77 @@
 
 - **4. 对「Context 补全计划」的提示与指示**：
   1. **把“本地小模型前置过滤 + 两句初筛摘要”引入浏览器入库流水线**：判断一篇网页究竟是无意义登录页还是高营养技术长文、生成 `L0` 简短摘要，完全胜任于本地开源小模型零成本消费，把高价大模型的珍贵注意力留给复杂跨渠道归纳。
+
+---
+
+## 五、 针对性补充收录：自动整理、AI 对话、低功耗定位与 Markdown 规范（4 项）
+
+> [!TIP]
+> **本组 30 秒速读：为什么新补这 4 项？**
+> - 根据你的表格批注与重点筛选需求，这 4 个项目分别精准填补了**开源自动收藏卡片 UI（`Karakeep`）**、**浏览器 AI 对话上游触发源（`ChatGPT Exporter`）**、**iOS 低功耗后台轨迹 App 底座（`Overland`）**，以及**统一 Markdown 整理产物落地格式（`Obsidian Frontmatter & REST API`）**。
+
+### 25. Karakeep (原 Hoarder, karakeep-app/karakeep) — 开源 AI 自动收藏与全页快照工作台
+
+> **一句话看懂**：把你丢进收藏夹的网址、图片和随手笔记，在后台自动截取防 404 快照、跑本地 AI 写摘要并打上分类标签。 ｜ **仓库**：https://github.com/karakeep-app/karakeep
+
+- **1. 核心解决的问题**：人平时随手收藏了大量链接和文章却从来没空整理，过半年既忘了为什么存它、原网页也常已经 404 失效。
+- **2. 使用的方法**：基于 TypeScript + SQLite/Meilisearch + Worker 后台队列构建自托管书签工作台——链接入库即抓取全页快照与缩略图，调用本地 Ollama 或云端大模型自动提取核心摘要（`summary`）与结构化标签（`tags`），配合规则引擎自动归纳展示在现代瀑布流看板 UI 中。
+- **3. 解决前后的对照**：
+
+| ❌ 解决前 (Before) | ✅ 解决后 (After) |
+| :--- | :--- |
+| 浏览器书签栏变成只存不看、连网页都失效打不开的“死链清单”。 | 每条收藏自带永久快照、AI 自动摘要和标签，打开即可像信息卡片流一样按主题浏览检索。 |
+
+- **4. 对「Context 补全计划」的提示与指示**：
+  1. **作为浏览器“自动收藏整理与 UI 卡片呈现”的核心参照**：对照其 AI 自动打标 Prompt 与全页防失效快照策略，补全 `No.01 Promnesia` 缺少的整理呈现形式。
+
+---
+
+### 26. ChatGPT Exporter / Web LLM 对话轨迹采集 — 浏览器高频意图源归档
+
+> **一句话看懂**：把分散在浏览器 ChatGPT / Claude / Gemini 网页里的多轮深入问答，无侵入一键或自动导成带结构化元数据的 Markdown / JSON。 ｜ **仓库**：https://github.com/pionxzh/chatgpt-exporter
+
+- **1. 核心解决的问题**：个人日常使用网页端 AI 工具讨论技术方案与调试问题的对话往往价值密度最高，却被锁在各家网页黑盒里，和随后打开查阅的代码仓库、文档页彻底割裂。
+- **2. 使用的方法**：通过轻量化浏览器扩展 / Userscript 在会话页面监听前端状态树与对话导出接口，完整保留代码块、分支结构与提问顺序，输出干净的 YAML Frontmatter Markdown 与 JSON 归档。
+- **3. 解决前后的对照**：
+
+| ❌ 解决前 (Before) | ✅ 解决后 (After) |
+| :--- | :--- |
+| 上周和网页版 AI 争论半小时敲定的方案细节只剩零星印象，甚至连之后顺手点开的 5 篇文档为何打开都忘掉。 | 每次网页 AI 对话都进入本地 `L0 raw/ai_chat/` 与统一 `ai_chat` 事件流，成为浏览网页与改代码的最强上游 `triggered_by` 线索。 |
+
+- **4. 对「Context 补全计划」的提示与指示**：
+  1. **打通 `ai_chat` 渠道闭环**：提取对话内容中引用和推荐的 URL 做 `url_norm` 归一化，直接在 Promnesia 双向侧边栏里反查出“这页是哪次问 AI 时引出来的”。
+
+---
+
+### 27. Overland (aaronpk/Overland-iOS) — iOS 超低功耗轨迹采集与离线攒批上报底座
+
+> **一句话看懂**：利用苹果原生 `Significant Location Change` 与运动状态感知，在不把电池耗光且不被后台杀掉的前提下持续记录位置轨迹并离线批量传回自建后端。 ｜ **仓库**：https://github.com/aaronpk/Overland-iOS
+
+- **1. 核心解决的问题**：手机上从零自研持续 GPS 轮询往往两小时就让手机发烫掉电，或者切入后台几分钟就被 iOS 系统杀进程导致轨迹大段缺失。
+- **2. 使用的方法**：采用开源原生 Swift iOS 架构——依托基站/Wi-Fi 变化的 `Significant Location Change` 事件结合 `CoreMotion` 识别静止/步行/乘车状态（静止自动降低采样频率），坐标点连同电池与网络信息暂存本地 SQLite，恢复网络或接入 Wi-Fi 后按批 POST JSON 至自定义服务器（原生兼容 `#13 Dawarich`）。
+- **3. 解决前后的对照**：
+
+| ❌ 解决前 (Before) | ✅ 解决后 (After) |
+| :--- | :--- |
+| 要么完全没有物理足迹线索，要么自写定位 Demo 高发热掉电且经常漏点。 | 几乎零感知续航损耗全天记录移动与驻留点，为离线录音与每日复盘提供精准物理场所坐标系。 |
+
+- **4. 对「Context 补全计划」的提示与指示**：
+  1. **直接服务于“先行改造位置轨迹 App”计划**：复用 Overland 协议接通本地 Hub -> 跑驻留点聚类 `StayPoint` 生成 `stay_id` -> 填充根级 `location` 字段并与同期手表录音合并产出每日足迹 Markdown。
+
+---
+
+### 28. Obsidian Local REST API & Frontmatter Markdown 规范 — 人机共读统一产物出口
+
+> **一句话看懂**：让各渠道自动整理的 Context 摘要最终变成标准 YAML Frontmatter 加正文的本地 `.md` 文件，人类直接在 Obsidian 里浏览批注，Agent 也能用同一套元数据零成本索引。 ｜ **仓库**：https://github.com/coddingtonbear/obsidian-local-rest-api
+
+- **1. 核心解决的问题**：如果自动整理后的网页摘要、每日录音纪要与位置足迹只锁死在内部数据库里，用户日常几乎不会主动点开看，系统很容易重蹈“只写不读的数据坟墓”覆辙。
+- **2. 使用的方法**：约定统一 YAML Frontmatter 字段标准（`id`、`episode_id`、`source`、`location`、`tags`、`locator`）将 `L2` 整理结果输出为按日期分类的 Markdown 文件（路径存入 `content.markdown_locator`），并可配合 Obsidian Local REST API 按区段无冲突增量追加，避免覆盖用户手写批注。
+- **3. 解决前后的对照**：
+
+| ❌ 解决前 (Before) | ✅ 解决后 (After) |
+| :--- | :--- |
+| 记忆系统变成后台看不见摸不着的数据库黑盒，人类要复盘和纠偏极不顺手。 | 落实“Markdown 一定是 context 整理产物”原则：每天生成的纪要、精读摘录和足迹既是个人笔记库里的活文档，又带完整机器溯源 ID。 |
+
+- **4. 对「Context 补全计划」的提示与指示**：
+  1. **作为全部上游渠道（音频 / 浏览 / 位置 / AI 对话）的统一 L2 文本落点**：实现人类阅读修改与 AI 检索同一份事实源（Single Source of Truth）。

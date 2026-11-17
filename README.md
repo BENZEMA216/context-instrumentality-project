@@ -2,7 +2,7 @@
   <img src="assets/eva-context-banner.png" alt="CONTEXT 补全计划 · The Context Instrumentality Project" width="100%" />
 </p>
 
-[📊 Google Sheet 在线筛选总表](https://docs.google.com/spreadsheets/d/1ggWJjSIKsgY5Wro-GPciEo9AhJOD4gEi-DQv5uCHRbg/edit) ｜ [🏠 首页索引（当前页）](#context-补全计划--the-context-instrumentality-project) ｜ [📡 采集渠道调研](docs/research/channels.md) ｜ [🧩 整合方法与架构](docs/research/integration-methods.md) ｜ [📦 开源项目精读 (24)](docs/research/projects-digest.md) ｜ [📄 论文与博客精读 (22)](docs/research/papers-blogs-digest.md) ｜ [💡 启发与格式设计](docs/research/design-reflections.md) ｜ [🎙️ 音频通道](docs/research/channel-audio.md) ｜ [📋 剪切板通道](docs/research/channel-clipboard.md)
+[📊 Google Sheet 在线筛选总表](https://docs.google.com/spreadsheets/d/1ggWJjSIKsgY5Wro-GPciEo9AhJOD4gEi-DQv5uCHRbg/edit) ｜ [🏠 首页索引（当前页）](#context-补全计划--the-context-instrumentality-project) ｜ [📡 采集渠道调研](docs/research/channels.md) ｜ [🧩 整合方法与架构](docs/research/integration-methods.md) ｜ [📦 开源项目精读 (28)](docs/research/projects-digest.md) ｜ [📄 论文与博客精读 (22)](docs/research/papers-blogs-digest.md) ｜ [💡 启发与格式设计](docs/research/design-reflections.md) ｜ [🎙️ 音频通道](docs/research/channel-audio.md) ｜ [📋 剪切板通道](docs/research/channel-clipboard.md)
 
 # Context 补全计划 · The Context Instrumentality Project
 
@@ -40,7 +40,7 @@ flowchart LR
 | 筛选层级 | 在解决什么问题 | 当前推进状态 | 查看位置 |
 | :---: | :--- | :--- | :--- |
 | **L1 · 初筛总表** | 快速扫完先驱项目“在解决什么、技术/UI 形态、初步看点”，记录批注筛选 | **28 项项目**（含针对性补充 4 项）+ **22 篇文献**；已标出入选/待了解/备选/淘汰状态 | [下方 L1 表格](#-第一级l1候选项目初筛简要分析总表28-项) · [📊 Google Sheet 同步表](https://docs.google.com/spreadsheets/d/1ggWJjSIKsgY5Wro-GPciEo9AhJOD4gEi-DQv5uCHRbg/edit) |
-| **L2 · 重点收录** | 对你标为高价值和点名追问的项目逐一做技术深挖、对比融合与方案移植 | 已展开 **No.01–No.05 五组深度推演**（含浏览器融合管线、HPI 三层架构、手表/位置 App 方案） | [下方 L2 专区](#-第二级l2重点收录与深度分析5-组重点推演) · [design-reflections.md](docs/research/design-reflections.md) |
+| **L2 · 重点收录** | 对你标为高价值和点名追问的项目逐一做技术深挖、对比融合与方案移植 | 已展开 **No.01–No.06 逐项独立深度推演**（含 14 个重点子项架构与迁移细节） | [下方 L2 专区](#-第二级l2重点收录与深度分析5-组重点推演) · [design-reflections.md](docs/research/design-reflections.md) |
 | **L3 · 方案收敛** | 把通过筛选的设计积木陆续装配为统一协议与端侧工程蓝图 | 核心格式、Markdown 产物规范、浏览器抽取及手表/位置方案已有草案；记忆整合进入下一轮筛选 | [下方 L3 拼图](#-第三级l3正在收敛的context-补全计划方案拼图) · [context-event.schema.json](schema/context-event.schema.json) |
 
 ---
@@ -49,7 +49,7 @@ flowchart LR
 
 > [!NOTE]
 > **怎么用这两张表（已双向同步在线 Google Sheet）？**  
-> - **在线交互筛选与批注**：已完整同步至 **[📊 Google Sheet 筛选工作台](https://docs.google.com/spreadsheets/d/1ggWJjSIKsgY5Wro-GPciEo9AhJOD4gEi-DQv5uCHRbg/edit)**（内含 `L1_开源项目初筛_24项`、`L1_论文与报告初筛_22篇`、`L2_重点收录深度剖析`、`L3_方案收敛拼图` 4 张分表，且表格 J 列已逐条附上对你 I 列批注的详细回应与 `#25`–`#28` 补充项）。  
+> - **在线交互筛选与批注**：已完整同步至 **[📊 Google Sheet 筛选工作台](https://docs.google.com/spreadsheets/d/1ggWJjSIKsgY5Wro-GPciEo9AhJOD4gEi-DQv5uCHRbg/edit)**（内含 **`L1_开源项目初筛_28项`**、**`L1_论文与报告初筛_22篇`**、**`L2_重点收录深度剖析`**（14 项独立深挖行）、**`L3_方案收敛拼图`** 4 张分表，均已设置列宽、表头样式与状态下拉筛选）。  
 > - **本轮已完成第一轮筛选对齐**：你在表格中的批注与状态已全部同步到下方总表与 [design-reflections.md](docs/research/design-reflections.md)。
 
 ### 1.1 开源项目初筛简要分析总表（28 项）
@@ -206,7 +206,7 @@ flowchart LR
 | 专题文档 | 里面有什么 | 最适合什么时候读 |
 | :--- | :--- | :--- |
 | [重点项目启发与格式设计 · design-reflections.md](docs/research/design-reflections.md) | **L2 深度推演专库**：完整涵盖 **No.01–No.05 深度技术解析**、JSON Schema 样例及 Google Sheet 批注全部问答 | 看完首页 L2 摘要后，深入看代码/工程细节与格式样例 |
-| [开源项目四维精读 · projects-digest.md](docs/research/projects-digest.md) | **24 项** 开源项目的完整“问题 / 方法 / Before vs. After / 启示”独立长文归档 | 在 L1 初筛表中看中某个编号，想读它完整拆解时 |
+| [开源项目四维精读 · projects-digest.md](docs/research/projects-digest.md) | **28 项** 开源项目（24 项原初筛 + 4 项新增补充）完整“问题 / 方法 / Before vs. After / 启示”长文归档 | 在 L1 初筛表中看中某个编号，想读它完整拆解时 |
 | [论文与博客四维精读 · papers-blogs-digest.md](docs/research/papers-blogs-digest.md) | **16 篇论文 + 6 篇工程报告/规范** 的完整通俗四维拆解档案 | 想核对某篇基准/论文的数据实验细节与来源时 |
 | [12 条采集渠道优先级对比 · channels.md](docs/research/channels.md) | 语音 / 浏览 / 剪贴板 / AI 对话 / 窗口 / Shell / 手机 / IM 的评估、工作量与红线 | 评估新传感器接入优先级与注意力评分公式细节 |
 | [整合方法与架构选型 · integration-methods.md](docs/research/integration-methods.md) | 11 个先驱字段 Schema 对照、6 种融合策略横评、`L0 → L4` 架构及 MCP 工具草案 | 准备进入整体 Hub 融合与架构选型设计时 |
@@ -230,7 +230,7 @@ context-instrumentality-project/
 │   │   └── 0001-context-integration.md    # RFC-0001：个人多源 Context 整合架构与分层规范
 │   └── research/
 │       ├── design-reflections.md          # L2 深度推演专库（No.01–No.05 + 批注问答）
-│       ├── projects-digest.md             # 24 项开源项目四维精读完整归档
+│       ├── projects-digest.md             # 28 项开源项目四维精读完整归档
 │       ├── papers-blogs-digest.md         # 16 篇论文 + 6 篇博客与规范四维精读完整归档
 │       ├── channels.md                    # 12 条 Context 采集渠道优先级、信噪比与可行性分析
 │       ├── integration-methods.md         # 11 个先驱系统横向对比与 L0–L4 整合方法研究
