@@ -6,8 +6,9 @@
 
 # Context 补全计划 · The Context Instrumentality Project
 
-> **探索与任务定义阶段 · 逐级筛选与方案演进工作台**  
-> 本项目仍处于**探索与任务定义阶段**。我们不提前下僵化的结论，而是以首页及配套的 **[📊 Google Sheet 在线筛选工作台](https://docs.google.com/spreadsheets/d/1ggWJjSIKsgY5Wro-GPciEo9AhJOD4gEi-DQv5uCHRbg/edit)** 作为**“初筛总表 → 重点深挖 → 方案收敛”**的工作台：先用统一表格简要展示候选先驱与研究脉络；当你认为某个项目确实有价值并拍板关注后，再进入重点收录区做技术/UI 深度剖析与格式推演，逐级筛选并拼合出最终方案。
+**[运行 Context Hub · 本机 / 云主机 / Codex](hub/README.md)**　从原始资料生成可追溯的 Memory。录音、剪贴板及通用事件已能导入，可以从管理页和 MCP 修正两层数据。
+
+研究区继续收录候选项目、架构和渠道，比较依据见[在线筛选工作台](https://docs.google.com/spreadsheets/d/1ggWJjSIKsgY5Wro-GPciEo9AhJOD4gEi-DQv5uCHRbg/edit)。下方 L3 表保留研究提案，已实现的行为以 [Hub 数据契约](schema/memory.md)为准。
 
 ---
 
@@ -248,7 +249,7 @@ context-instrumentality-project/
 │   ├── window/README.md                   # 规划中：桌面应用焦点与 AFK 状态区间采集
 │   └── ai-chat/README.md                  # 规划中：跨 AI 工具对话轨迹归档与回流
 ├── hub/
-│   └── README.md                          # 规划中：L1 SQLite/FTS5 底座 + L2 Episode 聚合 + MCP 出口
+│   └── README.md                          # 已实现：Raw / Memory 数据库、管理页、导入器与 MCP 出口
 ├── project/
 │   └── issues.json                        # Roadmap 种子 Issue 列表
 ├── scripts/
