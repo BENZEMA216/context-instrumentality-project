@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/static/style.css" />
+    <script src="/static/app.js" defer></script>
+    <title>Vault · Context</title>
+  </head>
+  <body>
+    <header class="appbar">
+      <div class="bar-inner">
+        <div class="wordmark"><span class="brandmark" aria-hidden="true"></span>Context</div>
+        <span class="slash" aria-hidden="true">/</span><span class="product-name">私密资料</span>
+        <div class="bar-right">
+          <span class="device">本机保险库</span
+          ><button type="button" id="lock" class="quiet" hidden>锁定</button>
+        </div>
+      </div>
+    </header>
+    <main id="app" aria-busy="true">
+      <header class="masthead">
+        <h1 lang="en">Vault<span>.</span></h1>
+        <div class="top-actions" id="top-actions" hidden>
+          <button type="button" class="quiet" id="backup">iCloud 备份</button>
+          <button type="button" class="quiet" id="phone">手机收件</button>
+          <button type="button" class="quiet" id="refresh">刷新</button>
+        </div>
+      </header>
+      <p id="notice" role="status" aria-live="polite"></p>
+      <section id="gate" aria-labelledby="gate-title" hidden>
+        <span class="gate-mark" aria-hidden="true">⌁</span>
+        <h2 id="gate-title"></h2>
+        <p id="gate-info" class="muted"></p>
+        <form id="gate-form" autocomplete="off">
+          <div id="gate-fields" class="fields"></div>
+          <p id="gate-error" role="alert" class="error"></p>
+          <button type="submit" class="button primary" id="gate-submit"></button>
+        </form>
+      </section>
+      <div id="library" hidden>
+        <nav class="sections" aria-label="保险库视图">
+          <button type="button" id="tab-library" aria-pressed="true">我的资料</button
+          ><button type="button" id="tab-requests" aria-pressed="false">
+            授权与回执 <span id="request-count" hidden></span>
+          </button>
+        </nav>
+        <section id="library-view" aria-label="我的资料">
+          <div id="request-banner"></div>
+          <div id="inbox-banner"></div>
+          <div class="library-search" role="search" aria-label="资料搜索">
+            <span class="search-mark" aria-hidden="true"></span>
+            <input
+              type="search"
+              id="item-search"
+              aria-label="搜索资料名称或类别"
+              placeholder="搜索名称或类别"
+              autocomplete="off"
+              autocapitalize="off"
+              spellcheck="false"
+            />
+            <button type="button" class="quiet" id="clear-search" aria-label="清除搜索" hidden>
+              清除
+            </button>
+          </div>
+          <p id="search-result" class="hint" role="status" aria-live="polite"></p>
+          <div id="groups"></div>
+        </section>
+        <section id="requests-view" aria-labelledby="requests-title" hidden>
+          <h2 id="requests-title">授权与回执</h2>
+          <div id="requests"></div>
+        </section>
+      </div>
+      <noscript>请启用 JavaScript 以解锁保险库。</noscript>
+    </main>
+    <dialog id="sheet" aria-labelledby="sheet-title">
+      <button type="button" class="close" id="sheet-close" aria-label="关闭">×</button>
+      <header class="sheet-head">
+        <span id="sheet-kicker"></span>
+        <h2 id="sheet-title"></h2>
+      </header>
+      <div id="sheet-content"></div>
+      <p id="sheet-error" role="alert" class="error"></p>
+    </dialog>
+  </body>
+</html>

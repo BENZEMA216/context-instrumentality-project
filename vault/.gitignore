@@ -1,0 +1,9 @@
+*.cvdrop
+*.cvault
+*.eml
+*.xcresult
+xcuserdata/
+DerivedData/
+recipient.pub
+cloud-config.json
+client_secret*.json

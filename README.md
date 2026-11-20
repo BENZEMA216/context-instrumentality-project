@@ -8,6 +8,8 @@
 
 **[运行 Context Hub · 本机 / 云主机 / Codex](hub/README.md)**　从原始资料生成可追溯的 Memory。录音、剪贴板及通用事件已能导入，可以从管理页和 MCP 修正两层数据。
 
+**[运行 Context Vault · Mac 资料库 / iPhone 扫描 / Codex 发现](vault/README.md)**　把纸质证件、电子文件及选中的邮件附件收进独立加密资料库。Agent 可申请单次使用，用户可以将执行回执分享到 Context Hub。
+
 研究区继续收录候选项目、架构和渠道，比较依据见[在线筛选工作台](https://docs.google.com/spreadsheets/d/1ggWJjSIKsgY5Wro-GPciEo9AhJOD4gEi-DQv5uCHRbg/edit)。下方 L3 表保留研究提案，已实现的行为以 [Hub 数据契约](schema/memory.md)为准。
 
 ---
