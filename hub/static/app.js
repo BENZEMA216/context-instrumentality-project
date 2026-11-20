@@ -561,3 +561,8 @@ request("/health", "GET", undefined, "").then(info => {
   if (state.connected) connection("ready");
 }).catch(() => {});
 nav("memory");
+
+// The independent Vault is reached on this computer; its credentials stay on its origin.
+if (["localhost", "127.0.0.1", "[::1]"].includes(location.hostname)) {
+  document.getElementById("vault-entry").hidden = false;
+}

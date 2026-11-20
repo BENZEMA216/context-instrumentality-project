@@ -1,0 +1,9 @@
+**
+!pyproject.toml
+!context_vault/
+!context_vault/*.py
+!context_vault/static/
+!context_vault/static/*
+!skills/
+!skills/context-vault-discovery/
+!skills/context-vault-discovery/SKILL.md

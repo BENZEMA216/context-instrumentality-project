@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "personal-context-vault"
+version = "0.1.0"
+description = "Local encrypted personal vault, iCloud transfers and consent-based agent actions"
+requires-python = ">=3.10"
+dependencies = ["cryptography>=42,<50", "pyhpke>=0.6.3,<0.7", "pyobjc-framework-Cocoa>=10; sys_platform == 'darwin'"]
+
+[project.optional-dependencies]
+agent = ["mcp>=1.29,<2"]
+gmail = ["google-auth-oauthlib>=1.2,<2", "keyring>=25,<26"]
+test = ["pytest>=8,<10"]
+
+[project.scripts]
+context-vault = "context_vault.cli:main"
+context-vault-mcp = "context_vault.mcp_bridge:main"
+context-vault-discover = "context_vault.discover:main"
+
+[tool.setuptools]
+packages = ["context_vault"]
+
+[tool.setuptools.package-data]
+context_vault = ["static/*.html", "static/*.js", "static/*.css"]
+
+[tool.setuptools.data-files]
+"share/context-vault/skills/context-vault-discovery" = ["skills/context-vault-discovery/SKILL.md"]
