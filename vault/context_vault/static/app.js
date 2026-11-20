@@ -213,7 +213,7 @@ function showGate(mode) {
   byId("gate-error").textContent = "";
   byId("gate-fields").replaceChildren();
   const copy = {
-    connect: ["连接本机保险库", "使用本机打开命令，或输入管理令牌。", "连接"],
+    connect: ["连接本机保险库", "在 Mac 的「应用程序」中打开 Context Vault，或在终端运行 context-vault open。已有管理令牌也可在此输入。", "连接"],
     setup: [
       "创建保险库",
       "设定独立的解锁口令，并把它保存在安全的地方。恢复加密备份时也需要这份口令。",

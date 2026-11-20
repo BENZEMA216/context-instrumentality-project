@@ -24,7 +24,7 @@ iPhone 将扫描件或选中的 PDF、JPEG、PNG 加密给一台已配对的 Vau
 python ios/Tests/verify_transfer.py
 ```
 
-在 iPhone 模拟器上，Xcode 的 Test 动作还会验证配对、资料类型切换与重启后公钥保留。如需验证系统“文件”选择器，在已启动的专用英文 iPhone 模拟器上运行以下命令。该测试会替换模拟器中保存的配对公钥，通过系统文件窗口选中一张临时合成 PNG、取消后重新导出，再在 Mac 上解密并核对原始字节。
+在 iPhone 模拟器上，Xcode 的 Test 动作还会验证配对、资料类型切换与重启后公钥保留。如需验证系统“文件”选择器，在已启动的专用英文 iPhone 模拟器上运行以下命令。该测试在启动参数中使用一次性的接收方公钥，通过系统文件窗口选中一张临时合成 PNG、取消后重新导出，再在 Mac 上解密并核对原始字节。
 
 ```sh
 python ios/Tests/verify_files.py <模拟器-UDID>

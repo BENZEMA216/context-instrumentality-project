@@ -30,22 +30,25 @@ final class CaptureUITests: XCTestCase {
         guard let pair = ProcessInfo.processInfo.environment["CONTEXT_VAULT_TEST_PAIR"] else {
             throw XCTSkip("Run the Files round trip with Tests/verify_files.py on a dedicated simulator.")
         }
+        continueAfterFailure = false
         let app = XCUIApplication()
+        app.launchArguments += ["-vault-recipient-public-key-v1", pair]
         app.launch()
-        if app.buttons["更换"].exists { app.buttons["更换"].tap() }
-        let field = app.textFields["pairCode"]
-        field.tap()
-        field.typeText(pair)
-        app.buttons["保存配对"].tap()
-        app.buttons["从文件选取"].tap()
-        let browse = app.buttons["Browse"]
-        if browse.waitForExistence(timeout: 3) { browse.tap() }
-        if browse.exists && !app.staticTexts["On My iPhone"].exists { browse.tap() }
-        let location = app.staticTexts["On My iPhone"]
-        if location.waitForExistence(timeout: 3) { location.tap() }
+        let open = app.buttons["从文件选取"]
+        XCTAssertTrue(open.waitForExistence(timeout: 20))
+        open.tap()
+        let browser = app.navigationBars["FullDocumentManagerViewControllerNavigationBar"]
+        if !browser.waitForExistence(timeout: 15) && open.isHittable { open.tap() }
         let name = ProcessInfo.processInfo.environment["CONTEXT_VAULT_TEST_FIXTURE"] ?? "ContextVaultSynthetic"
         let fixture = app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH %@", name)).firstMatch
-        XCTAssertTrue(fixture.waitForExistence(timeout: 8), app.debugDescription)
+        if !fixture.waitForExistence(timeout: 3) {
+            let browse = app.buttons["Browse"]
+            if browse.waitForExistence(timeout: 8) { browse.tap() }
+            let location = app.staticTexts["On My iPhone"]
+            if !location.exists && browse.isHittable { browse.tap() }
+            if location.waitForExistence(timeout: 5) { location.tap() }
+        }
+        XCTAssertTrue(fixture.waitForExistence(timeout: 12), app.debugDescription)
         fixture.tap()
         let export = app.buttons["加密并存入文件"]
         expectation(for: NSPredicate(format: "isEnabled == true"), evaluatedWith: export)
