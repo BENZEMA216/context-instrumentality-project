@@ -33,7 +33,10 @@ jobs:
           export HUB_AGENT_TOKEN=$(openssl rand -hex 32)
           start() {
             docker run -d --name hub -e HUB_OWNER_TOKEN -e HUB_AGENT_TOKEN -p 127.0.0.1:8741:8741 -v hub-test-data:/var/lib/context-hub context-hub:test
-            curl -fsS --retry 12 --retry-delay 1 --retry-connrefused http://127.0.0.1:8741/health
+            if ! curl -fsS --retry 12 --retry-delay 1 --retry-all-errors --connect-timeout 2 --max-time 4 http://127.0.0.1:8741/health; then
+              docker logs hub
+              return 1
+            fi
           }
           start
           curl -fsS -X POST -H "Authorization: Bearer $HUB_OWNER_TOKEN" -H "Content-Type: application/json" -d '{"id":"ci-event","source":"mail.message","kind":"note","t_start":1,"t_end":1,"t_observed":1,"privacy":{"tier":"shareable"},"provenance":{"connector":"ci","source_id":"demo"},"content":{"text":"Synthetic container fixture"}}' http://127.0.0.1:8741/api/raw >/dev/null
