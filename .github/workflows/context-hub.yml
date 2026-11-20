@@ -1,0 +1,46 @@
+name: Context Hub
+on:
+  push:
+    paths: ['hub/**', 'schema/**', 'pyproject.toml', 'tests/**', '.github/workflows/context-hub.yml', 'channels/audio/record-for-agent/AgentBridge/library.py']
+  pull_request:
+    paths: ['hub/**', 'schema/**', 'pyproject.toml', 'tests/**', '.github/workflows/context-hub.yml', 'channels/audio/record-for-agent/AgentBridge/library.py']
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install '.[agent,test]'
+      - run: python -m pytest tests -q
+      - name: Exercise the installed wheel outside the checkout
+        working-directory: /tmp
+        run: |
+          python -c 'from hub.contract import _validator; from hub.imports import recording_source; assert _validator(); assert recording_source().Limits()'
+  cloud-container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f hub/Dockerfile -t context-hub:test .
+      - name: Persist a cloud-mode record across container replacement
+        run: |
+          set -eu
+          docker volume create hub-test-data
+          export HUB_OWNER_TOKEN=$(openssl rand -hex 32)
+          export HUB_AGENT_TOKEN=$(openssl rand -hex 32)
+          start() {
+            docker run -d --name hub -e HUB_OWNER_TOKEN -e HUB_AGENT_TOKEN -p 127.0.0.1:8741:8741 -v hub-test-data:/var/lib/context-hub context-hub:test
+            if ! curl -fsS --retry 12 --retry-delay 1 --retry-all-errors --connect-timeout 2 --max-time 4 http://127.0.0.1:8741/health; then
+              docker logs hub
+              return 1
+            fi
+          }
+          start
+          curl -fsS -X POST -H "Authorization: Bearer $HUB_OWNER_TOKEN" -H "Content-Type: application/json" -d '{"id":"ci-event","source":"mail.message","kind":"note","t_start":1,"t_end":1,"t_observed":1,"privacy":{"tier":"shareable"},"provenance":{"connector":"ci","source_id":"demo"},"content":{"text":"Synthetic container fixture"}}' http://127.0.0.1:8741/api/raw >/dev/null
+          curl -fsS -X POST -H "Authorization: Bearer $HUB_OWNER_TOKEN" -H "Content-Type: application/json" -d '{}' http://127.0.0.1:8741/api/extract >/dev/null
+          docker rm -f hub
+          start
+          curl -fsS -H "Authorization: Bearer $HUB_AGENT_TOKEN" http://127.0.0.1:8741/api/memory | python -c 'import json,sys; rows=json.load(sys.stdin)["items"]; assert any("ci-event" in m["evidence_ids"] for m in rows)'

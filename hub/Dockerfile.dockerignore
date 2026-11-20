@@ -1,0 +1,13 @@
+**
+!pyproject.toml
+!hub/
+!hub/*.py
+!hub/static/
+!hub/static/**
+!schema/
+!schema/context-event.schema.json
+!channels/
+!channels/audio/
+!channels/audio/record-for-agent/
+!channels/audio/record-for-agent/AgentBridge/
+!channels/audio/record-for-agent/AgentBridge/library.py

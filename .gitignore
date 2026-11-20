@@ -24,3 +24,9 @@ build/
 *.opus
 local-data/
 context-vault/
+
+# Local Hub runtime and Python packaging
+*.sqlite3-*
+*.sqlite-*
+*.egg-info/
+*.token

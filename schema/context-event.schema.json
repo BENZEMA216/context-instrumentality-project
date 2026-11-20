@@ -7,7 +7,15 @@
   "additionalProperties": false,
   "properties": {
     "id": {"type": "string", "description": "ULID"},
-    "source": {"enum": ["voice", "clipboard", "browser", "ai_chat", "window"]},
+    "source": {
+      "type": "string",
+      "description": "Built-in channel or namespaced producer channel, e.g. mail.message.",
+      "maxLength": 100,
+      "anyOf": [
+        {"enum": ["voice", "clipboard", "browser", "ai_chat", "window"]},
+        {"pattern": "^[a-z][a-z0-9_-]*(\\.[a-z][a-z0-9_-]*)+$"}
+      ]
+    },
     "kind": {"type": "string", "description": "transcript_segment | copy | page_read | chat_turn | focus ..."},
     "t_start": {"type": "integer", "description": "Unix ms"},
     "t_end": {"type": "integer", "description": "Unix ms; equals t_start for instant events"},

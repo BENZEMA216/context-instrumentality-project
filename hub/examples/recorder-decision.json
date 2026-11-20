@@ -1,0 +1,20 @@
+{
+  "id": "demo-recorder-review-01",
+  "source": "voice",
+  "kind": "transcript_segment",
+  "t_start": 1763625600000,
+  "t_end": 1763625608000,
+  "t_observed": 1763625609000,
+  "actor": "speaker_1",
+  "content": {
+    "title": "银杏收音笔 · 第一版评审（合成示例）",
+    "text": "周三的校正标签为松针蓝七号。银杏收音笔第一版决定加入日期筛选，客户分组留到第二版。",
+    "lang": "zh"
+  },
+  "provenance": {
+    "connector": "synthetic-demo",
+    "source_id": "recorder-review-01",
+    "locator": "fixture://recordings/s01#t=12,20"
+  },
+  "privacy": {"tier": "shareable"}
+}
