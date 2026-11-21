@@ -12,7 +12,7 @@
 
 | 应用 | 功能完整度 | UI 情况 | Context 接入 | Agent 使用 |
 | --- | --- | --- | --- | --- |
-| <a name="check-audio"></a>**[录音 · Record for Agent](channels/audio/record-for-agent/AgentBridge/README.md)** | 分段录音、手表后台传到手机已在真机验证。起录首尾、长录和积压补传待验。 | Watch / iPhone 新版录制界面已在模拟器验证；真机起录和表冠操作待验。[REC-60](https://linear.app/zhiming-app/issue/REC-60) | 真机长录核查中，iPhone 已保存分段，本机接收库和日常 Hub 在核查时段均为 0。合成 CAF 已验接收、转写和导入。 | 隔离库中，真实 Codex 找到转写原句、Raw 和段内时间。一次 ASR 主体误识也被原样引用。真机同句待验。[验收记录](docs/verification/2026-11-22-source-to-agent.md#录音) |
+| <a name="check-audio"></a>**[录音 · Record for Agent](channels/audio/record-for-agent/AgentBridge/README.md)** | 真机长录中，已到手机的片段逐一匹配手表确认文件和手机收据。整场覆盖、起录首尾和补传待验。 | Watch / iPhone 新版录制界面已在模拟器验证；真机起录和表冠操作待验。[REC-60](https://linear.app/zhiming-app/issue/REC-60) | 手机上未检出电脑自动交付账本，本机接收库和日常 Hub 在核查时段均为 0。合成 CAF 已验接收、转写和导入。 | 隔离库中，真实 Codex 找到转写原句、Raw 和段内时间。一次 ASR 主体误识也被原样引用。真机同句待验。[验收记录](docs/verification/2026-11-22-source-to-agent.md#录音) |
 | <a name="check-clipboard"></a>**[剪贴板 · ClipContext](channels/clipboard/clipcontext/README.md)** | 0.1.4/build 5 预发行应用已验受控复制、排除隐藏项及重启后续写。 | 卡片和列表有局部验收；0.1.4 普通图形会话的跨 App 自动粘贴待验。 | 发布端实产归档显式导入得到 4 Raw / 3 Memory，重导新增 0 条。 | 默认隐藏。单条授权后，真实 Codex 从 Hub 逐字找回重启后的测试口令，Raw ID 和出处均匹配。[验收记录](docs/verification/2026-11-22-source-to-agent.md#剪贴板) |
 | <a name="check-wechat"></a>**微信 · Mac 采集工具** | 已实现历史文件导入、前台 OCR、周期导出；真实会话漏收率待测。[PR #8](https://github.com/BENZEMA216/context-instrumentality-project/pull/8) | 启动器引导选择标题和消息区域，记录在 Hub 管理页查看；真窗口校准待验。 | 已用合成历史和真实 Vision 识别的合成画面验证入库、去重。屏外消息不在 OCR 覆盖范围。 | 合成验收中 Agent 看不到仅本机记录；明确授权后的会话原文回查待验。 |
 | <a name="check-browser"></a>**浏览器 · 摘录扩展** | 主动保存选区、原网址、标题和时间已验；URL 隐私处理待补。 | Chrome 158 在合成网页实测弹窗保存、撤销，本地条目数 0 → 1 → 0。 | 原型写入扩展本地存储。扩展 → Hub 待接。 | 等待接入后验证 Agent 能找回选区原句和网页出处。 |
