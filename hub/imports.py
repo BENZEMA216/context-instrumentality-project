@@ -17,6 +17,7 @@ import uuid
 
 from .agent import DEFAULT_URL, HubClient, HubError
 from .contract import data_file, validate_event
+from .wechat_history import weflow_rows
 
 
 TEXT_TYPES = ("public.utf8-plain-text", "public.utf16-plain-text", "public.utf16-external-plain-text",
@@ -254,18 +255,50 @@ def recording_rows(path, tier):
         yield event
 
 
-def import_file(client, path, source, tier=None, mode="local", update_existing=False):
+def _import_row(client, row, source, update_existing):
+    try:
+        existing = client.one("GET", "raw", row["id"])
+    except HubError as error:
+        if error.status != 404:
+            raise
+        client.request("POST", "/api/raw", row)
+        return "created"
+    normalized = {**row, "t_observed": existing["t_observed"]}
+    if source == "weflow-json":
+        # The same platform message can move to another index in a new snapshot.
+        # An equivalent message retains its first actual export file locator.
+        normalized["provenance"] = {**row["provenance"], "locator": existing["provenance"].get("locator")}
+    if source == "clipcontext" and "snapshot_revision" in row["provenance"]:
+        # Unrelated clipboard changes can advance the archive revision.
+        normalized["provenance"] = {**row["provenance"],
+                                    "snapshot_revision": existing["provenance"].get("snapshot_revision")}
+    if {k: v for k, v in existing.items() if k != "revision"} == normalized:
+        return "unchanged"
+    if not update_existing:
+        if source == "weflow-json":
+            return "conflicts"
+        raise ValueError(f"Existing event {row['id']} differs. Review it, then use --update-existing to replace it.")
+    client.one("PUT", "raw", row["id"], {**row, "revision": existing["revision"]})
+    return "updated"
+
+
+def import_file(client, path, source, tier=None, mode="local", update_existing=False, *, account=None):
     if mode not in {"local", "cloud"}:
         raise ValueError("HUB_MODE must be local or cloud.")
     remote = mode == "cloud" or client.cloud or not client.loopback
     if source == "context-event" and tier is not None:
         raise ValueError("ContextEvent imports preserve each event's own privacy tier.")
+    if account is not None and source != "weflow-json":
+        raise ValueError("--account applies only to WeFlow JSON imports.")
     if tier not in {None, "local_only", "shareable"}:
         raise ValueError("Choose local_only or explicitly shareable for native data.")
     if source != "context-event" and remote and tier != "shareable":
         raise ValueError("local_only cannot be sent to a remote or cloud Hub. Select shareable explicitly.")
     if source == "clipcontext":
         rows = clipboard_rows(path, read_bytes(path), tier or "local_only")
+    elif source == "weflow-json":
+        data = read_bytes(path)
+        rows = weflow_rows(document(data), hashlib.sha256(data).hexdigest(), account, tier or "local_only", stable_id)
     elif source == "record-for-agent":
         rows = recording_rows(path, tier or "local_only")
     elif source == "context-event":
@@ -275,6 +308,8 @@ def import_file(client, path, source, tier=None, mode="local", update_existing=F
     else:
         raise ValueError("Unknown source format.")
     counts = {"created": 0, "unchanged": 0, "updated": 0, "skipped": 0}
+    if source == "weflow-json":
+        counts["conflicts"] = 0
     seen = set()
     needs_local_destination = False
     # Validate the entire selection and all privacy tiers before any HTTP operation.
@@ -296,49 +331,38 @@ def import_file(client, path, source, tier=None, mode="local", update_existing=F
             client.require_local_destination()
         staging.seek(0)
         for line in staging:
-            row = json.loads(line)
             try:
-                existing = client.one("GET", "raw", row["id"])
+                outcome = _import_row(client, json.loads(line), source, update_existing)
             except HubError as error:
-                if error.status != 404:
+                # A selected history snapshot can overlap locally edited or
+                # deleted messages. Respect those choices and process new rows.
+                if source != "weflow-json" or error.status not in {409, 410}:
                     raise
-                client.request("POST", "/api/raw", row)
-                counts["created"] += 1
-                continue
-            normalized = {**row, "t_observed": existing["t_observed"]}
-            if source == "clipcontext" and "snapshot_revision" in row["provenance"]:
-                # The archive revision changes when any item changes. Keep the first observed
-                # revision of an identical item, so an unrelated copy does not rewrite all rows.
-                normalized["provenance"] = {**row["provenance"],
-                                            "snapshot_revision": existing["provenance"].get("snapshot_revision")}
-            if {k: v for k, v in existing.items() if k != "revision"} == normalized:
-                counts["unchanged"] += 1
-                continue
-            if not update_existing:
-                raise ValueError(f"Existing event {row['id']} differs. Review it, then use --update-existing to replace it.")
-            client.one("PUT", "raw", row["id"], {**row, "revision": existing["revision"]})
-            counts["updated"] += 1
+                outcome = "skipped" if error.status == 410 else "conflicts"
+            counts[outcome] += 1
     return counts
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, epilog=(
         "Select only the published clipboard.json or Raw/manifest.json, the iPhone's selected "
-        "Record-for-Agent ZIP/export.json, or an explicit ContextEvent object/array. No watchers. "
+        "Record-for-Agent ZIP/export.json, a WeFlow native JSON conversation with --account, "
+        "or an explicit ContextEvent object/array. "
         "Native selections are local_only unless marked --privacy shareable. The importer keeps "
         "clipboard text and binary digests, and recording metadata/transcripts/spans and audio digests. "
         "ZIP verifies original CAFs; standalone export.json verifies metadata binding only. "
         "HUB_URL defaults to loopback. Remote requires HTTPS. The Hub health endpoint is checked before sending local-only data, including over tunnels. "
         "Use HUB_OWNER_TOKEN, never the agent token. A retry skips identical events."))
-    parser.add_argument("format", choices=["clipcontext", "record-for-agent", "context-event"])
+    parser.add_argument("format", choices=["clipcontext", "record-for-agent", "weflow-json", "context-event"])
     parser.add_argument("file", type=Path, help="One explicit export file")
     parser.add_argument("--privacy", choices=["local_only", "shareable"])
+    parser.add_argument("--account", help="Stable namespace for the selected WeChat owner's account")
     parser.add_argument("--update-existing", action="store_true", help="Replace changed records at their observed revisions")
     args = parser.parse_args(argv)
     try:
         client = HubClient(os.environ.get("HUB_URL", DEFAULT_URL), os.environ.get("HUB_OWNER_TOKEN"))
         result = import_file(client, args.file, args.format, args.privacy,
-                             os.environ.get("HUB_MODE", "local"), args.update_existing)
+                             os.environ.get("HUB_MODE", "local"), args.update_existing, account=args.account)
     except (ValueError, KeyError, TypeError, AttributeError, OSError) as error:
         parser.exit(1, f"Import failed: {error}\n")
     print(json.dumps(result, ensure_ascii=False))
