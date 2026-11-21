@@ -17,6 +17,7 @@ test = ["pytest>=8,<10"]
 context-hub = "hub.__main__:main"
 context-hub-mcp = "hub.agent:main"
 context-hub-import = "hub.imports:main"
+context-hub-wechat = "hub.wechat:main"
 
 [tool.setuptools]
 packages = ["hub"]

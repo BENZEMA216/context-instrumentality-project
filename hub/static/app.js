@@ -3,8 +3,10 @@
 const byId = id => document.getElementById(id);
 const PAGE_SIZE = 12;
 const labels = {memory: "记忆", raw: "原始记录"};
-const sources = {voice: "录音", clipboard: "剪贴板", browser: "浏览器", ai_chat: "AI 对话", window: "窗口"};
-const kinds = {voice: "transcript_segment", clipboard: "copy", browser: "page_read", ai_chat: "chat_turn", window: "focus"};
+const sources = {voice: "录音", clipboard: "剪贴板", browser: "浏览器", ai_chat: "AI 对话", window: "窗口",
+  "wechat.message": "微信消息", "wechat.ocr": "微信屏幕识别", "wechat.transcript": "微信历史片段"};
+const kinds = {voice: "transcript_segment", clipboard: "copy", browser: "page_read", ai_chat: "chat_turn", window: "focus",
+  "wechat.message": "message", "wechat.ocr": "visible_text_observation", "wechat.transcript": "selected_excerpt"};
 const tiers = {local_only: "仅本机", redacted: "已脱敏", shareable: "可共享"};
 const origins = {manual: "手动整理", extracted: "自动提取"};
 const state = {

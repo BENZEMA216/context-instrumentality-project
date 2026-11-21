@@ -55,6 +55,7 @@ MCP 提供十个工具。Raw 和 Memory 各有搜索、按 ID 读取、新建、
 | --- | --- | --- |
 | ClipContext | `context-hub-import clipcontext /path/to/clipboard.json` 或选 `Raw/manifest.json` | 单项文本、可用应用与设备上下文、来源身份和二进制表示的指纹。分块归档会校验清单 |
 | Record for Agent | `context-hub-import record-for-agent /path/to/selected.zip` 或选 `export.json` | 录音段元数据、已有转写与分段、音频指纹。ZIP 可验证所附音频，独立清单只能验证元数据绑定 |
+| 微信 | `context-hub-import weflow-json /path/to/chat.json --account personal` | 原生 JSON 的逐条消息、发送者和可用的引用关系。另支持选定文本、前台可见会话 OCR 和周期导出，见[微信渠道](../channels/wechat/README.md) |
 | 浏览器或其他来源 | `context-hub-import context-event /path/to/events.json` | 单个合法的 ContextEvent 或数组。支持 browser 等内建来源，以及 mail.message 等带命名空间的新来源 |
 
 原生导出默认标为 `local_only`。如果要让 Agent 使用已选材料，先在本机界面审阅并更改可见范围，或在导入命令中明确加 `--privacy shareable`。通用 JSON 保留逐条标注。Hub 存储源文本与结构化字段，原始音频和剪贴板图片仍由生产端保存。导入是一次性快照，源应用内后续删除不会自动传播，Hub 的修改也不会写回源应用。相同内容重复导入会跳过，修改过的内容需要 `--update-existing`。浏览器目前可通过通用导入接入，扩展采集端属于后续工作。

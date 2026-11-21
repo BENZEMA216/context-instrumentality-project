@@ -1,9 +1,9 @@
 name: Context Hub
 on:
   push:
-    paths: ['hub/**', 'schema/**', 'pyproject.toml', 'tests/**', '.github/workflows/context-hub.yml', 'channels/audio/record-for-agent/AgentBridge/library.py']
+    paths: ['hub/**', 'schema/**', 'pyproject.toml', 'tests/**', '.github/workflows/context-hub.yml', 'channels/audio/record-for-agent/AgentBridge/library.py', 'channels/wechat/ocr/**']
   pull_request:
-    paths: ['hub/**', 'schema/**', 'pyproject.toml', 'tests/**', '.github/workflows/context-hub.yml', 'channels/audio/record-for-agent/AgentBridge/library.py']
+    paths: ['hub/**', 'schema/**', 'pyproject.toml', 'tests/**', '.github/workflows/context-hub.yml', 'channels/audio/record-for-agent/AgentBridge/library.py', 'channels/wechat/ocr/**']
 permissions:
   contents: read
 jobs:
@@ -20,6 +20,12 @@ jobs:
         working-directory: /tmp
         run: |
           python -c 'from hub.contract import _validator; from hub.imports import recording_source; assert _validator(); assert recording_source().Limits()'
+  wechat-ocr:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift build --package-path channels/wechat/ocr -c release
+      - run: swift test --package-path channels/wechat/ocr
   cloud-container:
     runs-on: ubuntu-latest
     steps:
