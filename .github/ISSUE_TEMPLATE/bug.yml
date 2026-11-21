@@ -13,3 +13,8 @@ body:
     id: env
     attributes:
       label: "环境"
+  - type: input
+    id: linear
+    attributes:
+      label: "已有的 Linear 工单（可选）"
+      placeholder: "REC-… 或工单链接"

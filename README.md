@@ -2,9 +2,39 @@
   <img src="assets/eva-context-banner.png" alt="CONTEXT 补全计划 · The Context Instrumentality Project" width="100%" />
 </p>
 
+# Context 补全计划 · The Context Instrumentality Project
+
+<a name="app-checklist"></a>
+
+## 应用验收清单
+
+最近核对于 **2026-11-22**。表中「已验」只覆盖写明的版本、环境和操作。「待验」表示已有实现或样例，仍缺这一环的证据。「待接」表示这条路径尚未实现。完整度按可用功能和剩余缺口记录。
+
+| 应用 | 功能完整度 | UI 情况 | Context 接入 | Agent 使用 |
+| --- | --- | --- | --- | --- |
+| <a name="check-audio"></a>**录音 · Record for Agent** | 分段录音、手表后台传到手机已在真机验证。起录首尾、长录和积压补传待验。 | Watch / iPhone 新版录制界面已在模拟器验证；真机起录和表冠操作待验。[REC-60](https://linear.app/zhiming-app/issue/REC-60) | Hub 已导入合成录音 ZIP，读回已有转写和分段。真实录音经手机、Mac 到 Hub 待验。 | [录音端只读 MCP](channels/audio/record-for-agent/AgentBridge/README.md) 已实现；经 Hub 回查同一段真实录音待验。 |
+| <a name="check-clipboard"></a>**剪贴板 · ClipContext** | 历史、搜索、粘贴可用。0.1.4 预发行版退出重启后的连续归档待验。 | 卡片、列表、跨 App 粘贴有局部验收；0.1.4 安装版 GUI 待复验。 | Hub 已验证显式导入快照和分块归档、重导去重。安装版复制到 Hub 待验。 | [剪贴板只读 MCP](channels/clipboard/clipcontext/README.md) 已实现；经 Hub 按出处找回一次实际复制待验。 |
+| <a name="check-wechat"></a>**微信 · Mac 采集工具** | 已实现历史文件导入、前台 OCR、周期导出；真实会话漏收率待测。[PR #8](https://github.com/BENZEMA216/context-instrumentality-project/pull/8) | 启动器引导选择标题和消息区域，记录在 Hub 管理页查看；真窗口校准待验。 | 已用合成历史和真实 Vision 识别的合成画面验证入库、去重。屏外消息不在 OCR 覆盖范围。 | 合成验收中 Agent 看不到仅本机记录；明确授权后的会话原文回查待验。 |
+| <a name="check-browser"></a>**浏览器 · 摘录扩展** | 主动保存选区、原网址、标题和时间已验；URL 隐私处理待补。 | Chrome 158 在合成网页实测弹窗保存、撤销，本地条目数 0 → 1 → 0。 | 原型写入扩展本地存储。扩展 → Hub 待接。 | 等待接入后验证 Agent 能找回选区原句和网页出处。 |
+| <a name="check-hub"></a>**Context Hub** | Raw 和 Memory 的增删查改、周期提取及权限检查已验。[PR #2](https://github.com/BENZEMA216/context-instrumentality-project/pull/2) | 真实浏览器已验列表、编辑、来源回查、冲突保留草稿及窄屏布局。 | 已验录音、剪贴板和通用事件的显式导入。真实渠道持续到达需逐项验收。 | 两次真实 Codex 会话在合成库分别验证了只查 Memory 作答、按证据 ID 回查 Raw。[验收记录](https://github.com/BENZEMA216/context-instrumentality-project/blob/2750243e644c5ea051b6b467ce751f029f7ec345/hub/VERIFICATION.md) |
+| <a name="check-vault"></a>**Context Vault** | 加密资料管理、单次授权和导入已实现；跨设备 iCloud 投递待验。[PR #4](https://github.com/BENZEMA216/context-instrumentality-project/pull/4) | Mac 管理页操作已验；iPhone 模拟器已验文件投递，真机拍照扫描待验。 | 用户主动分享后，Hub 收到脱敏操作回执；私密原件保留在 Vault。 | 已验 Agent 通过 MCP 申请、所有者在 Mac 批准、Agent 单次执行并收到回执。[授权与回执](https://github.com/BENZEMA216/context-instrumentality-project/blob/ea3409679287d0c174303d46efc4fdb8d0193d1b/vault/README.md#agent-使用授权与-context-hub) |
+
+**下一轮验收**　录音和剪贴板优先，可并行验收。勾选时在对应行补上日期、版本和证据。分工和缺陷见 [Linear 渠道看板](https://linear.app/zhiming-app/project/context-补完计划-渠道接入与验收-b0bb633d4d52)，工单需要工作区访问权限。
+
+- [ ] **录音**　用同一条首尾口令已知的短录音，核对手表、手机、Mac、Hub 和获准 Agent 找回的原句。[REC-61](https://linear.app/zhiming-app/issue/REC-61)
+- [ ] **剪贴板**　在 0.1.4 安装版完成受控复制、重启、Hub 重导，并核对排除项和 Agent 权限。[REC-62](https://linear.app/zhiming-app/issue/REC-62)
+- [ ] **微信**　在标题唯一的测试会话中切换、恢复和滚动，核对漏收、误收及获准后的原文回查。[REC-63](https://linear.app/zhiming-app/issue/REC-63)
+- [ ] **浏览器**　保存一个选区到 Hub，验证 URL 处理、重复提交、撤销和 Agent 引用原句。[REC-64](https://linear.app/zhiming-app/issue/REC-64)
+- [ ] **Context Hub**　用上述任一渠道的真实端侧采集验收 Memory 的答案、所引原句和权限；记录从采集到可查询的时间。[Hub 工作项](https://github.com/BENZEMA216/context-instrumentality-project/issues/1)
+- [ ] **Context Vault**　用 iPhone 真机扫描一份测试材料，经用户自己的 iCloud 在另一设备入库，再核对授权回执。[Vault 工作项](https://github.com/BENZEMA216/context-instrumentality-project/issues/3)
+
+规划中的渠道还有 [Agent 对话历史](https://github.com/BENZEMA216/context-instrumentality-project/issues/5)（已有合成回放，专用导入待接）和[窗口焦点](channels/window/README.md)（已有采集方案）。本次核对时，Hub（#2）、Vault（#4）和微信（#8）的实现均待合并。
+
+## 研究工作台
+
 [📊 Google Sheet 在线筛选总表](https://docs.google.com/spreadsheets/d/1ggWJjSIKsgY5Wro-GPciEo9AhJOD4gEi-DQv5uCHRbg/edit) ｜ [🏠 首页索引（当前页）](#context-补全计划--the-context-instrumentality-project) ｜ [📡 采集渠道调研](docs/research/channels.md) ｜ [🧩 整合方法与架构](docs/research/integration-methods.md) ｜ [📦 开源项目精读 (28)](docs/research/projects-digest.md) ｜ [📄 论文与博客精读 (22)](docs/research/papers-blogs-digest.md) ｜ [💡 启发与格式设计](docs/research/design-reflections.md) ｜ [🎙️ 音频通道](docs/research/channel-audio.md) ｜ [📋 剪切板通道](docs/research/channel-clipboard.md)
 
-# Context 补全计划 · The Context Instrumentality Project
+### 立项说明
 
 > **探索与任务定义阶段 · 逐级筛选与方案演进工作台**  
 > 本项目仍处于**探索与任务定义阶段**。我们不提前下僵化的结论，而是以首页及配套的 **[📊 Google Sheet 在线筛选工作台](https://docs.google.com/spreadsheets/d/1ggWJjSIKsgY5Wro-GPciEo9AhJOD4gEi-DQv5uCHRbg/edit)** 作为**“初筛总表 → 重点深挖 → 方案收敛”**的工作台：先用统一表格简要展示候选先驱与研究脉络；当你认为某个项目确实有价值并拍板关注后，再进入重点收录区做技术/UI 深度剖析与格式推演，逐级筛选并拼合出最终方案。
