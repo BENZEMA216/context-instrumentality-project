@@ -169,8 +169,16 @@ def codex_rows(path, project):
 
 def participant_text(role, text):
     # Runtime envelopes can have a user role even though no person authored them.
-    return role != "user" or not text.lstrip().startswith(("<environment_context>", "<subagent_notification>",
-        "<turn_aborted>", "<permissions instructions>", "<system-reminder>", "<local-command-caveat>"))
+    if role != "user":
+        return True
+    value = text.lstrip()
+    if value.startswith("# AGENTS.md instructions for "):
+        before, closing, after = value.partition("</INSTRUCTIONS>")
+        if closing and "<INSTRUCTIONS>" in before and (
+                not after.strip() or re.fullmatch(r"\s*<environment_context>.*?</environment_context>\s*", after, re.S)):
+            return False
+    return not value.startswith(("<environment_context>", "<subagent_notification>", "<turn_aborted>",
+                                 "<permissions instructions>", "<system-reminder>", "<local-command-caveat>"))
 
 
 def claude_rows(path, project):

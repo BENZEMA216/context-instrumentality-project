@@ -16,6 +16,7 @@ test = ["pytest>=8,<10"]
 [project.scripts]
 context-hub = "hub.__main__:main"
 context-hub-mcp = "hub.agent:main"
+context-hub-history-export = "hub.history_exports:main"
 context-hub-history = "hub.history:main"
 context-hub-import = "hub.imports:main"
 

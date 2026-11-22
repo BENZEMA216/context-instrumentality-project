@@ -198,3 +198,60 @@ def test_claude_web_export_roles_parents_and_exclusions(tmp_path):
     assert [r["content"]["text"] for r in projected] == ["Would blue work?","Try blue first."]
     assert projected[1]["links"][0]["target_id"]==projected[0]["id"]
     assert all(s not in json.dumps(projected) for s in ("duplicate","private","withheld"))
+
+
+def test_mcp_finds_the_authorized_turn_and_loses_it_after_owner_deletion(tmp_path):
+    import asyncio
+    import sys
+    import threading
+
+    pytest.importorskip("mcp")
+    from mcp import ClientSession, StdioServerParameters
+    from mcp.client.stdio import stdio_client
+    from hub.server import HubHTTP
+
+    s = Store(tmp_path/"db")
+    import_one(s,write(tmp_path/"input",transcript("s","Synthetic source correction.")),"transcript")
+    s.extract()
+    raw, = s.list_raw()
+    http = HubHTTP(("127.0.0.1",0),s,"synthetic-owner","synthetic-agent")
+    server = threading.Thread(target=http.serve_forever,kwargs={"poll_interval":0.02})
+    server.start()
+
+    async def check():
+        params=StdioServerParameters(command=sys.executable,args=["-m","hub","mcp"],
+                                     env={"HUB_URL":f"http://127.0.0.1:{http.server_port}",
+                                          "HUB_AGENT_TOKEN":"synthetic-agent","PYTHONPATH":str(Path(__file__).resolve().parents[1])})
+        async with stdio_client(params) as (read,send), ClientSession(read,send) as client:
+            await client.initialize()
+            async def result(tool,data):
+                v=await client.call_tool(tool,data)
+                assert not v.isError
+                return v.structuredContent or json.loads(v.content[0].text)
+            assert (await result("search_memory",{"q":"Synthetic"}))["items"] == []
+            assert (await client.call_tool("get_raw",{"id":raw["id"]})).isError
+            s.put_raw({**raw,"privacy":{"tier":"shareable"}},expected_revision=1)
+            s.extract()
+            memory,=(await result("search_memory",{"q":"Synthetic"}))["items"]
+            cited,=memory["evidence_ids"]
+            evidence=await result("get_raw",{"id":cited})
+            assert evidence["content"]==raw["content"] and evidence["provenance"]["locator"]=="message:m"
+            s.delete_raw(cited,2)
+            assert (await result("search_memory",{"q":"Synthetic"}))["items"] == []
+            assert (await client.call_tool("get_raw",{"id":cited})).isError
+    try:
+        asyncio.run(check())
+    finally:
+        http.shutdown()
+        http.server_close()
+        server.join()
+
+
+def test_repository_instructions_wrapper_does_not_swallow_authored_messages():
+    from hub.history_sources import participant_text
+    wrapped = "# AGENTS.md instructions for example\n\n<INSTRUCTIONS>Fixture rules.</INSTRUCTIONS>"
+    assert not participant_text("user", wrapped)
+    assert not participant_text("user", wrapped + "\n<environment_context>fixture</environment_context>")
+    assert participant_text("user", "Please edit AGENTS.md and preserve its <INSTRUCTIONS> section.")
+    assert participant_text("user", wrapped + "\nPlease explain this passage.")
+    assert participant_text("assistant", wrapped)

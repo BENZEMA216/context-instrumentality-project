@@ -5,6 +5,7 @@ import os
 import re
 from pathlib import Path
 import sys
+import tempfile
 from time import time_ns
 
 from .history_sources import rows
@@ -16,32 +17,39 @@ def import_one(store, path, source, project=None, update_existing=False):
     before = path.stat()
     if not path.is_file():
         raise ValueError("Expected a regular exported conversation file.")
-    with store._transaction(True) as conn:
+    # Large compressed rollouts are slow to decode. Stage visible turns privately
+    # before acquiring the SQLite write lock; malformed/partial files never commit.
+    with tempfile.TemporaryFile(mode="w+", encoding="utf-8") as staged:
         for row in rows(path, source, project):
-            prior = conn.execute("SELECT event,revision FROM raw_events WHERE id=?", (row["id"],)).fetchone()
-            if prior is not None:
-                if prior["event"] is None:
-                    counts["tombstones"] += 1
-                    continue
-                previous = json.loads(prior["event"])
-                # Preserve observation time. Replaying private source history must never silently
-                # overwrite a subsequent privacy grant or a manual correction.
-                row["t_observed"] = previous["t_observed"]
-                if previous == row:
-                    counts["unchanged"] += 1
-                    continue
-                if not update_existing:
-                    raise ValueError("Existing turn differs; review before --update-existing.")
-                store._put_raw(conn, row, expected_revision=prior["revision"])
-                counts["updated"] += 1
-            else:
-                row["t_observed"] = time_ns() // 1_000_000
-                store._put_raw(conn, row)
-                counts["created"] += 1
+            staged.write(json.dumps(row, ensure_ascii=False, allow_nan=False) + "\n")
         after = path.stat()
         if (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns) != (
                 after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns):
             raise ValueError("The source changed during the import; retry its new snapshot.")
+        staged.seek(0)
+        with store._transaction(True) as conn:
+            for encoded in staged:
+                row = json.loads(encoded)
+                prior = conn.execute("SELECT event,revision FROM raw_events WHERE id=?", (row["id"],)).fetchone()
+                if prior is not None:
+                    if prior["event"] is None:
+                        counts["tombstones"] += 1
+                        continue
+                    previous = json.loads(prior["event"])
+                    # Preserve observation time. Replaying private source history must never silently
+                    # overwrite a subsequent privacy grant or a manual correction.
+                    row["t_observed"] = previous["t_observed"]
+                    if previous == row:
+                        counts["unchanged"] += 1
+                        continue
+                    if not update_existing:
+                        raise ValueError("Existing turn differs; review before --update-existing.")
+                    store._put_raw(conn, row, expected_revision=prior["revision"])
+                    counts["updated"] += 1
+                else:
+                    row["t_observed"] = time_ns() // 1_000_000
+                    store._put_raw(conn, row)
+                    counts["created"] += 1
     return counts
 
 
