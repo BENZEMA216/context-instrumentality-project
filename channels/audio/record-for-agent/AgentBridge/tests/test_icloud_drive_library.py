@@ -363,6 +363,17 @@ class ICloudDriveLibraryTests(unittest.TestCase):
             result = observe()
             self.assertEqual((result["segments"], result["pending"]), ([], 1))
 
+    def test_early_batch_without_future_baseline_never_enumerates_other_source_ids(self):
+        source, unrelated = self.fixture, Fixture(self.root)
+        missing = str(uuid.uuid4())
+        source.commit()
+        unrelated.commit("private unrelated")
+        with mock.patch.object(self.reader, "_source_names", side_effect=AssertionError("whole catalog enumerated")):
+            result = self.reader.hub_metadata([source.sid, missing], early_selection=[source.sid])
+        self.assertEqual([row["segmentID"] for row in result["segments"]], [source.sid])
+        self.assertEqual(result["absentSelected"], 1)
+        self.assertNotIn(unrelated.sid, json.dumps(result))
+
     def test_early_selection_cli_is_scoped_and_optional(self):
         self.fixture.commit()
         for early in (False, True):

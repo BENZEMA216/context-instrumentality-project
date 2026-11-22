@@ -354,6 +354,19 @@ class ICloudDriveLibrary:
             require(all(uuid_value(name) == name for name in names), "unexpected_commit_directory")
             return names
 
+    def _selected_source_names(self, root_fd, selected):
+        # A batch-only grant already supplies its UUIDs. Probe their entries
+        # directly so other recordings' directory names are never enumerated.
+        present = set()
+        with self._parent(root_fd, "commits/.catalog") as (directory, _):
+            for sid in selected:
+                try:
+                    os.stat(sid, dir_fd=directory, follow_symlinks=False)
+                except FileNotFoundError:
+                    continue
+                present.add(sid)
+        return present
+
     def _segment_paths(self, root_fd, segment):
         paths = []
         with self._parent(root_fd, "commits/" + segment + "/.catalog") as (directory, _):
@@ -523,7 +536,7 @@ class ICloudDriveLibrary:
         require(early <= selected, "early_selection_outside_selection")
         with self._root() as root_fd:
             marker = self._marker(root_fd)
-            names = set(self._source_names(root_fd))
+            names = self._selected_source_names(root_fd, selected) if early and baseline is None else set(self._source_names(root_fd))
             eligible = names & selected
             if baseline is not None:
                 require(isinstance(baseline, dict) and baseline.get("libraryID") == self.library_id
