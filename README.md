@@ -12,24 +12,26 @@
 
 | 应用 | 功能完整度 | UI 情况 | Context 接入 | Agent 使用 |
 | --- | --- | --- | --- | --- |
-| <a name="check-audio"></a>**[录音 · Record for Agent](channels/audio/record-for-agent/AgentBridge/README.md)** | 两场真机长录逐段核对，序号连续。手机仅收到其中一部分，逐段有双端回执；其余片段仍有手表音频，补传待验。[REC-47](https://linear.app/zhiming-app/issue/REC-47) | Watch / iPhone 新版录制界面已在模拟器验证；真机起录和表冠操作待验。[REC-60](https://linear.app/zhiming-app/issue/REC-60) | 用户选定真机片段后，已从 iPhone 定向取到 Mac、校验音频摘要、本机转写并导入隔离 Hub。日常接收库和 Hub 仍未收到同段。 | 独立 Codex 从隔离 Hub 先查 Memory，再取单句 Raw，逐字引用真机选段转写。证据 ID 和覆盖时间吻合，两种本地转写对部分字词有分歧。[验收记录](docs/verification/2026-11-22-source-to-agent.md#录音) |
+| <a name="check-audio"></a>**[录音 · Record for Agent](channels/audio/record-for-agent/AgentBridge/README.md)** | 两场真机长录的序号连续。复查同一批 173 段，手机持久收到 76 段，其中一场完整收到 61/61 段。手表本次锁定，余量待复查。[REC-47](https://linear.app/zhiming-app/issue/REC-47) | Watch 模拟器已验录制和归档两页，iPhone 已验手机实收、手表待确认和状态未知的显示。改版待审，真机操作待验。[REC-60](https://linear.app/zhiming-app/issue/REC-60) | 日常 Mac 收件库、投递回执和 Hub 均命中 0/173 段。用户选段经定向导入隔离 Hub 已验。 | 日常录音 MCP 和 Hub MCP 均可调用，本批可见 0/173。独立 Codex 已从隔离 Hub 找回获准的一句及出处。[整批核对](docs/verification/2026-11-22-source-to-agent.md#日常链路逐段复查) · [单句回查](docs/verification/2026-11-22-source-to-agent.md#真机单句回查) |
 | <a name="check-clipboard"></a>**[剪贴板 · ClipContext](channels/clipboard/clipcontext/README.md)** | 0.1.4/build 5 预发行应用已验受控复制、排除隐藏项及重启后续写。 | 卡片和列表有局部验收；0.1.4 普通图形会话的跨 App 自动粘贴待验。 | 发布端实产归档显式导入得到 4 Raw / 3 Memory，重导新增 0 条。 | 默认隐藏。单条授权后，真实 Codex 从 Hub 逐字找回重启后的测试口令，Raw ID 和出处均匹配。[验收记录](docs/verification/2026-11-22-source-to-agent.md#剪贴板) |
 | <a name="check-wechat"></a>**微信 · Mac 采集工具** | 已实现历史文件导入、前台 OCR、周期导出；真实会话漏收率待测。[PR #8](https://github.com/BENZEMA216/context-instrumentality-project/pull/8) | 启动器引导选择标题和消息区域，记录在 Hub 管理页查看；真窗口校准待验。 | 已用合成历史和真实 Vision 识别的合成画面验证入库、去重。屏外消息不在 OCR 覆盖范围。 | 合成验收中 Agent 看不到仅本机记录；明确授权后的会话原文回查待验。 |
 | <a name="check-browser"></a>**浏览器 · 摘录扩展** | 主动保存选区、原网址、标题和时间已验；URL 隐私处理待补。 | Chrome 158 在合成网页实测弹窗保存、撤销，本地条目数 0 → 1 → 0。 | 原型写入扩展本地存储。扩展 → Hub 待接。 | 等待接入后验证 Agent 能找回选区原句和网页出处。 |
+| <a name="check-chat-history"></a>**[Agent 对话历史](https://github.com/BENZEMA216/context-instrumentality-project/pull/13)** | 已将多个客户端的本机历史和账户导出按来源、会话、用户及助手消息整理。各云账户的全量覆盖仍待核对。 | 本地索引和项目记忆支持按主题回到证据，另可用 CLI 按会话查看。 | 实际私有库已生成逐消息 Raw、摘录 Memory 和跨轮项目记忆，可从 Memory 定位原消息。[REC-67](https://linear.app/zhiming-app/issue/REC-67) | 默认仅所有者可查。隔离样本通过真实 MCP 验过单条授权、回查和删除。[实现与测试](https://github.com/BENZEMA216/context-instrumentality-project/pull/13) |
 | <a name="check-hub"></a>**Context Hub** | Raw 和 Memory 的增删查改、周期提取及权限检查已验。[PR #2](https://github.com/BENZEMA216/context-instrumentality-project/pull/2) | 真实浏览器已验列表、编辑、来源回查、冲突保留草稿及窄屏布局。 | 已验剪贴板发布端归档、录音测试包和通用事件的显式导入。持续到达仍按渠道核对。 | 仅授权一条剪贴板样本后，独立 Codex 检索 Memory 并按 ID 回查 Raw，原句和出处匹配。[验收记录](docs/verification/2026-11-22-source-to-agent.md#剪贴板) |
 | <a name="check-vault"></a>**Context Vault** | 加密资料管理、单次授权和导入已实现；跨设备 iCloud 投递待验。[PR #4](https://github.com/BENZEMA216/context-instrumentality-project/pull/4) | Mac 管理页操作已验；iPhone 模拟器已验文件投递，真机拍照扫描待验。 | 用户主动分享后，Hub 收到脱敏操作回执；私密原件保留在 Vault。 | 已验 Agent 通过 MCP 申请、所有者在 Mac 批准、Agent 单次执行并收到回执。[授权与回执](https://github.com/BENZEMA216/context-instrumentality-project/blob/ea3409679287d0c174303d46efc4fdb8d0193d1b/vault/README.md#agent-使用授权与-context-hub) |
 
 **下一轮验收**　录音和剪贴板优先，可并行验收。勾选时在对应行补上日期、版本和证据。分工和缺陷见 [Linear 渠道看板](https://linear.app/zhiming-app/project/context-补完计划-渠道接入与验收-b0bb633d4d52)，工单需要工作区访问权限。
 
 - [x] **录音 · 单段回查**　真机片段已核对手表与手机回执。用户选段后，通过 Mac 和隔离 Hub，独立 Codex 逐字找回获准的一句转写及出处。[验收记录](docs/verification/2026-11-22-source-to-agent.md#真机单句回查)
-- [ ] **录音 · 日常自动交付**　核对同片段从手机自动抵达 Mac 的持久回执，以及日常 Hub 入库和 Agent 回查。[REC-61](https://linear.app/zhiming-app/issue/REC-61)
+- [ ] **录音 · 日常自动交付**　逐段核对手机补传、Mac 投递回执与日常 Agent 可见性。录音消费 skill / prompt 已标记，待人工验证和撰写。[REC-61](https://linear.app/zhiming-app/issue/REC-61) · [REC-66](https://linear.app/zhiming-app/issue/REC-66)
+- [x] **Agent 对话历史 · 本机整理**　已用真实历史生成本地索引、摘录和有原消息依据的项目记忆。已登录网页的可见历史与完整账户导出分别核对。[REC-67](https://linear.app/zhiming-app/issue/REC-67)
 - [x] **剪贴板**　0.1.4/build 5 预发行应用已完成受控复制、重启、Hub 重导、排除项与 Agent 原句回查（2026-11-22）。[REC-62](https://linear.app/zhiming-app/issue/REC-62)
 - [ ] **微信**　在标题唯一的测试会话中切换、恢复和滚动，核对漏收、误收及获准后的原文回查。[REC-63](https://linear.app/zhiming-app/issue/REC-63)
 - [ ] **浏览器**　保存一个选区到 Hub，验证 URL 处理、重复提交、撤销和 Agent 引用原句。[REC-64](https://linear.app/zhiming-app/issue/REC-64)
 - [x] **Context Hub**　剪贴板发布应用采集受控文本后，单条授权可查用时 ≤104.484 秒，Codex 找回并核对原句用时 ≤126.693 秒。包含定时归档和显式导入。[本次测量](docs/verification/2026-11-22-source-to-agent.md#剪贴板) · [Hub 工作项](https://github.com/BENZEMA216/context-instrumentality-project/issues/1)
 - [ ] **Context Vault**　用 iPhone 真机扫描一份测试材料，经用户自己的 iCloud 在另一设备入库，再核对授权回执。[Vault 工作项](https://github.com/BENZEMA216/context-instrumentality-project/issues/3)
 
-规划中的渠道还有 [Agent 对话历史](https://github.com/BENZEMA216/context-instrumentality-project/issues/5)（已有合成回放，专用导入待接）和[窗口焦点](channels/window/README.md)（已有采集方案）。本次核对时，Hub（#2）、Vault（#4）和微信（#8）的实现均待合并。
+[窗口焦点](channels/window/README.md)已有采集方案。Hub（#2）、Vault（#4）、微信（#8）和对话历史（#13）的实现均待合并。
 
 ## 研究工作台
 
