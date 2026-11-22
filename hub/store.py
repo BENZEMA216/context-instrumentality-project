@@ -25,13 +25,18 @@ _SALIENT = re.compile(
     r"决定|改为|改用|计划|偏好|需要|截止|待办|下一步|确认|错误|失败|放弃|取消|不再|"
     r"\b(decided?|prefer\w*|switched?|deadline|todo|next step|plan|agreed?|failed?|error|instead)\b", re.I
 )
-_TABLES = """
+_RAW_HIDDEN = "({row}tier = 'local_only' OR {row}event IS NULL)"
+_TABLES = f"""
 CREATE TABLE IF NOT EXISTS raw_events (
  id TEXT PRIMARY KEY, source TEXT NOT NULL, connector TEXT NOT NULL, source_id TEXT NOT NULL,
  event TEXT, searchable TEXT NOT NULL, tier TEXT NOT NULL, t_start INTEGER NOT NULL,
  revision INTEGER NOT NULL, dirty INTEGER NOT NULL, UNIQUE(source, connector, source_id)
 );
 CREATE INDEX IF NOT EXISTS raw_time ON raw_events(t_start DESC, id);
+CREATE INDEX IF NOT EXISTS raw_agent_time ON raw_events(t_start DESC, id)
+ WHERE NOT {_RAW_HIDDEN.format(row='')};
+CREATE INDEX IF NOT EXISTS raw_agent_hidden ON raw_events(id)
+ WHERE {_RAW_HIDDEN.format(row='')};
 CREATE INDEX IF NOT EXISTS raw_dirty ON raw_events(dirty) WHERE dirty = 1;
 CREATE INDEX IF NOT EXISTS raw_chat_episode ON raw_events(json_extract(event,'$.episode_id'),t_start,id)
  WHERE source='ai_chat' AND substr(connector,1,13)='chat-history/' AND event IS NOT NULL;
@@ -52,9 +57,59 @@ CREATE TABLE IF NOT EXISTS chat_history_versions (
 );
 CREATE TABLE IF NOT EXISTS suppressed_evidence (raw_id TEXT PRIMARY KEY);
 """
-_AGENT_MEMORY = """m.needs_review = 0 AND NOT EXISTS (
+_AGENT_MEMORY = f"""m.needs_review = 0 AND NOT EXISTS (
  SELECT 1 FROM evidence e JOIN raw_events r ON e.raw_id = r.id
- WHERE e.memory_id = m.id AND (r.tier = 'local_only' OR r.event IS NULL))"""
+ WHERE e.memory_id = m.id AND {_RAW_HIDDEN.format(row='r.')})"""
+
+
+def _install_memory_access_index(conn):
+    """Backfill once under the same write lock that installs incremental maintenance."""
+    installed = "SELECT 1 FROM sqlite_master WHERE type='table' AND name='memory_agent_access'"
+    if conn.execute(installed).fetchone():
+        return
+    conn.execute("BEGIN IMMEDIATE")
+    if conn.execute(installed).fetchone():  # A concurrent opener may have finished first.
+        return
+    conn.execute("""CREATE TABLE memory_agent_access (
+        memory_id TEXT PRIMARY KEY REFERENCES memories(id) ON DELETE CASCADE,
+        sort_time INTEGER, blocked_count INTEGER NOT NULL CHECK(blocked_count >= 0)
+    ) WITHOUT ROWID""")
+    eligible_time = "CASE WHEN {m}.deleted=0 AND {m}.needs_review=0 THEN {m}.updated_at END"
+    hidden = _RAW_HIDDEN.format(row="r.")
+    conn.execute(f"""INSERT INTO memory_agent_access
+        SELECT m.id, {eligible_time.format(m='m')}, (
+            SELECT count(*) FROM evidence e JOIN raw_events r INDEXED BY raw_agent_hidden ON r.id=e.raw_id
+            WHERE e.memory_id=m.id AND {hidden})
+        FROM memories m""")
+    conn.execute("""CREATE INDEX memory_agent_time ON memory_agent_access(sort_time DESC, memory_id)
+                    WHERE sort_time IS NOT NULL AND blocked_count=0""")
+    sort_time = eligible_time.format(m="NEW")
+    conn.execute(f"""CREATE TRIGGER agent_memory_insert AFTER INSERT ON memories BEGIN
+        INSERT INTO memory_agent_access VALUES(NEW.id, {sort_time}, 0);
+    END""")
+    conn.execute(f"""CREATE TRIGGER agent_memory_update AFTER UPDATE OF deleted,needs_review,updated_at ON memories BEGIN
+        UPDATE memory_agent_access SET sort_time={sort_time} WHERE memory_id=NEW.id;
+    END""")
+    # An evidence edge contributes one blocker for a private or tombstoned source.
+    # Triggers also cover writes made by an older Hub binary to this database.
+    for operation, edge, delta in (("INSERT", "NEW", 1), ("DELETE", "OLD", -1)):
+        blocked = f"EXISTS (SELECT 1 FROM raw_events r INDEXED BY raw_agent_hidden WHERE r.id={edge}.raw_id AND {hidden})"
+        conn.execute(f"""CREATE TRIGGER agent_evidence_{operation} AFTER {operation} ON evidence
+            WHEN {blocked} BEGIN
+            UPDATE memory_agent_access SET blocked_count=blocked_count+({delta}) WHERE memory_id={edge}.memory_id;
+        END""")
+    conn.execute(f"""CREATE TRIGGER agent_evidence_move AFTER UPDATE OF raw_id,memory_id ON evidence BEGIN
+        UPDATE memory_agent_access SET blocked_count=blocked_count-1 WHERE memory_id=OLD.memory_id AND
+            EXISTS (SELECT 1 FROM raw_events r INDEXED BY raw_agent_hidden WHERE r.id=OLD.raw_id AND {hidden});
+        UPDATE memory_agent_access SET blocked_count=blocked_count+1 WHERE memory_id=NEW.memory_id AND
+            EXISTS (SELECT 1 FROM raw_events r INDEXED BY raw_agent_hidden WHERE r.id=NEW.raw_id AND {hidden});
+    END""")
+    old_hidden, new_hidden = (_RAW_HIDDEN.format(row=prefix) for prefix in ("OLD.", "NEW."))
+    conn.execute(f"""CREATE TRIGGER agent_raw_visibility AFTER UPDATE OF tier,event ON raw_events
+        WHEN {new_hidden} != {old_hidden} BEGIN
+        UPDATE memory_agent_access SET blocked_count=blocked_count+{new_hidden}-{old_hidden}
+        WHERE memory_id IN (SELECT memory_id FROM evidence WHERE raw_id=NEW.id);
+    END""")
 
 
 def _now():
@@ -171,6 +226,7 @@ class Store:
         with self._transaction(None) as conn:
             conn.execute("PRAGMA journal_mode=WAL")
             conn.executescript(_TABLES)
+            _install_memory_access_index(conn)
 
     @contextmanager
     def _transaction(self, write):
@@ -208,9 +264,8 @@ class Store:
 
     def list_raw(self, q="", limit=50, offset=0, agent=False):
         terms = _query(q, limit, offset)
-        conditions = ["event IS NOT NULL"] + ["instr(searchable, ?) > 0"] * len(terms)
-        if agent:
-            conditions.append("tier != 'local_only'")
+        visible = "NOT " + _RAW_HIDDEN.format(row="") if agent else "event IS NOT NULL"
+        conditions = [visible] + ["instr(searchable, ?) > 0"] * len(terms)
         query = "SELECT event, revision FROM raw_events WHERE " + " AND ".join(conditions) + " ORDER BY t_start DESC, id LIMIT ? OFFSET ?"
         with self._transaction(False) as conn:
             return [self._raw_dict(r) for r in conn.execute(query, (*terms, limit, offset))]
@@ -310,9 +365,14 @@ class Store:
     def list_memory(self, q="", limit=50, offset=0, agent=False):
         terms = _query(q, limit, offset)
         conditions = ["m.deleted=0"] + ["instr(m.searchable, ?) > 0"] * len(terms)
+        source, order = "memories m", "m.updated_at DESC, m.id"
         if agent:
-            conditions.append(_AGENT_MEMORY)
-        sql = "SELECT m.* FROM memories m WHERE " + " AND ".join(conditions) + " ORDER BY m.updated_at DESC, m.id LIMIT ? OFFSET ?"
+            # Read the ordered permitted IDs first. Keep the live evidence check on selected
+            # candidates, as in get_memory, before reading or returning their text.
+            source = "memory_agent_access a CROSS JOIN memories m ON m.id=a.memory_id"
+            order = "a.sort_time DESC, a.memory_id"
+            conditions[:0] = ["a.sort_time IS NOT NULL", "a.blocked_count=0", _AGENT_MEMORY]
+        sql = f"SELECT m.* FROM {source} WHERE " + " AND ".join(conditions) + f" ORDER BY {order} LIMIT ? OFFSET ?"
         with self._transaction(False) as conn:
             return [self._memory_dict(conn, row) for row in conn.execute(sql, (*terms, limit, offset))]
 
