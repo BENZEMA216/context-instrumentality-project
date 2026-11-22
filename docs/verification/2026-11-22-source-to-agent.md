@@ -58,6 +58,19 @@
 
 手表补传和整批音频上传仍待真机验收。录音消费 skill / prompt 已标记待人工验证和撰写。[手表补传 REC-47](https://linear.app/zhiming-app/issue/REC-47) · [iCloud 调度 REC-31](https://linear.app/zhiming-app/issue/REC-31) · [日常链路 REC-61](https://linear.app/zhiming-app/issue/REC-61)
 
+#### 录音链路实现审查
+
+11 月 23 日 00:48 复查日常 Hub，Agent 能分页列出并逐项读取这批 173 段中的 76 份清单，批次外可见 0 份。Mac 逐项核对，76 份清单的源摘要均与手机收据相同，对应音频文件条目仍为 0。三个独立 Agent 分别核对已部署的 Hub 提交 `ac31bb4`、iCloud reader 及待装机的 Watch 补传提交 `f2ca463`。下表中的边界场景使用隔离样本或源码时序分析。
+
+| 部分 | 审查结果与验收条件 |
+| --- | --- |
+| Hub 授权与删除 | 显式授权在等待云盘扫描后才写入，可能覆盖用户随后执行的撤销。删除 Raw 后接口已隐藏该条目，合成数据库仍留有一份目录投影及一份可搜索副本。需要保证最后一次授权意图生效，同时在删除事务内清理副本。[REC-71](https://linear.app/zhiming-app/issue/REC-71) · [REC-72](https://linear.app/zhiming-app/issue/REC-72) |
+| iCloud 日常导入 | 带基线的定时扫描遇到 Finder 辅助文件，或全库超过 10,000 个源目录，均可阻断正常片段的新一轮导入。请求下载另一份待取清单失败也会丢掉本轮已核验结果。验收应覆盖异常项隔离、健康项独立交付及大库分批遍历。[REC-73](https://linear.app/zhiming-app/issue/REC-73) |
+| 音频到达状态 | 旧 reader 对父目录未物化的结果可能在升级时被保留为“已见音频”。新版 reader 遇到同一场景又会扣下已核验的清单。应分别记录清单已验、音频状态未知，以及精确音频文件条目已见。[REC-74](https://linear.app/zhiming-app/issue/REC-74) · [REC-75](https://linear.app/zhiming-app/issue/REC-75) |
+| Watch 补传 | 生产传输桥配合受控系统队列对照，两组队首都在等手机持久回执时，有 12 个空槽，build 127 当轮排入 6 段，拟更新版本排入 0 段。可选游标的保存失败也可能中止整轮。应在原预算内继续补选可投递项，并保留按历史顺序发送的回退路径。[REC-76](https://linear.app/zhiming-app/issue/REC-76) |
+
+Watch 修复尚未装机。当前观测能确认元数据到达，音频等待上传的具体原因仍待设备侧证据。[端到端验收 REC-61](https://linear.app/zhiming-app/issue/REC-61)
+
 ## 剪贴板
 
 使用经签名与文件摘要校验的 [ClipContext 0.1.4/build 5 预发行包](https://github.com/BENZEMA216/ClipContext/releases/tag/v0.1.4)。通过发布二进制自带的测试入口指定命名剪贴板与独立持久目录，两次启动同一份原生应用。测试没有接触日常账户的通用剪贴板。
