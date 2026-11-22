@@ -33,6 +33,8 @@ CREATE TABLE IF NOT EXISTS raw_events (
 );
 CREATE INDEX IF NOT EXISTS raw_time ON raw_events(t_start DESC, id);
 CREATE INDEX IF NOT EXISTS raw_dirty ON raw_events(dirty) WHERE dirty = 1;
+CREATE INDEX IF NOT EXISTS raw_chat_episode ON raw_events(json_extract(event,'$.episode_id'),t_start,id)
+ WHERE source='ai_chat' AND substr(connector,1,13)='chat-history/' AND event IS NOT NULL;
 CREATE TABLE IF NOT EXISTS memories (
  id TEXT PRIMARY KEY, title TEXT NOT NULL, body TEXT NOT NULL, searchable TEXT NOT NULL,
  origin TEXT NOT NULL, group_key TEXT UNIQUE, revision INTEGER NOT NULL, needs_review INTEGER NOT NULL,
@@ -44,6 +46,10 @@ CREATE TABLE IF NOT EXISTS evidence (
  position INTEGER NOT NULL, PRIMARY KEY(memory_id, raw_id)
 );
 CREATE INDEX IF NOT EXISTS evidence_raw ON evidence(raw_id);
+CREATE TABLE IF NOT EXISTS chat_history_versions (
+ raw_id TEXT NOT NULL REFERENCES raw_events(id), revision INTEGER NOT NULL, event TEXT NOT NULL,
+ PRIMARY KEY(raw_id, revision)
+);
 CREATE TABLE IF NOT EXISTS suppressed_evidence (raw_id TEXT PRIMARY KEY);
 """
 _AGENT_MEMORY = """m.needs_review = 0 AND NOT EXISTS (
@@ -149,6 +155,9 @@ def _summary(event):
         title = title or details[0]
         body = _SOURCE_NAMES.get(source, source) + " · " + " / ".join(details)
         key_material = "metadata:" + event["id"]
+    if source == "ai_chat" and event.get("provenance", {}).get("connector", "").startswith("chat-history/"):
+        # A short reply like "yes" has a different meaning in each conversation and branch.
+        key_material = event["id"] + "\0" + key_material
     key = hashlib.sha256((event["privacy"]["tier"] + "\0" + key_material).encode("utf-8")).hexdigest()
     return _short(title, 160), _short(body, 900), key
 
@@ -207,6 +216,10 @@ class Store:
             return [self._raw_dict(r) for r in conn.execute(query, (*terms, limit, offset))]
 
     def put_raw(self, event, expected_revision=None, agent=False):
+        with self._transaction(True) as conn:
+            return self._put_raw(conn, event, expected_revision, agent)
+
+    def _put_raw(self, conn, event, expected_revision=None, agent=False):
         if not isinstance(event, dict):
             raise StoreError("Raw event must be an object")
         event = event.copy()
@@ -227,48 +240,50 @@ class Store:
         if event["t_end"] < event["t_start"]:
             raise StoreError("t_end must be at or after t_start")
         tier = event["privacy"]["tier"]
-        with self._transaction(True) as conn:
-            row = conn.execute("SELECT * FROM raw_events WHERE source=? AND connector=? AND source_id=?", identity).fetchone()
-            by_id = conn.execute("SELECT * FROM raw_events WHERE id=?", (event_id,)).fetchone()
-            if agent and (tier == "local_only" or any(r is not None and r["tier"] == "local_only" for r in (row, by_id))):
-                raise StoreError("Raw event unavailable", 404)
-            if by_id is not None and (row is None or row["id"] != by_id["id"]):
-                raise StoreError("Event ID belongs to another source record", 409)
-            if row is None:
-                if expected_revision is not None:
-                    raise StoreError("Raw event not found", 404)
-                conn.execute("INSERT INTO raw_events VALUES(?,?,?,?,?,?,?,?,1,1)",
-                             (event_id, *identity, encoded, _fold(encoded), tier, event["t_start"]))
-            else:
-                if row["event"] is None:
-                    raise StoreError("Source record was deleted", 410)
-                if expected_revision is not None and event_id != row["id"]:
-                    raise StoreError("Edit requires the canonical event ID", 409)
-                event_id = row["id"]
-                event["id"] = event_id
-                previous = json.loads(row["event"])
-                if expected_revision is None:
-                    # Re-observing the same source record does not replace its original observed time.
-                    equivalent = dict(event, t_observed=previous["t_observed"])
-                    if row["event"] == _json(equivalent):
-                        return self._raw_dict(row)
-                    raise StoreError("Source record exists; provide its revision to edit", 409)
-                _check_revision(row["revision"], expected_revision)
-                if row["event"] == _json(event):
+        row = conn.execute("SELECT * FROM raw_events WHERE source=? AND connector=? AND source_id=?", identity).fetchone()
+        by_id = conn.execute("SELECT * FROM raw_events WHERE id=?", (event_id,)).fetchone()
+        if agent and (tier == "local_only" or any(r is not None and r["tier"] == "local_only" for r in (row, by_id))):
+            raise StoreError("Raw event unavailable", 404)
+        if by_id is not None and (row is None or row["id"] != by_id["id"]):
+            raise StoreError("Event ID belongs to another source record", 409)
+        if row is None:
+            if expected_revision is not None:
+                raise StoreError("Raw event not found", 404)
+            conn.execute("INSERT INTO raw_events VALUES(?,?,?,?,?,?,?,?,1,1)",
+                         (event_id, *identity, encoded, _fold(encoded), tier, event["t_start"]))
+        else:
+            if row["event"] is None:
+                raise StoreError("Source record was deleted", 410)
+            if expected_revision is not None and event_id != row["id"]:
+                raise StoreError("Edit requires the canonical event ID", 409)
+            event_id = row["id"]
+            event["id"] = event_id
+            previous = json.loads(row["event"])
+            if expected_revision is None:
+                # Re-observing the same source record does not replace its original observed time.
+                equivalent = dict(event, t_observed=previous["t_observed"])
+                if row["event"] == _json(equivalent):
                     return self._raw_dict(row)
-                if agent and tier != row["tier"]:
-                    raise StoreError("Agent cannot change a privacy tier", 403)
-                self._invalidate(conn, event_id, deleted=False)
-                encoded = _json(event)
-                conn.execute("UPDATE raw_events SET event=?, searchable=?, tier=?, t_start=?, revision=revision+1, dirty=1 WHERE id=?",
-                             (encoded, _fold(encoded), tier, event["t_start"], event_id))
-            return self._raw_dict(self._raw_row(conn, event_id, agent))
+                raise StoreError("Source record exists; provide its revision to edit", 409)
+            _check_revision(row["revision"], expected_revision)
+            if row["event"] == _json(event):
+                return self._raw_dict(row)
+            if agent and tier != row["tier"]:
+                raise StoreError("Agent cannot change a privacy tier", 403)
+            if row["connector"].startswith("chat-history/") and previous.get("content") != event.get("content"):
+                conn.execute("INSERT INTO chat_history_versions VALUES(?,?,?)", (event_id, row["revision"], row["event"]))
+            self._invalidate(conn, event_id, deleted=False)
+            encoded = _json(event)
+            conn.execute("UPDATE raw_events SET event=?, searchable=?, tier=?, t_start=?, revision=revision+1, dirty=1 WHERE id=?",
+                         (encoded, _fold(encoded), tier, event["t_start"], event_id))
+        return self._raw_dict(self._raw_row(conn, event_id, agent))
 
     def delete_raw(self, id, expected_revision, agent=False):
         with self._transaction(True) as conn:
             row = self._raw_row(conn, id, agent)
             _check_revision(row["revision"], expected_revision)
             self._invalidate(conn, id, deleted=True)
+            conn.execute("DELETE FROM chat_history_versions WHERE raw_id=?", (id,))
             conn.execute("UPDATE raw_events SET event=NULL, searchable='', dirty=0, revision=revision+1 WHERE id=?", (id,))
             return {"id": id, "deleted": True}
 

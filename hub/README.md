@@ -94,3 +94,29 @@ docker run -d --name context-hub --restart unless-stopped \
 ```
 
 GitHub Actions 在 Linux 上运行测试、验证安装包可独立加载资源，并新建云模式容器，写入合成证据，更换容器后用 Agent 凭据从原卷读回 Memory。[验收记录](VERIFICATION.md)列出了实际操作与观察结果。
+
+## 本地 Agent 对话历史
+
+`context-hub-history` 将选定的会话文件写入指定的本地 Hub SQLite 库。每条可见的用户或助手消息成为一条仅本机可见的 `ai_chat/chat_turn` Raw。提取器生成带角色的摘录 Memory，每条保留独立证据。来源定位包含供应商、会话和原生消息键，缺少旧版原生键时使用该日志的行号。相同的「好」在两个对话中会保留为两条证据。
+
+| `--source` | 输入与覆盖范围 |
+| --- | --- |
+| `codex` | Codex rollout JSONL 或 JSONL.zst。支持完成事件与旧版用户、助手消息。对有明确线程 ID 的行检查归属，并区分用户、自动化和子 Agent 来源。读取 zstd 文件时需要本地 `zstd`。 |
+| `claude` | Claude Code 单个会话 JSONL。提取两种角色的文本块，忽略思维、工具结果和运行元数据。子 Agent 保留独立会话标识。 |
+| `gemini` | Gemini CLI 的会话 JSON，读取 `messages` 中的用户和 Gemini 文本，可按记录中的 projectHash 分组。 |
+| `chatgpt` | 用户导出的 `conversations.json`，保留不同回答分支和 `reply_to`。隐藏节点、工具调用及附件数据跳过。 |
+| `transcript` | 用户持有的其他 Agent 导出，形如 `{"provider":"example","session_id":"demo","project":"example-project","messages":[{"id":"m1","role":"user","timestamp":"2026-01-01T12:00:00Z","text":"首版改为绿色。"}]}`。每个文件一个会话。可选 `origin` 值为 `user`、`subagent`、`automation`、`unknown`，可选 `parent_id` 记录分支。 |
+
+以下例子在专用库中运行。用安装好的命令或等价的 `python -m hub.history`。确认多个来源属于同一项目时，使用相同的 `--project`。未指定时，连接器依来源记录中的工作目录指纹、项目标识或独立会话分组。
+
+```sh
+context-hub-history import --database ./history.sqlite3 --source codex --files-from ./selected-rollouts.txt --defer-memory
+context-hub-history import --database ./history.sqlite3 --source chatgpt --project example-project ./conversations.json --defer-memory
+context-hub-history extract --database ./history.sqlite3
+context-hub-history sessions --database ./history.sqlite3 --project example-project
+context-hub-history digest --database ./history.sqlite3 --project example-project --limit 5
+```
+
+文件清单每行一个路径，`--files-from -` 从标准输入读。每个文件在独立事务内导入，确认完整后提交。默认遇到错误停止，`--keep-going` 可继续处理其余文件，并在汇总中报告拒绝数及非零退出状态。相同消息重导不新增。记录改变时，先检查后用 `--update-existing` 修订；旧版可通过 `versions --raw RAW_ID` 在本地查看。删除 Raw 会清除该消息所有保留版本，并阻止后续重导恢复。文件里缺少一条旧消息不会自动表示用户要求删除。
+
+`sessions` 返回项目、来源、会话键和记录数。`brief --session EPISODE --limit 30 --offset 0` 按时间返回带角色、父节点、Memory 与 Raw 定位的记录。`digest` 可以按项目或会话生成有限篇幅的本地概览，将用户提及的更改、用户请求、助手自报进展和其他消息分别列出，附原始证据。分类来自原文关键词，助手自报的结果仍需独立验证。跨会话的决定批准、互斥分支裁决和双时间轴还在 [工作项 #5](https://github.com/BENZEMA216/context-instrumentality-project/issues/5) 中。默认权限下，Agent 的 `search_memory` 和 `get_raw` 无法读取私有原文。向外分享某项摘录，应单独选择相应材料和授权范围。
