@@ -107,3 +107,18 @@ docker run -d --name context-hub --restart unless-stopped \
 ```
 
 GitHub Actions 在 Linux 上运行测试、验证安装包可独立加载资源，并新建云模式容器，写入合成证据，更换容器后用 Agent 凭据从原卷读回 Memory。[验收记录](VERIFICATION.md)列出了实际操作与观察结果。
+
+### iPhone iCloud Drive 录音进入本机 Hub
+
+在 Mac 上选择 iPhone 已授权的同一个 iCloud 录音子库并固定库 UUID。首次启用时保存当时的片段目录名。此后可随时重跑第二条命令，它会回补明确选中的 UUID，同时核验基线之后出现且首次提交时间足够新的片段。旧目录中仅新增转写不会触发整库历史回补。
+
+```sh
+context-hub-icloud-recordings --library-root "$selected_icloud_root" --library-id "$expected_library_id" \
+  --baseline "$private_baseline" --initialize-baseline
+context-hub-icloud-recordings --library-root "$selected_icloud_root" --library-id "$expected_library_id" \
+  --baseline "$private_baseline" --selection "$selected_ids" --request-metadata
+```
+
+在第二条命令后加 `--launchd-plist` 可生成每 60 秒执行的 macOS LaunchAgent。默认只读本机已有元数据。`--request-metadata` 允许 Foundation 仅取回库标记、当前范围内的 commit 和由 commit 指定的 manifest JSON，单次最多 64 个文件，每个最大 1 MiB。源目录存在但提交未完成、manifest 尚未可读或音频目录项缺失时，下一轮重试。已逐出的 CAF 可以由与提交字节数一致的云盘文件目录项确认，全流程读取音频与转写正文的字节数均为零。
+
+Hub 使用 `record-for-agent.icloud` 保存 `cloud_audio_commit` 事件，包含原段 UUID、采集起止时间、音频和 manifest 摘要、转写提交标志，默认 `local_only`。其证据是该库中可验证的 commit、manifest 和音频文件目录项。iPhone 的上传确认、音频内容重验、Mac 自动接收、Agent 正文可读性均有各自独立的证据来源。已修改过或删除的事件沿用所有者的决定。

@@ -85,14 +85,14 @@ def read_receipts(state, library, receiver_id, selection, since):
             }
 
 
-def save_receipt(store, event):
+def save_receipt(store, event, transcript_flag="source_transcript_available"):
     # Compare metadata in SQLite. Existing user-authored text need never leave the database.
-    old = {**event, "content": {"source_transcript_available": False}}
+    old = {**event, "content": {transcript_flag: False}}
     with store._transaction(False) as conn:
         existing = conn.execute("""
             SELECT revision, event=? AS same, event=? AS initial
-            FROM raw_events WHERE source='voice' AND connector='record-for-agent' AND source_id=?""",
-            (_json(event), _json(old), event["provenance"]["source_id"])).fetchone()
+            FROM raw_events WHERE source='voice' AND connector=? AND source_id=?""",
+            (_json(event), _json(old), event["provenance"]["connector"], event["provenance"]["source_id"])).fetchone()
     if existing is None:
         store.put_raw(event)
         return "created"
@@ -100,7 +100,7 @@ def save_receipt(store, event):
         return "unchanged"
     # Enrich only the exact metadata record this bridge previously inserted. A deletion,
     # explicit import, redaction, privacy change or manual edit always takes precedence.
-    if existing["revision"] == 1 and existing["initial"] and event["content"]["source_transcript_available"]:
+    if existing["revision"] == 1 and existing["initial"] and event["content"][transcript_flag]:
         store.put_raw(event, expected_revision=1)
         return "updated"
     return "preserved"

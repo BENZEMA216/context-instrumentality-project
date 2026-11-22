@@ -46,3 +46,17 @@ python3 -B scripts/read-icloud-drive-library.py \
 程序校验库标记、commit、清单及转写引用的完整摘要与字节数，拒绝符号链接、越界路径、损坏和未完成提交。Mac dataless／尚未下载或有冲突的文字文件报告 pending；在内容读取期间禁止隐式 materialization，避免检查后驱逐的竞态触发下载。音频仅检查本机文件元数据，绝不打开 CAF；音频未在 Mac 下载不妨碍读取完整且已在本机的转写。
 
 目录中出现的提交只代表当前可见资料。输出固定为 `sourceCatalogComplete=false`、`completeness=not_established`；不能将本机数量当作整段会话或完整一天。
+
+### Agent 按原段 ID 核对云盘录音
+
+已知手表或 iPhone 的一组 segment UUID 时，可在 Mac 使用原生 reader 的定向命令。为 `selected_ids_json` 指定一个受限权限的 JSON 字符串数组文件，如 `["00000000-0000-4000-8000-000000000001"]`。
+
+```sh
+python3 -c 'import json,sys; print(json.dumps({"selection":json.load(open(sys.argv[1]))}))' "$selected_ids_json" |
+  python3 scripts/read-icloud-drive-library.py --library-root "$selected_icloud_root" \
+    --library-id "$expected_library_id" hub-metadata
+```
+
+输出的 `segments` 只含在所选库中核验过的提交与 manifest 元数据，每项可按原 `segmentID` 核对。`absentSelected` 表示该 Mac 的云盘目录尚未观察到对应 ID，`pending` 表示选中的目录已经出现但证据不足，`rejected` 表示格式、绑定或完整性检查拒绝了该项。命令只进入选中的源目录，因此无关的旧占位文件不会阻塞查询。默认不会触发下载。经所有者授权后，可在 `hub-metadata` 前加 `--request-metadata`，仅请求资料库标记、选中段的 commit 和已绑定的 manifest JSON，再次运行即可读回到达的元数据。音频及转写正文均不由此命令打开或下载。
+
+`transcriptCommitted` 仅表明提交引用了转写版本。结果同时保留 `cloudSyncComplete=false`、`audioBytesRead=0` 和 `sourceCatalogComplete=false`，用于区分 Mac 可观察的元数据、iPhone 上传回执及远端完整度。通过该 CLI 读取和通过 Context Hub 的 token 读取是两个分别授权的入口。

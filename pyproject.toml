@@ -17,6 +17,7 @@ test = ["pytest>=8,<10"]
 context-hub = "hub.__main__:main"
 context-hub-mcp = "hub.agent:main"
 context-hub-import = "hub.imports:main"
+context-hub-icloud-recordings = "hub.icloud_sync:main"
 context-hub-recordings = "hub.recording_sync:main"
 
 [tool.setuptools]
@@ -26,4 +27,4 @@ packages = ["hub"]
 hub = ["static/*.html", "static/*.css", "static/*.js", "static/*.svg"]
 
 [tool.setuptools.data-files]
-"share/context-instrumentality-project" = ["schema/context-event.schema.json", "channels/audio/record-for-agent/AgentBridge/library.py"]
+"share/context-instrumentality-project" = ["schema/context-event.schema.json", "channels/audio/record-for-agent/AgentBridge/library.py", "channels/audio/record-for-agent/AgentBridge/icloud_drive_library.py"]
