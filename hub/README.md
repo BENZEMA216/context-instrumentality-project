@@ -126,7 +126,7 @@ Hub 使用 `record-for-agent.icloud` 保存 `cloud_audio_commit` 事件，包含
 
 #### 让 Agent 读取选定片段的目录元数据
 
-录音原始记录默认保留在本地。使用者可按库 UUID 和片段原始 UUID 列表授权 Agent 读取目录元数据。首次授权会核对已经入库的片段。之后运行同步时，尚未抵达的选定片段通过原库 commit、清单与音频目录项的核验后，会自动出现在 Agent 的 `search_raw` 和 `get_raw` 中。其他片段沿用原隐私设置。
+录音原始记录默认保留在本地。使用者可按库 UUID 和片段原始 UUID 列表授权 Agent 读取目录元数据。首次授权会核对已经入库的片段。之后运行同步时，尚未抵达的选定片段在原库 commit 与清单通过核验后，会自动出现在 Agent 的 `search_raw` 和 `get_raw` 中。其他片段沿用原隐私设置。
 
 ```sh
 context-hub-icloud-recordings --library-root "$selected_icloud_root" --library-id "$expected_library_id" \
@@ -136,3 +136,6 @@ context-hub-icloud-recordings --library-id "$expected_library_id" \
 ```
 
 Agent 视图标为 `redacted`，提供 UTC 时间、原始片段和会话 ID、顺序、采样与大小、库 ID、音频和清单的 SHA-256 及证据状态。正文固定为空。原始记录的修订和隐私等级保持由所有者管理。手动编辑或删除使该修订的目录视图立即失效。撤销仅需访问 Hub 的本地数据库。
+
+
+授权片段的 `provenance.evidence` 为 `commit_and_manifest_verified` 时，Mac 已核验该片段的提交与清单，`audio_entry_observed` 为 `false`。Mac 后续观察到与清单相符的音频目录项，原 ID 上的证据升级为 `committed_manifest_and_audio_entry`，该标记变为 `true`。两种状态的 `audio_content_verified` 均为 `false`。未授权片段仍需核验音频目录项才能进入本地 Hub。

@@ -14,11 +14,13 @@ import uuid
 from .__main__ import data_dir
 from .contract import data_file
 from .imports import stable_id
-from .recording_sync import save_receipt, selected_ids
+from .recording_sync import selected_ids
 from .store import Store, StoreError, _fold, _json
 
 
 CONNECTOR = "record-for-agent.icloud"
+FULL = "committed_manifest_and_audio_entry"
+EARLY = "commit_and_manifest_verified"
 
 
 class ObservationError(ValueError):
@@ -77,7 +79,7 @@ def set_metadata_grant(store, library_id, selection, *, enabled):
         return result.rowcount
 
 
-def publish_verified_metadata(store, event):
+def publish_verified_metadata(conn, event, revision):
     # Construct the Agent representation from the validated producer observation. Never copy an owner
     # record or a free-form string (even a timezone label) into a directory-only grant.
     provenance = event["provenance"]
@@ -90,22 +92,62 @@ def publish_verified_metadata(store, event):
         "provenance": {key: provenance[key] for key in ("connector", "source_id", "original_id", "source_hash",
                          "manifest_sha256", "library_id", "evidence", "provider_upload_status", "audio_content_verified")},
     }
+    projection["provenance"]["audio_entry_observed"] = provenance["evidence"] == FULL
     serialized = _json(projection)
-    # Bind to the exact owner revision. A deletion or edit immediately hides the projection, including
-    # during a concurrent sync. A previously imported initial receipt may have an earlier commit time
-    # or have preceded a newly observed transcript entry. Neither carries transcript content.
+    conn.execute("""UPDATE icloud_metadata_grants SET projection=?, searchable=?, verified_revision=?
+        WHERE raw_id=? AND (verified_revision IS NOT ? OR projection IS NOT ?)""",
+        (serialized, _fold(serialized), revision, event["id"], revision, serialized))
+
+
+def save_observation(store, event):
+    # A source revision and its Agent projection advance atomically. Owner edits and deletions always win.
+    # Compare stable identity inside SQLite so user-authored content never enters this importer.
+    mutable = "'$.t_observed','$.content.transcript_commit_observed','$.provenance.evidence','$.provenance.audio_entry_observed'"
+    provenance = event["provenance"]
+    observed = provenance["evidence"]
+    encoded = _json(event)
     with store._transaction(True) as conn:
-        conn.execute("""
-            UPDATE icloud_metadata_grants SET projection=?, searchable=?, verified_revision=r.revision
-            FROM raw_events r
-            WHERE library_id=? AND segment_id=? AND raw_id=r.id AND r.tier='local_only'
-              AND (verified_revision IS NOT r.revision OR projection IS NOT ?) AND
-            (r.event=? OR (r.revision=1 AND json_type(r.event,'$.content.transcript_commit_observed') IN ('true','false')
-             AND json_extract(r.event,'$.t_observed')<=?
-             AND json_remove(r.event,'$.t_observed','$.content.transcript_commit_observed')=
-                 json_remove(?,'$.t_observed','$.content.transcript_commit_observed')))""",
-            (serialized, _fold(serialized), provenance["library_id"], provenance["original_id"], serialized,
-             _json(event), event["t_observed"], _json(event)))
+        grant = conn.execute("SELECT 1 FROM icloud_metadata_grants WHERE library_id=? AND segment_id=? AND raw_id=?",
+            (provenance["library_id"], provenance["original_id"], event["id"])).fetchone()
+        if observed == EARLY and not grant:
+            return "preserved"  # The owner may have revoked this ID while the provider was being queried.
+        row = conn.execute(f"""SELECT r.revision, b.revision AS managed,
+            (r.event=? OR r.event=json_remove(?,'$.provenance.audio_entry_observed')) AS exact,
+            json_remove(r.event,{mutable})=json_remove(?,{mutable}) AS same_source,
+            json_extract(r.event,'$.provenance.evidence') AS evidence,
+            json_type(r.event,'$.provenance.audio_entry_observed') AS audio_flag,
+            json_type(r.event,'$.content.transcript_commit_observed') AS transcript_flag,
+            json_extract(r.event,'$.t_observed') AS observed_at
+            FROM raw_events r LEFT JOIN icloud_bridge_revisions b ON b.raw_id=r.id
+            WHERE r.source='voice' AND r.connector=? AND r.source_id=?""",
+            (encoded, encoded, encoded, CONNECTOR, provenance["source_id"])).fetchone()
+        status = "created"
+        if row is not None:
+            # Before this importer tracked its own revisions, adopt only initial canonical metadata
+            # or a byte-identical verified event. All other pre-existing edits remain owner-managed.
+            managed = row["managed"] == row["revision"] if row["managed"] is not None else row["revision"] == 1 or row["exact"]
+            valid_stage = ((row["evidence"] == FULL and row["audio_flag"] in (None, "true"))
+                           or (row["evidence"] == EARLY and row["audio_flag"] == "false"))
+            if not managed or not row["same_source"] or not valid_stage or row["transcript_flag"] not in ("false", "true"):
+                return "preserved"
+            had_transcript = row["transcript_flag"] == "true"
+            has_transcript = had_transcript or event["content"]["transcript_commit_observed"]
+            stage = FULL if FULL in (row["evidence"], observed) else EARLY
+            advanced = stage != row["evidence"] or has_transcript != had_transcript
+            provenance.update(evidence=stage, audio_entry_observed=stage == FULL)
+            event["content"]["transcript_commit_observed"] = has_transcript
+            event["t_observed"] = max(row["observed_at"], event["t_observed"]) if advanced else row["observed_at"]
+            status = "updated" if advanced else "unchanged"
+        if status != "unchanged":
+            revision = store._put_raw(conn, event, row["revision"] if row is not None else None)["revision"]
+        else:
+            revision = row["revision"]
+        if row is None or row["managed"] != revision:
+            conn.execute("""INSERT INTO icloud_bridge_revisions VALUES(?,?)
+                ON CONFLICT(raw_id) DO UPDATE SET revision=excluded.revision""", (event["id"], revision))
+        if grant:
+            publish_verified_metadata(conn, event, revision)
+        return status
 
 
 def sync(root, library_id, store, selection, baseline=None, request_metadata=False, *, grant_agent_metadata=False):
@@ -113,16 +155,28 @@ def sync(root, library_id, store, selection, baseline=None, request_metadata=Fal
         granted = {row[0] for row in conn.execute(
             "SELECT segment_id FROM icloud_metadata_grants WHERE library_id=?", (library_id,))}
     observed = sorted(set(selection) | granted)
-    result = observe(root, library_id, "hub-metadata", {"selection": observed, "baseline": baseline}, request_metadata)
+    early = granted | (set(selection) if grant_agent_metadata else set())
+    scope = {"selection": observed, "baseline": baseline}
+    if early:
+        scope["earlySelection"] = sorted(early)
+    result = observe(root, library_id, "hub-metadata", scope, request_metadata)
     if grant_agent_metadata:
         set_metadata_grant(store, library_id, selection, enabled=True)
-        granted.update(selection)
     counts = {key: result[key] for key in ("absentSelected", "pending", "rejected")}
     if request_metadata:
         counts["metadataRequestsAccepted"] = result["metadataRequestsAccepted"]
     counts.update(created=0, updated=0, unchanged=0, preserved=0)
     for row in result["segments"]:
         sid, manifest = row["segmentID"], row["manifest"]
+        # The strict pre-stage reader only returned rows after verifying the audio directory entry.
+        if "evidence" not in row and "audioEntryObserved" not in row and row.get("audioAvailability") in {"locally_present", "pending"}:
+            stage, audio_entry = FULL, True
+        else:
+            stage, audio_entry = row.get("evidence"), row.get("audioEntryObserved")
+        if not ((stage == FULL and audio_entry is True) or (stage == EARLY and audio_entry is False and sid in early
+                and row.get("audioAvailability") == "not_observed")):
+            counts["rejected"] += 1
+            continue
         event = {
             "id": stable_id(CONNECTOR, library_id, sid), "source": "voice", "kind": "cloud_audio_commit",
             "t_start": manifest["startedAt"], "t_end": manifest["endedAt"], "t_observed": row["committedAt"],
@@ -133,12 +187,10 @@ def sync(root, library_id, store, selection, baseline=None, request_metadata=Fal
             "privacy": {"tier": "local_only"},
             "provenance": {"connector": CONNECTOR, "source_id": library_id + "/" + sid, "original_id": sid,
                            "source_hash": row["audioSHA256"], "manifest_sha256": row["manifestSHA256"],
-                           "library_id": library_id, "evidence": "committed_manifest_and_audio_entry",
+                           "library_id": library_id, "evidence": stage, "audio_entry_observed": audio_entry,
                            "provider_upload_status": "not_established", "audio_content_verified": False},
         }
-        counts[save_receipt(store, event, "transcript_commit_observed")] += 1
-        if sid in granted:
-            publish_verified_metadata(store, event)
+        counts[save_observation(store, event)] += 1
     return counts
 
 

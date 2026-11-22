@@ -50,6 +50,9 @@ CREATE TABLE IF NOT EXISTS icloud_metadata_grants (
  verified_revision INTEGER, projection TEXT, searchable TEXT,
  PRIMARY KEY(library_id, segment_id)
 );
+CREATE TABLE IF NOT EXISTS icloud_bridge_revisions (
+ raw_id TEXT PRIMARY KEY REFERENCES raw_events(id), revision INTEGER NOT NULL
+);
 CREATE VIEW IF NOT EXISTS agent_raw_reads AS
  SELECT id, event, searchable, t_start, revision FROM raw_events
  WHERE event IS NOT NULL AND tier != 'local_only'
@@ -224,6 +227,10 @@ class Store:
             return [self._raw_dict(r) for r in conn.execute(query, (*terms, limit, offset))]
 
     def put_raw(self, event, expected_revision=None, agent=False):
+        with self._transaction(True) as conn:
+            return self._put_raw(conn, event, expected_revision, agent)
+
+    def _put_raw(self, conn, event, expected_revision=None, agent=False):
         if not isinstance(event, dict):
             raise StoreError("Raw event must be an object")
         event = event.copy()
@@ -244,42 +251,41 @@ class Store:
         if event["t_end"] < event["t_start"]:
             raise StoreError("t_end must be at or after t_start")
         tier = event["privacy"]["tier"]
-        with self._transaction(True) as conn:
-            row = conn.execute("SELECT * FROM raw_events WHERE source=? AND connector=? AND source_id=?", identity).fetchone()
-            by_id = conn.execute("SELECT * FROM raw_events WHERE id=?", (event_id,)).fetchone()
-            if agent and (tier == "local_only" or any(r is not None and r["tier"] == "local_only" for r in (row, by_id))):
-                raise StoreError("Raw event unavailable", 404)
-            if by_id is not None and (row is None or row["id"] != by_id["id"]):
-                raise StoreError("Event ID belongs to another source record", 409)
-            if row is None:
-                if expected_revision is not None:
-                    raise StoreError("Raw event not found", 404)
-                conn.execute("INSERT INTO raw_events VALUES(?,?,?,?,?,?,?,?,1,1)",
-                             (event_id, *identity, encoded, _fold(encoded), tier, event["t_start"]))
-            else:
-                if row["event"] is None:
-                    raise StoreError("Source record was deleted", 410)
-                if expected_revision is not None and event_id != row["id"]:
-                    raise StoreError("Edit requires the canonical event ID", 409)
-                event_id = row["id"]
-                event["id"] = event_id
-                previous = json.loads(row["event"])
-                if expected_revision is None:
-                    # Re-observing the same source record does not replace its original observed time.
-                    equivalent = dict(event, t_observed=previous["t_observed"])
-                    if row["event"] == _json(equivalent):
-                        return self._raw_dict(row)
-                    raise StoreError("Source record exists; provide its revision to edit", 409)
-                _check_revision(row["revision"], expected_revision)
-                if row["event"] == _json(event):
+        row = conn.execute("SELECT * FROM raw_events WHERE source=? AND connector=? AND source_id=?", identity).fetchone()
+        by_id = conn.execute("SELECT * FROM raw_events WHERE id=?", (event_id,)).fetchone()
+        if agent and (tier == "local_only" or any(r is not None and r["tier"] == "local_only" for r in (row, by_id))):
+            raise StoreError("Raw event unavailable", 404)
+        if by_id is not None and (row is None or row["id"] != by_id["id"]):
+            raise StoreError("Event ID belongs to another source record", 409)
+        if row is None:
+            if expected_revision is not None:
+                raise StoreError("Raw event not found", 404)
+            conn.execute("INSERT INTO raw_events VALUES(?,?,?,?,?,?,?,?,1,1)",
+                         (event_id, *identity, encoded, _fold(encoded), tier, event["t_start"]))
+        else:
+            if row["event"] is None:
+                raise StoreError("Source record was deleted", 410)
+            if expected_revision is not None and event_id != row["id"]:
+                raise StoreError("Edit requires the canonical event ID", 409)
+            event_id = row["id"]
+            event["id"] = event_id
+            previous = json.loads(row["event"])
+            if expected_revision is None:
+                # Re-observing the same source record does not replace its original observed time.
+                equivalent = dict(event, t_observed=previous["t_observed"])
+                if row["event"] == _json(equivalent):
                     return self._raw_dict(row)
-                if agent and tier != row["tier"]:
-                    raise StoreError("Agent cannot change a privacy tier", 403)
-                self._invalidate(conn, event_id, deleted=False)
-                encoded = _json(event)
-                conn.execute("UPDATE raw_events SET event=?, searchable=?, tier=?, t_start=?, revision=revision+1, dirty=1 WHERE id=?",
-                             (encoded, _fold(encoded), tier, event["t_start"], event_id))
-            return self._raw_dict(self._raw_row(conn, event_id, agent))
+                raise StoreError("Source record exists; provide its revision to edit", 409)
+            _check_revision(row["revision"], expected_revision)
+            if row["event"] == _json(event):
+                return self._raw_dict(row)
+            if agent and tier != row["tier"]:
+                raise StoreError("Agent cannot change a privacy tier", 403)
+            self._invalidate(conn, event_id, deleted=False)
+            encoded = _json(event)
+            conn.execute("UPDATE raw_events SET event=?, searchable=?, tier=?, t_start=?, revision=revision+1, dirty=1 WHERE id=?",
+                         (encoded, _fold(encoded), tier, event["t_start"], event_id))
+        return self._raw_dict(self._raw_row(conn, event_id, agent))
 
     def delete_raw(self, id, expected_revision, agent=False):
         with self._transaction(True) as conn:

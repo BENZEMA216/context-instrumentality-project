@@ -168,7 +168,7 @@ def test_selected_metadata_grant_is_read_only_revision_bound_and_revocable(tmp_p
                             "content", "privacy", "context", "provenance", "revision"}
     assert set(visible["context"]) == {"sessionID", "sequence", "sampleRate", "frameCount", "byteCount"}
     assert set(visible["provenance"]) == {"connector", "source_id", "original_id", "source_hash", "manifest_sha256",
-                                          "library_id", "evidence", "provider_upload_status", "audio_content_verified"}
+                                          "library_id", "evidence", "audio_entry_observed", "provider_upload_status", "audio_content_verified"}
     assert visible["provenance"]["original_id"] == first.sid and visible["provenance"]["library_id"] == library
     assert not db.list_raw("private", agent=True) and not db.list_raw("transcript", agent=True)
     assert not db.list_raw("Asia/Shanghai", agent=True)
@@ -243,3 +243,100 @@ def test_agent_http_distinguishes_identical_segment_ids_in_different_libraries(t
         finally:
             http.shutdown()
             thread.join()
+
+
+def test_authorized_early_directory_advances_through_multiple_owned_revisions(tmp_path, monkeypatch):
+    from hub.icloud_sync import EARLY, FULL, set_metadata_grant
+    from hub.imports import stable_id
+
+    monkeypatch.syspath_prepend(str(BRIDGE / "tests"))
+    from test_icloud_drive_library import Fixture
+    root = tmp_path / "library"
+    root.mkdir()
+    selected, other, edited, deleted = [Fixture(root) for _ in range(4)]
+    for item in (other, edited, deleted):
+        item.commit()
+    first_commit, _ = selected.commit()
+    ids = [selected.sid, edited.sid, deleted.sid]
+    lib = selected.library
+    db = Store(tmp_path / "hub.sqlite3")
+    def event(item=selected, agent=True):
+        return db.get_raw(stable_id("record-for-agent.icloud", lib, item.sid), agent=agent)
+
+    assert sync(root, lib, db, ids + [other.sid])["created"] == 0
+    assert sync(root, lib, db, ids, grant_agent_metadata=True)["created"] == 3
+    removed = event(deleted, agent=False)
+    db.delete_raw(removed["id"], removed["revision"])
+    early = event()
+    assert early["provenance"]["evidence"] == EARLY and early["provenance"]["audio_entry_observed"] is False
+    assert early["provenance"]["audio_content_verified"] is False and early["content"] == {}
+    assert not event(agent=False)["content"]["transcript_commit_observed"]
+    manual = event(edited, agent=False)
+    manual["content"]["text"] = "owner edit must survive later strict discovery"
+    db.put_raw(manual, manual["revision"])
+    selected.commit("private words only on the drive", at=first_commit["committedAt"] + 10)
+    counts = sync(root, lib, db, [other.sid])
+    assert counts["updated"] == 1 and counts["preserved"] == 2 and counts["pending"] == 1
+    assert event()["revision"] == 2 and event()["content"] == {}
+    audio_path = next(a["relativePath"] for a in first_commit["artifacts"] if a["kind"] == "audio")
+    selected.write(audio_path, selected.audio)
+    edited.commit(audio_present=True)
+    deleted.commit(audio_present=True)
+    assert sync(root, lib, db, [other.sid])["updated"] == 1
+    full = event()
+    assert full["id"] == early["id"] and full["revision"] == 3
+    assert full["provenance"]["evidence"] == FULL and full["provenance"]["audio_entry_observed"] is True
+    assert full["provenance"]["audio_content_verified"] is False
+    assert event(edited, agent=False)["content"] == manual["content"]
+    assert len(db.list_raw(agent=True)) == 1
+    (root / audio_path).unlink()
+    assert sync(root, lib, db, [other.sid])["unchanged"] == 1
+    assert event() == full
+    set_metadata_grant(db, lib, ids, enabled=False)
+    assert not db.list_raw(agent=True)
+    assert event(agent=False)["privacy"]["tier"] == "local_only"
+
+
+def test_revocation_during_early_observation_prevents_ingestion(tmp_path, monkeypatch):
+    from hub import icloud_sync
+
+    monkeypatch.syspath_prepend(str(BRIDGE / "tests"))
+    from test_icloud_drive_library import Fixture
+    root = tmp_path / "library"
+    root.mkdir()
+    item = Fixture(root)
+    db = Store(tmp_path / "local.sqlite3")
+    sync(root, item.library, db, [item.sid], grant_agent_metadata=True)
+    item.commit()
+    observe = icloud_sync.observe
+    def revoke_while_reading(*args):
+        result = observe(*args)
+        assert result["segments"][0]["evidence"] == icloud_sync.EARLY
+        icloud_sync.set_metadata_grant(db, item.library, [item.sid], enabled=False)
+        return result
+    monkeypatch.setattr(icloud_sync, "observe", revoke_while_reading)
+    assert sync(root, item.library, db, [item.sid])["preserved"] == 1
+    assert db.list_raw() == [] and db.list_raw(agent=True) == []
+
+
+def test_legacy_reader_produces_only_full_evidence(tmp_path, monkeypatch):
+    from hub import icloud_sync
+
+    monkeypatch.syspath_prepend(str(BRIDGE / "tests"))
+    from test_icloud_drive_library import Fixture
+    root = tmp_path / "library"
+    root.mkdir()
+    item = Fixture(root)
+    item.commit(audio_present=True)
+    db = Store(tmp_path / "db")
+    real = icloud_sync.observe
+    def legacy(root, lib, command, scope, hydrate):
+        result = real(root, lib, command, {key: scope[key] for key in ("selection", "baseline")}, hydrate)
+        for row in result["segments"]:
+            for key in ("evidence", "audioEntryObserved", "exportDigest"):
+                row.pop(key)
+        return result
+    monkeypatch.setattr(icloud_sync, "observe", legacy)
+    assert sync(root, item.library, db, [item.sid], grant_agent_metadata=True)["created"] == 1
+    proof = db.list_raw(agent=True)[0]["provenance"]
+    assert proof["evidence"] == icloud_sync.FULL and proof["audio_entry_observed"] is True
