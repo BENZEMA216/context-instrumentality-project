@@ -71,6 +71,21 @@
 
 Watch 修复尚未装机。当前观测能确认元数据到达，音频等待上传的具体原因仍待设备侧证据。[端到端验收 REC-61](https://linear.app/zhiming-app/issue/REC-61)
 
+#### 修复后的整批复测
+
+11 月 23 日 01:12（北京时间），以此前冻结的 173 个源片段对账。手机仍只收到 76 段，原先留表的 97 段新增交付 0。Mac 已核验 76 份清单，日常 Codex 能逐项回查其目录元数据。Mac 上可确认完整下载的音频为 0 段。日常自动交付仍待验收。[REC-47](https://linear.app/zhiming-app/issue/REC-47) · [REC-61](https://linear.app/zhiming-app/issue/REC-61)
+
+| 环节 | 本轮核对结果 |
+| --- | --- |
+| 手表与手机 | 手机持久收据为 76/173。最近一次直接读取手表是 11 月 22 日 23:40，当时有 76 份确认及 97 段留表音频。本轮连接手表的开发隧道超时，最近确认运行的版本是 build 127，已签名的 build 128 装机状态待核。 |
+| iPhone 写入 iCloud | 手机于 00:53:49 生成的投递状态中，本批 76 段已写出，Apple 对其中 9 个 CAF 音频文件给出上传确认。 |
+| Mac 读 iCloud | 01:11:33 部署提交 `c6d357a`。迁移先降级 19 条旧记录的音频到达状态，再按文件核验。01:11:54，76 份清单的音频源摘要均与手机收据匹配。其中 19 段已出现 CAF 文件条目，系统均标为 `dataless`（仅占位），其余 57 段只见清单。该次核对观察到已下载音频 0 段。 |
+| 日常 Codex 与 Hub | 01:12:26，日常配置的 Hub MCP 分页搜到 76 段，按 ID 逐项读取也得到 76 段。批次外云盘录音命中 0，含正文的记录 0，录音 Memory 0。独立桌面 Codex 通过 `search_raw` 和 `get_raw` 回查授权的 60 秒片段，起止时间、帧数及源摘要均匹配。App 的直收录音 MCP 对本批返回 0 段。 |
+
+Hub 的授权与撤销按用户提交顺序生效，删除或修改 Raw 会清理原有的目录投影和搜索副本。iCloud 导入按批遍历，并隔离辅助文件和单项下载失败，清单校验与 CAF 文件到达分别记账。两项改动已联合部署在这台 Mac，独立回归通过 359 项测试及 220 个子测试。[Hub 授权与撤销 #23](https://github.com/BENZEMA216/context-instrumentality-project/pull/23) · [iCloud 导入 #24](https://github.com/BENZEMA216/context-instrumentality-project/pull/24)
+
+Watch 修复提交 `50ae6c3` 在传输桥的受控系统队列中填满了 12 个空槽。当前面两组各有 6 段等待手机回执时，后续可发片段两组各入队 6 段。上一场录音的进度写入失败时，已验证的历史队列仍可补传。独立复核通过 826 项 Swift 测试、317 个生产桥场景（4,405 个断言）及另外 4 个场景（151 个断言），覆盖单个空槽跨六次重启的轮转和只读目录。实机效果等待 build 128 与同批手机收据验证。[Watch 补传修复 #5（私有仓库）](https://github.com/BENZEMA216/record-for-agent-source/pull/5) · [REC-76](https://linear.app/zhiming-app/issue/REC-76)
+
 ## 剪贴板
 
 使用经签名与文件摘要校验的 [ClipContext 0.1.4/build 5 预发行包](https://github.com/BENZEMA216/ClipContext/releases/tag/v0.1.4)。通过发布二进制自带的测试入口指定命名剪贴板与独立持久目录，两次启动同一份原生应用。测试没有接触日常账户的通用剪贴板。
