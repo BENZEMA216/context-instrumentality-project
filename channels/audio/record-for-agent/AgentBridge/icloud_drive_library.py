@@ -247,15 +247,25 @@ class ICloudDriveLibrary:
         return parts
 
     @contextmanager
-    def _parent(self, root_fd, relative):
+    def _parent(self, root_fd, relative, *, audio_ancestors=False):
         parts = self._parts(relative)
         descriptor = os.dup(root_fd)
         try:
             for index, part in enumerate(parts[:-1]):
                 value = os.stat(part, dir_fd=descriptor, follow_symlinks=False)
                 require(stat.S_ISDIR(value.st_mode) and not stat.S_ISLNK(value.st_mode), "unsafe_directory")
-                self._sync(self.root.joinpath(*parts[:index + 1]), value)
-                child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=descriptor)
+                try:
+                    self._sync(self.root.joinpath(*parts[:index + 1]), value)
+                except ICloudDriveError as error:
+                    if audio_ancestors and error.code == "icloud_not_downloaded":
+                        # The leaf has not been stat'ed. Only an evicted CAF leaf
+                        # with the expected size can establish an audio entry.
+                        raise ICloudDriveError("audio_parent_not_downloaded", pending=True) from error
+                    raise
+                try:
+                    child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=descriptor)
+                except FileNotFoundError as error:
+                    raise ICloudDriveError("directory_changed", pending=True) from error
                 if identity(os.fstat(child)) != identity(value):
                     os.close(child)
                     raise ICloudDriveError("directory_changed", pending=True)
@@ -268,7 +278,7 @@ class ICloudDriveLibrary:
             os.close(descriptor)
 
     def _stat(self, root_fd, relative, *, audio=False, expected_size=None):
-        with self._parent(root_fd, relative) as (parent, name):
+        with self._parent(root_fd, relative, audio_ancestors=audio) as (parent, name):
             try:
                 value = os.stat(name, dir_fd=parent, follow_symlinks=False)
             except FileNotFoundError as error:
@@ -466,7 +476,7 @@ class ICloudDriveLibrary:
                 raise ICloudDriveError("catalog_changed_during_read", pending=True)
             return {"status": "available", "libraryID": self.library_id, "segments": names}
 
-    def _hub_segment(self, root_fd, sid, earliest):
+    def _hub_segment(self, root_fd, sid, earliest, *, allow_manifest_only=False):
         snapshot = self._segment_paths(root_fd, sid)
         if not snapshot:
             raise ICloudDriveError("commit_not_finished", pending=True)
@@ -482,25 +492,35 @@ class ICloudDriveLibrary:
                     (first["audioSHA256"], first["manifestSHA256"]) for c in commits), "conflicting_source_identity")
         if earliest is not None and first["committedAt"] < earliest:
             return None
+        manifest_path = first["artifacts"]["manifest"]["relativePath"]
+        if allow_manifest_only:
+            manifest_identity = identity(self._stat(root_fd, manifest_path))
         manifest = self._manifest(root_fd, first)
-        audio = first["artifacts"]["audio"]
-        audio_state = self._availability(root_fd, audio)
-        # An evicted CAF is expected for cloud storage. A missing path, unsafe
-        # item, or incorrect local file size is not evidence of that placeholder.
-        if audio_state["status"] == "pending" and audio_state["reason"] != "icloud_not_downloaded":
-            raise ICloudDriveError(audio_state["reason"], pending=True)
+        audio_state = self._availability(root_fd, first["artifacts"]["audio"])
+        reason = audio_state.get("reason")
+        entry_observed = reason is None or reason == "icloud_not_downloaded"
+        if not entry_observed and (not allow_manifest_only or reason != "artifact_not_available"):
+            raise ICloudDriveError(reason, pending=True)
+        if allow_manifest_only and identity(self._stat(root_fd, manifest_path)) != manifest_identity:
+            raise ICloudDriveError("catalog_changed_during_read", pending=True)
         if self._segment_paths(root_fd, sid) != snapshot:
             raise ICloudDriveError("catalog_changed_during_read", pending=True)
         return {"segmentID": sid, "audioSHA256": first["audioSHA256"], "manifestSHA256": first["manifestSHA256"],
                 "committedAt": first["committedAt"], "transcriptCommitted": any(c.get("transcriptVersionSHA256") for c in commits),
-                "audioAvailability": audio_state["status"], "manifest": {key: manifest[key] for key in
+                "evidence": "committed_manifest_and_audio_entry" if entry_observed else "commit_and_manifest_verified",
+                "audioEntryObserved": entry_observed, "exportDigest": first["exportDigest"],
+                "audioAvailability": audio_state["status"] if entry_observed else "not_observed",
+                "manifest": {key: manifest[key] for key in
                     ("sessionID","sequence","startedAt","endedAt","sampleRate","frameCount","byteCount","timeZoneIdentifier")
                     if key in manifest}}
 
-    def hub_metadata(self, selection, baseline=None):
-        """Read commits and manifest metadata only for explicitly selected or genuinely new sources."""
-        require(isinstance(selection, list), "invalid_arguments")
+    def hub_metadata(self, selection, baseline=None, *, early_selection=None):
+        """Observe committed metadata. Only explicit members may precede their CAF directory entry."""
+        require(isinstance(selection, list) and (early_selection is None or isinstance(early_selection, list)),
+                "invalid_arguments")
         selected = {uuid_value(sid) for sid in selection}
+        early = {uuid_value(sid) for sid in (early_selection or [])}
+        require(early <= selected, "early_selection_outside_selection")
         with self._root() as root_fd:
             marker = self._marker(root_fd)
             names = set(self._source_names(root_fd))
@@ -519,7 +539,8 @@ class ICloudDriveLibrary:
                 ordered = ordered[start:] + ordered[:start]
             for sid in ordered:
                 try:
-                    row = self._hub_segment(root_fd, sid, None if sid in selected else baseline["startedAt"])
+                    row = self._hub_segment(root_fd, sid, None if sid in selected else baseline["startedAt"],
+                                            allow_manifest_only=sid in early)
                     if row is not None:
                         rows.append(row)
                 except ICloudDriveError as error:
@@ -632,7 +653,7 @@ def main(argv=None):
             result = reader.directory_baseline()
         elif args.command == "hub-metadata":
             scope = json.load(sys.stdin)
-            result = reader.hub_metadata(scope["selection"], scope.get("baseline"))
+            result = reader.hub_metadata(scope["selection"], scope.get("baseline"), early_selection=scope.get("earlySelection"))
         elif args.command == "list":
             result = reader.list_segments(limit=args.limit, cursor=args.cursor)
         else:

@@ -289,6 +289,93 @@ class ICloudDriveLibraryTests(unittest.TestCase):
         self.assertEqual(self.reader.read_transcript(self.fixture.sid,
             content_version_sha256=old["transcriptVersionSHA256"])["content"]["text"], "old")
 
+    def test_early_manifest_requires_explicit_selection_and_upgrades_on_audio_entry(self):
+        chosen, strict, later = self.fixture, Fixture(self.root), Fixture(self.root)
+        commit, _ = chosen.commit("not-disclosed")
+        strict.commit()
+        before = self.reader.directory_baseline()
+        later.commit(at=1700000300000)
+        baseline = {"libraryID": chosen.library, "segments": before["segments"], "startedAt": 1700000210000}
+        selected = [chosen.sid, strict.sid]
+        self.rejected(lambda: self.reader.hub_metadata(selected, baseline, early_selection=[later.sid]),
+                      "early_selection_outside_selection")
+        self.assertEqual(self.reader.hub_metadata(selected, baseline)["pending"], 3)
+        observed_reads = []
+        original = self.reader._read
+        def metadata_only(fd, path, **kwargs):
+            self.assertFalse(path.startswith(("audio/", "transcripts/")))
+            observed_reads.append(path)
+            return original(fd, path, **kwargs)
+        with mock.patch.object(self.reader, "_read", side_effect=metadata_only):
+            result = self.reader.hub_metadata(selected, baseline, early_selection=[chosen.sid])
+            self.assertEqual(result["pending"], 2)
+            self.assertEqual(result["audioBytesRead"], 0)
+            self.assertEqual(len(result["segments"]), 1)
+            row = result["segments"][0]
+            self.assertEqual((row["segmentID"], row["evidence"], row["audioEntryObserved"], row["audioAvailability"]),
+                             (chosen.sid, "commit_and_manifest_verified", False, "not_observed"))
+            self.assertEqual(row["manifestSHA256"], digest(encoded(chosen.manifest)))
+            self.assertEqual(row["audioSHA256"], chosen.manifest["sha256"])
+            self.assertEqual(row["exportDigest"], commit["exportDigest"])
+            self.assertNotIn("not-disclosed", json.dumps(result))
+            audio = next(a for a in commit["artifacts"] if a["kind"] == "audio")
+            chosen.write(audio["relativePath"], chosen.audio)
+            full = self.reader.hub_metadata(selected, early_selection=[chosen.sid])["segments"][0]
+            self.assertTrue(full["audioEntryObserved"])
+            self.assertEqual(full["evidence"], "committed_manifest_and_audio_entry")
+            self.assertEqual(full["audioAvailability"], "locally_present")
+            self.assertEqual((full["segmentID"], full["manifestSHA256"]), (row["segmentID"], row["manifestSHA256"]))
+        self.assertTrue(observed_reads)
+
+    def test_early_manifest_rejects_invalid_chain_and_an_unseen_evicted_parent(self):
+        source = self.fixture
+        commit, _ = source.commit()
+        artifact = next(a for a in commit["artifacts"] if a["kind"] == "audio")
+        audio = source.write(artifact["relativePath"], b"wrong size")
+        def observe():
+            return self.reader.hub_metadata([source.sid], early_selection=[source.sid])
+        self.assertEqual(observe()["rejected"], 1)
+        audio.unlink()
+        audio.symlink_to(self.root / "absent")
+        self.assertEqual(observe()["rejected"], 1)
+        audio.unlink()
+        real_sync = self.reader._sync
+        def block_parent(path, value):
+            if path == audio.parent:
+                raise cloud.ICloudDriveError("icloud_not_downloaded", pending=True)
+            return real_sync(path, value)
+        with mock.patch.object(self.reader, "_sync", side_effect=block_parent):
+            for result in (observe(), self.reader.hub_metadata([source.sid])):
+                self.assertEqual((result["segments"], result["pending"]), ([], 1))
+        manifest = next(a for a in commit["artifacts"] if a["kind"] == "manifest")
+        file = self.root / manifest["relativePath"]
+        data = file.read_bytes()
+        file.write_bytes(b"x" * len(data))
+        self.assertEqual(observe()["rejected"], 1)
+        file.write_bytes(data)
+        real_availability = self.reader._availability
+        def replace_after_read(fd, audio_artifact):
+            replacement = file.with_suffix(".tmp")
+            replacement.write_bytes(data)
+            replacement.replace(file)
+            return real_availability(fd, audio_artifact)
+        with mock.patch.object(self.reader, "_availability", side_effect=replace_after_read):
+            result = observe()
+            self.assertEqual((result["segments"], result["pending"]), ([], 1))
+
+    def test_early_selection_cli_is_scoped_and_optional(self):
+        self.fixture.commit()
+        for early in (False, True):
+            scope = {"selection": [self.fixture.sid]}
+            if early:
+                scope["earlySelection"] = [self.fixture.sid]
+            output = io.StringIO()
+            with mock.patch.object(sys, "stdin", io.StringIO(json.dumps(scope))), redirect_stdout(output):
+                code = cloud.main(["--library-root", str(self.root), "--library-id", self.fixture.library, "hub-metadata"])
+            result = json.loads(output.getvalue())
+            self.assertEqual(code, 0)
+            self.assertEqual((len(result["segments"]), result["pending"]), (1, 0) if early else (0, 1))
+
     def test_cli_returns_one_pending_json_for_unsynced_root(self):
         stdout = io.StringIO()
         with redirect_stdout(stdout):
