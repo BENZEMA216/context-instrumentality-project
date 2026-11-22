@@ -59,6 +59,19 @@ MCP 提供十个工具。Raw 和 Memory 各有搜索、按 ID 读取、新建、
 
 原生导出默认标为 `local_only`。如果要让 Agent 使用已选材料，先在本机界面审阅并更改可见范围，或在导入命令中明确加 `--privacy shareable`。通用 JSON 保留逐条标注。Hub 存储源文本与结构化字段，原始音频和剪贴板图片仍由生产端保存。导入是一次性快照，源应用内后续删除不会自动传播，Hub 的修改也不会写回源应用。相同内容重复导入会跳过，修改过的内容需要 `--update-existing`。浏览器目前可通过通用导入接入，扩展采集端属于后续工作。
 
+### 自动接入 Mac 的录音投递回执
+
+设置了 Mac 自动接收器后，可在本机 Hub 安装目录运行 `context-hub-recordings`。用接收器 LaunchAgent 中的 `--state`、`--library` 和 `--receiver-id` 填入下列参数。`--since-ms` 使用启用时的 Unix 毫秒时间；如需对过去指定的片段回补，`--selection` 接收一个包含 UUID 字符串的 JSON 数组。任选一种范围，也可组合。
+
+```sh
+context-hub-recordings --receiver-state "$receiver_state" --library "$recording_library" \
+  --receiver-id "$receiver_id" --since-ms "$activation_ms" --selection "$selection_file"
+```
+
+在同一命令末尾加 `--launchd-plist` 输出 LaunchAgent。保存到 `~/Library/LaunchAgents/dev.context-hub.recording-receipts.plist` 后可用 `launchctl bootstrap "gui/$(id -u)" "$HOME/Library/LaunchAgents/dev.context-hub.recording-receipts.plist"` 启用。任务在登录后及每 60 秒运行一次，接收器路径、身份和时间界限写入作业，可恢复停机期间的收据。
+
+每条 Raw 都需要匹配接收器提交的成功回执、Mac 录音库和已提交的导入成员。按时间接入时，录音还须在界限后首次进入该 Mac 库；重投已有的旧录音只在明确选中时回补。接收器账本标识的是接收端，无法按发送手机身份筛选。Hub 仅保存私有片段元数据及源端有无转写，不复制音频、位置或转写正文，也不由此生成内容 Memory。使用原有 Raw 身份，保留用户修改、授权范围及删除记录。
+
 ## 存储、提取与人工修订
 
 * 每条 Raw 保留时间、来源、生产者身份、权限和原始载荷。相同的来源、connector、source_id 标识同一条证据。
