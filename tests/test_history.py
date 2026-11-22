@@ -168,6 +168,26 @@ def test_cross_session_digest_separates_user_changes_from_assistant_reports(tmp_
     assert not any(digest(store,project="suite",origin="automation")["matched"].values())
 
 
+@pytest.mark.parametrize(("scope", "index"), [
+    ({"project": "p"}, "raw_chat_project"),
+    ({"session": "example-episode"}, "raw_chat_episode"),
+])
+def test_digest_looks_up_its_scope_before_reading_evidence(tmp_path, monkeypatch, scope, index):
+    from contextlib import nullcontext
+    from hub.history import digest
+
+    store = Store(tmp_path / "db")
+    with store._transaction(False) as conn:
+        queries = []
+        conn.set_trace_callback(queries.append)
+
+        monkeypatch.setattr(store, "_transaction", lambda write: nullcontext(conn))
+        digest(store, **scope)
+        query, = queries
+        plan = [row["detail"] for row in conn.execute("EXPLAIN QUERY PLAN " + query)]
+        assert any("SEARCH r USING INDEX " + index in step for step in plan), plan
+
+
 def test_missing_time_and_parent_session_are_retained_without_fabricated_dates(tmp_path):
     s = Store(tmp_path / "db")
     payload = transcript("child", "first")

@@ -104,15 +104,16 @@ def digest(store, project=None, session=None, limit=5, origin=None):
     """Build bounded, attributed excerpts for each category, with exact evidence pointers."""
     if not 1 <= limit <= 100 or bool(project) == bool(session):
         raise ValueError("Choose one project or session and a per-category limit between 1 and 100.")
-    scope = "$.context.project" if project else "$.episode_id"
+    # SQLite can use the expression index only when the JSON path is a literal.
+    scope_column = "json_extract(r.event,'$.context.project')" if project else "json_extract(r.event,'$.episode_id')"
     sql = """SELECT r.id,CASE WHEN json_extract(r.event,'$.context.timestamp_status') IS NOT 'missing'
              THEN r.t_start END t_start,r.connector,r.revision,json_extract(r.event,'$.content.role') role,
              json_extract(r.event,'$.episode_id') episode,json_extract(r.event,'$.provenance.locator') locator,
              m.id memory_id,m.body FROM raw_events r JOIN evidence e ON e.raw_id=r.id
              JOIN memories m ON e.memory_id=m.id
              WHERE r.source='ai_chat' AND substr(r.connector,1,13)='chat-history/' AND r.event IS NOT NULL
-             AND m.deleted=0 AND m.needs_review=0 AND m.origin='extracted' AND json_extract(r.event,?)=?"""
-    params = [scope, project or session]
+             AND m.deleted=0 AND m.needs_review=0 AND m.origin='extracted' AND """ + scope_column + "=?"
+    params = [project or session]
     if origin:
         sql += " AND json_extract(r.event,'$.context.origin')=?"
         params.append(origin)

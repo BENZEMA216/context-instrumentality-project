@@ -38,6 +38,8 @@ CREATE INDEX IF NOT EXISTS raw_agent_time ON raw_events(t_start DESC, id)
 CREATE INDEX IF NOT EXISTS raw_agent_hidden ON raw_events(id)
  WHERE {_RAW_HIDDEN.format(row='')};
 CREATE INDEX IF NOT EXISTS raw_dirty ON raw_events(dirty) WHERE dirty = 1;
+CREATE INDEX IF NOT EXISTS raw_chat_project ON raw_events(json_extract(event,'$.context.project'))
+ WHERE source='ai_chat' AND substr(connector,1,13)='chat-history/' AND event IS NOT NULL;
 CREATE INDEX IF NOT EXISTS raw_chat_episode ON raw_events(json_extract(event,'$.episode_id'),t_start,id)
  WHERE source='ai_chat' AND substr(connector,1,13)='chat-history/' AND event IS NOT NULL;
 CREATE TABLE IF NOT EXISTS memories (
