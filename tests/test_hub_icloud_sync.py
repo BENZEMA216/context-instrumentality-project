@@ -124,3 +124,122 @@ def test_incorrect_committed_audio_size_is_rejected(tmp_path, monkeypatch):
     (root / next(x["relativePath"] for x in report["artifacts"] if x["kind"] == "audio")).write_bytes(b"wrong")
     observed = producer.ICloudDriveLibrary(root, source.library).hub_metadata([source.sid])
     assert observed["rejected"] == 1 and observed["segments"] == []
+
+
+def test_selected_metadata_grant_is_read_only_revision_bound_and_revocable(tmp_path, monkeypatch):
+    from hub.contract import validate_event
+    from hub.icloud_sync import main, set_metadata_grant
+    from hub.imports import stable_id
+    from hub.store import StoreError
+
+    monkeypatch.syspath_prepend(str(BRIDGE / "tests"))
+    from test_icloud_drive_library import Fixture
+    root = tmp_path / "library"
+    root.mkdir()
+    first, later, manual, deleted, extra = [Fixture(root) for _ in range(5)]
+    members = [first.sid, later.sid, manual.sid, deleted.sid]
+    library = first.library
+    for item in (first, manual, deleted, extra):
+        item.commit("private text sentinel", audio_present=True)
+    db = Store(tmp_path / "local.sqlite3")
+    def rid(item):
+        return stable_id("record-for-agent.icloud", library, item.sid)
+    sync(root, library, db, members + [extra.sid])
+    original = db.get_raw(rid(first))
+    assert db.list_raw(agent=True) == []
+    edited = db.get_raw(rid(manual))
+    edited["content"]["text"] = "private manual edit"
+    db.put_raw(edited, edited["revision"])
+    db.delete_raw(rid(deleted), 1)
+
+    # An incorrect library marker cannot activate the grant, even with the same selected IDs.
+    with pytest.raises(ObservationError):
+        sync(root, extra.sid, db, members, grant_agent_metadata=True)
+    assert db.list_raw(agent=True) == []
+    selected = tmp_path / "ids.json"
+    selected.write_text(json.dumps(members))
+    assert main(["--library-id", library, "--library-root", str(root), "--selection", str(selected),
+                 "--grant-agent-metadata", "--data-dir", str(tmp_path)]) == 0
+    visible = db.get_raw(rid(first), agent=True)
+    assert visible["privacy"] == {"tier": "redacted"} and db.get_raw(rid(first)) == original
+    validate_event({key: value for key, value in visible.items() if key != "revision"})
+    assert visible["content"] == {} and (visible["tz"], visible["tz_source"]) == ("UTC", "utc_fallback")
+    assert set(visible) == {"id", "source", "kind", "t_start", "t_end", "t_observed", "tz", "tz_source",
+                            "content", "privacy", "context", "provenance", "revision"}
+    assert set(visible["context"]) == {"sessionID", "sequence", "sampleRate", "frameCount", "byteCount"}
+    assert set(visible["provenance"]) == {"connector", "source_id", "original_id", "source_hash", "manifest_sha256",
+                                          "library_id", "evidence", "provider_upload_status", "audio_content_verified"}
+    assert visible["provenance"]["original_id"] == first.sid and visible["provenance"]["library_id"] == library
+    assert not db.list_raw("private", agent=True) and not db.list_raw("transcript", agent=True)
+    assert not db.list_raw("Asia/Shanghai", agent=True)
+    assert [row["id"] for row in db.list_raw(agent=True)] == [rid(first)]
+    with pytest.raises(StoreError, match="not found"):
+        db.delete_raw(visible["id"], visible["revision"], agent=True)
+    with pytest.raises(StoreError, match="unavailable"):
+        db.put_raw(visible, visible["revision"], agent=True)
+
+    # A later arrival is recognized by a restarted normal sync even with a different selection.
+    later.commit(audio_present=True)
+    db = Store(tmp_path / "local.sqlite3")
+    sync(root, library, db, [extra.sid])
+    assert {row["id"] for row in db.list_raw(agent=True)} == {rid(first), rid(later)}
+    assert db.get_raw(rid(manual))["content"]["text"] == "private manual edit"
+    assert set_metadata_grant(db, extra.sid, [later.sid], enabled=False) == 0
+    owner = db.get_raw(rid(later))
+    owner["content"]["text"] = "new owner edit"
+    db.put_raw(owner, owner["revision"])
+    assert [row["id"] for row in db.list_raw(agent=True)] == [rid(first)]
+    # Repeated observation never republishes that edit or restores a deleted source.
+    sync(root, library, db, members)
+    assert not db.list_raw("new owner edit", agent=True)
+    assert main(["--library-id", library, "--selection", str(selected), "--revoke-agent-metadata",
+                 "--data-dir", str(tmp_path)]) == 0
+    assert db.list_raw(agent=True) == [] and db.get_raw(rid(first)) == original
+    assert set_metadata_grant(db, library, members, enabled=False) == 0
+    sync(root, library, db, members)
+    assert db.list_raw(agent=True) == []
+    with pytest.raises(StoreError, match="not found"):
+        db.get_raw(rid(deleted))
+
+
+def test_agent_http_distinguishes_identical_segment_ids_in_different_libraries(tmp_path, monkeypatch):
+    import threading
+    import uuid
+
+    from hub.agent import HubClient, HubError
+    from hub.server import HubHTTP
+    from hub.icloud_sync import set_metadata_grant
+
+    monkeypatch.syspath_prepend(str(BRIDGE / "tests"))
+    from test_icloud_drive_library import Fixture, encoded
+    a, b = tmp_path / "drive-a", tmp_path / "drive-b"
+    a.mkdir()
+    b.mkdir()
+    first = Fixture(a)
+    second = Fixture(b, sid=first.sid)
+    second.library = str(uuid.uuid4())
+    second.write("library.json", encoded({"schemaVersion": 1, "libraryID": second.library,
+                                          "format": "record-for-agent-icloud-drive"}))
+    for item in (first, second):
+        item.commit("test-only private transcript", audio_present=True)
+    store = Store(tmp_path / "hub.sqlite3")
+    sync(b, second.library, store, [second.sid])
+    sync(a, first.library, store, [first.sid], grant_agent_metadata=True)
+    assert len(store.list_raw()) == 2
+    with HubHTTP(("127.0.0.1", 0), store, "test-owner", "test-agent") as http:
+        thread = threading.Thread(target=http.serve_forever, kwargs={"poll_interval": .01})
+        thread.start()
+        try:
+            client = HubClient(f"http://127.0.0.1:{http.server_port}", "test-agent")
+            rows = client.request("GET", "/api/raw?q=" + first.sid)["items"]
+            assert len(rows) == 1 and rows[0]["provenance"]["library_id"] == first.library
+            assert client.one("GET", "raw", rows[0]["id"]) == rows[0]
+            assert client.request("GET", "/api/raw?q=transcript")["items"] == []
+            set_metadata_grant(store, first.library, [first.sid], enabled=False)
+            assert client.request("GET", "/api/raw")["items"] == []
+            with pytest.raises(HubError) as revoked:
+                client.one("GET", "raw", rows[0]["id"])
+            assert revoked.value.status == 404
+        finally:
+            http.shutdown()
+            thread.join()

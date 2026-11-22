@@ -45,6 +45,18 @@ CREATE TABLE IF NOT EXISTS evidence (
 );
 CREATE INDEX IF NOT EXISTS evidence_raw ON evidence(raw_id);
 CREATE TABLE IF NOT EXISTS suppressed_evidence (raw_id TEXT PRIMARY KEY);
+CREATE TABLE IF NOT EXISTS icloud_metadata_grants (
+ library_id TEXT NOT NULL, segment_id TEXT NOT NULL, raw_id TEXT NOT NULL UNIQUE,
+ verified_revision INTEGER, projection TEXT, searchable TEXT,
+ PRIMARY KEY(library_id, segment_id)
+);
+CREATE VIEW IF NOT EXISTS agent_raw_reads AS
+ SELECT id, event, searchable, t_start, revision FROM raw_events
+ WHERE event IS NOT NULL AND tier != 'local_only'
+ UNION ALL
+ SELECT r.id, g.projection, g.searchable, r.t_start, r.revision
+ FROM icloud_metadata_grants g JOIN raw_events r ON r.id=g.raw_id AND r.revision=g.verified_revision
+ WHERE r.event IS NOT NULL AND r.tier='local_only' AND g.projection IS NOT NULL;
 """
 _AGENT_MEMORY = """m.needs_review = 0 AND NOT EXISTS (
  SELECT 1 FROM evidence e JOIN raw_events r ON e.raw_id = r.id
@@ -195,14 +207,19 @@ class Store:
 
     def get_raw(self, id, agent=False):
         with self._transaction(False) as conn:
-            return self._raw_dict(self._raw_row(conn, id, agent))
+            if agent:
+                row = conn.execute("SELECT event,revision FROM agent_raw_reads WHERE id=?",
+                                   (_identifier(id, "id"),)).fetchone()
+                if row is None:
+                    raise StoreError("Raw event not found", 404)
+                return self._raw_dict(row)
+            return self._raw_dict(self._raw_row(conn, id, False))
 
     def list_raw(self, q="", limit=50, offset=0, agent=False):
         terms = _query(q, limit, offset)
         conditions = ["event IS NOT NULL"] + ["instr(searchable, ?) > 0"] * len(terms)
-        if agent:
-            conditions.append("tier != 'local_only'")
-        query = "SELECT event, revision FROM raw_events WHERE " + " AND ".join(conditions) + " ORDER BY t_start DESC, id LIMIT ? OFFSET ?"
+        source = "agent_raw_reads" if agent else "raw_events"
+        query = f"SELECT event, revision FROM {source} WHERE " + " AND ".join(conditions) + " ORDER BY t_start DESC, id LIMIT ? OFFSET ?"
         with self._transaction(False) as conn:
             return [self._raw_dict(r) for r in conn.execute(query, (*terms, limit, offset))]
 

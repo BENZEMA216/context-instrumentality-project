@@ -122,3 +122,17 @@ context-hub-icloud-recordings --library-root "$selected_icloud_root" --library-i
 在第二条命令后加 `--launchd-plist` 可生成每 60 秒执行的 macOS LaunchAgent。默认只读本机已有元数据。`--request-metadata` 允许 Foundation 仅取回库标记、当前范围内的 commit 和由 commit 指定的 manifest JSON，单次最多 64 个文件，每个最大 1 MiB。源目录存在但提交未完成、manifest 尚未可读或音频目录项缺失时，下一轮重试。已逐出的 CAF 可以由与提交字节数一致的云盘文件目录项确认，全流程读取音频与转写正文的字节数均为零。
 
 Hub 使用 `record-for-agent.icloud` 保存 `cloud_audio_commit` 事件，包含原段 UUID、采集起止时间、音频和 manifest 摘要、转写提交标志，默认 `local_only`。其证据是该库中可验证的 commit、manifest 和音频文件目录项。iPhone 的上传确认、音频内容重验、Mac 自动接收、Agent 正文可读性均有各自独立的证据来源。已修改过或删除的事件沿用所有者的决定。
+
+
+#### 让 Agent 读取选定片段的目录元数据
+
+录音原始记录默认保留在本地。使用者可按库 UUID 和片段原始 UUID 列表授权 Agent 读取目录元数据。首次授权会核对已经入库的片段。之后运行同步时，尚未抵达的选定片段通过原库 commit、清单与音频目录项的核验后，会自动出现在 Agent 的 `search_raw` 和 `get_raw` 中。其他片段沿用原隐私设置。
+
+```sh
+context-hub-icloud-recordings --library-root "$selected_icloud_root" --library-id "$expected_library_id" \
+  --selection "$selected_ids" --grant-agent-metadata --request-metadata
+context-hub-icloud-recordings --library-id "$expected_library_id" \
+  --selection "$selected_ids" --revoke-agent-metadata
+```
+
+Agent 视图标为 `redacted`，提供 UTC 时间、原始片段和会话 ID、顺序、采样与大小、库 ID、音频和清单的 SHA-256 及证据状态。正文固定为空。原始记录的修订和隐私等级保持由所有者管理。手动编辑或删除使该修订的目录视图立即失效。撤销仅需访问 Hub 的本地数据库。

@@ -15,7 +15,7 @@ from .__main__ import data_dir
 from .contract import data_file
 from .imports import stable_id
 from .recording_sync import save_receipt, selected_ids
-from .store import Store, StoreError
+from .store import Store, StoreError, _fold, _json
 
 
 CONNECTOR = "record-for-agent.icloud"
@@ -61,8 +61,62 @@ def initialize_baseline(root, library_id, baseline, request_metadata=False):
     return {"baselineCount": len(result["segments"]), "startedAt": started}
 
 
-def sync(root, library_id, store, selection, baseline=None, request_metadata=False):
-    result = observe(root, library_id, "hub-metadata", {"selection": selection, "baseline": baseline}, request_metadata)
+def set_metadata_grant(store, library_id, selection, *, enabled):
+    library_id = str(uuid.UUID(library_id))
+    members = sorted({str(uuid.UUID(sid)) for sid in selection})
+    if not members:
+        raise ValueError("Choose explicit original segment UUIDs.")
+    with store._transaction(True) as conn:
+        if enabled:
+            result = conn.executemany(
+                "INSERT OR IGNORE INTO icloud_metadata_grants(library_id,segment_id,raw_id) VALUES(?,?,?)",
+                ((library_id, sid, stable_id(CONNECTOR, library_id, sid)) for sid in members))
+        else:
+            result = conn.executemany("DELETE FROM icloud_metadata_grants WHERE library_id=? AND segment_id=?",
+                                      ((library_id, sid) for sid in members))
+        return result.rowcount
+
+
+def publish_verified_metadata(store, event):
+    # Construct the Agent representation from the validated producer observation. Never copy an owner
+    # record or a free-form string (even a timezone label) into a directory-only grant.
+    provenance = event["provenance"]
+    projection = {
+        "id": event["id"], "source": "voice", "kind": "cloud_audio_commit",
+        "t_start": event["t_start"], "t_end": event["t_end"], "t_observed": event["t_observed"],
+        "tz": "UTC", "tz_source": "utc_fallback", "content": {},
+        "context": {key: event["context"][key] for key in ("sessionID", "sequence", "sampleRate", "frameCount", "byteCount")},
+        "privacy": {"tier": "redacted"},
+        "provenance": {key: provenance[key] for key in ("connector", "source_id", "original_id", "source_hash",
+                         "manifest_sha256", "library_id", "evidence", "provider_upload_status", "audio_content_verified")},
+    }
+    serialized = _json(projection)
+    # Bind to the exact owner revision. A deletion or edit immediately hides the projection, including
+    # during a concurrent sync. A previously imported initial receipt may have an earlier commit time
+    # or have preceded a newly observed transcript entry. Neither carries transcript content.
+    with store._transaction(True) as conn:
+        conn.execute("""
+            UPDATE icloud_metadata_grants SET projection=?, searchable=?, verified_revision=r.revision
+            FROM raw_events r
+            WHERE library_id=? AND segment_id=? AND raw_id=r.id AND r.tier='local_only'
+              AND (verified_revision IS NOT r.revision OR projection IS NOT ?) AND
+            (r.event=? OR (r.revision=1 AND json_type(r.event,'$.content.transcript_commit_observed') IN ('true','false')
+             AND json_extract(r.event,'$.t_observed')<=?
+             AND json_remove(r.event,'$.t_observed','$.content.transcript_commit_observed')=
+                 json_remove(?,'$.t_observed','$.content.transcript_commit_observed')))""",
+            (serialized, _fold(serialized), provenance["library_id"], provenance["original_id"], serialized,
+             _json(event), event["t_observed"], _json(event)))
+
+
+def sync(root, library_id, store, selection, baseline=None, request_metadata=False, *, grant_agent_metadata=False):
+    with store._transaction(False) as conn:
+        granted = {row[0] for row in conn.execute(
+            "SELECT segment_id FROM icloud_metadata_grants WHERE library_id=?", (library_id,))}
+    observed = sorted(set(selection) | granted)
+    result = observe(root, library_id, "hub-metadata", {"selection": observed, "baseline": baseline}, request_metadata)
+    if grant_agent_metadata:
+        set_metadata_grant(store, library_id, selection, enabled=True)
+        granted.update(selection)
     counts = {key: result[key] for key in ("absentSelected", "pending", "rejected")}
     if request_metadata:
         counts["metadataRequestsAccepted"] = result["metadataRequestsAccepted"]
@@ -83,12 +137,14 @@ def sync(root, library_id, store, selection, baseline=None, request_metadata=Fal
                            "provider_upload_status": "not_established", "audio_content_verified": False},
         }
         counts[save_receipt(store, event, "transcript_commit_observed")] += 1
+        if sid in granted:
+            publish_verified_metadata(store, event)
     return counts
 
 
 def main(argv=None):
     cli = argparse.ArgumentParser(description=__doc__)
-    cli.add_argument("--library-root", required=True, type=Path)
+    cli.add_argument("--library-root", type=Path)
     cli.add_argument("--library-id", required=True, type=uuid.UUID)
     cli.add_argument("--selection", type=Path, help="JSON file of explicit original segment UUIDs")
     cli.add_argument("--baseline", type=Path, help="Pinned baseline for future source UUIDs")
@@ -97,8 +153,14 @@ def main(argv=None):
     action = cli.add_mutually_exclusive_group()
     action.add_argument("--initialize-baseline", action="store_true")
     action.add_argument("--launchd-plist", action="store_true")
+    action.add_argument("--grant-agent-metadata", action="store_true", help="Allow read-only Agent directory metadata for exactly --selection")
+    action.add_argument("--revoke-agent-metadata", action="store_true", help="Immediately revoke directory metadata access for exactly --selection")
     args = cli.parse_args(argv)
     library_id = str(args.library_id)
+    if not args.revoke_agent_metadata and not args.library_root:
+        cli.error("Choose --library-root.")
+    if (args.grant_agent_metadata or args.revoke_agent_metadata) and (not args.selection or args.baseline):
+        cli.error("Metadata grants and revocations require an explicit --selection without --baseline.")
     if not (args.selection or args.baseline) or args.initialize_baseline and not args.baseline:
         cli.error("Choose a selection or a baseline. Initialization requires --baseline.")
     os.umask(0o077)
@@ -122,8 +184,14 @@ def main(argv=None):
             database = args.data_dir / "local.sqlite3"
             if not database.is_file():
                 raise ValueError("Hub database unavailable")
-            baseline = json.loads(args.baseline.read_text("utf-8")) if args.baseline else None
-            counts = sync(args.library_root, library_id, Store(database), selected_ids(args.selection), baseline, args.request_metadata)
+            store = Store(database)
+            selection = selected_ids(args.selection)
+            if args.revoke_agent_metadata:
+                counts = {"revoked": set_metadata_grant(store, library_id, selection, enabled=False)}
+            else:
+                baseline = json.loads(args.baseline.read_text("utf-8")) if args.baseline else None
+                counts = sync(args.library_root, library_id, store, selection, baseline, args.request_metadata,
+                              grant_agent_metadata=args.grant_agent_metadata)
     except ObservationError as error:
         print(json.dumps({"status": "pending" if error.returncode == 2 else "rejected", "code": str(error)}))
         return error.returncode
