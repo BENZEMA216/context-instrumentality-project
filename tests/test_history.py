@@ -166,3 +166,35 @@ def test_cross_session_digest_separates_user_changes_from_assistant_reports(tmp_
             assert row["id"] in store.get_memory(row["memory_id"])["evidence_ids"]
             assert store.get_raw(row["id"])["content"]["role"] == row["role"]
     assert not any(digest(store,project="suite",origin="automation")["matched"].values())
+
+
+def test_missing_time_and_parent_session_are_retained_without_fabricated_dates(tmp_path):
+    s = Store(tmp_path / "db")
+    payload = transcript("child", "first")
+    del payload["messages"][0]["timestamp"]
+    payload["messages"].append({"id":"n","role":"assistant","text":"next","timestamp_status":"missing"})
+    payload["parent_session_id"] = "parent"
+    import_one(s,write(tmp_path / "import", payload),"transcript")
+    s.extract()
+    info, = sessions(s)
+    assert info["first_ms"] is None and info["last_ms"] is None and info["unknown_times"] == 2
+    turns=brief(s,info["episode"])
+    assert [v["at_ms"] for v in turns] == [None,None]
+    assert [v["role"] for v in turns] == ["user","assistant"]
+    assert all(r["context"]["parent_session_id"] == "parent" and r["context"]["timestamp_status"] == "missing"
+               for r in s.list_raw())
+
+
+def test_claude_web_export_roles_parents_and_exclusions(tmp_path):
+    data=[{"uuid":"conversation","account":{"email":"withheld"},
+           "chat_messages":[
+             {"uuid":"h","sender":"human","created_at":STAMP,"text":"Would blue work?","attachments":["private"]},
+             {"uuid":"hidden","sender":"assistant","content":[{"type":"tool_result","text":"private"}],
+              "text":"private","parent_message_uuid":"h"},
+             {"uuid":"a","sender":"assistant","created_at":STAMP,"content":[
+                 {"type":"thinking","thinking":"private"},{"type":"text","text":"Try blue first."}],
+              "text":"duplicate","parent_message_uuid":"hidden"}]}]
+    projected=list(rows(write(tmp_path/"export.json",data),"claude-web",None))
+    assert [r["content"]["text"] for r in projected] == ["Would blue work?","Try blue first."]
+    assert projected[1]["links"][0]["target_id"]==projected[0]["id"]
+    assert all(s not in json.dumps(projected) for s in ("duplicate","private","withheld"))

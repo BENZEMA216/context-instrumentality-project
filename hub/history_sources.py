@@ -43,16 +43,24 @@ def text_blocks(content, types):
     return "\n".join(out).strip()
 
 
-def event(provider, session, msg, role, text, when, project=None, parent=None, origin="unknown", ref=None):
+def event(provider, session, msg, role, text, when, project=None, parent=None, origin="unknown", ref=None, order=None, parent_session=None):
     import hashlib
     provider, session, msg = map(identifier, (provider, session, msg))
     if role not in ("assistant", "user"):
         raise ValueError("Only user and assistant turns are supported.")
-    time_ms = ms(when)
+    time_ms = ms(when) if when is not None else 0
     connector = "chat-history/" + provider
     ident = key(connector, session, msg)
     episode = key(connector, session)
     context = {"session_id": session, "project": project or "unassigned/" + episode, "origin": origin}
+    if when is None:
+        # The ContextEvent schema requires integer times. Consumers must consult this
+        # flag instead of presenting the wire sentinel as a genuine capture timestamp.
+        context["timestamp_status"] = "missing"
+        if order is not None:
+            context["source_order"] = order
+    if parent_session:
+        context["parent_session_id"] = identifier(parent_session)
     row = {"id": ident, "source": "ai_chat", "kind": "chat_turn", "t_start": time_ms, "t_end": time_ms,
            "t_observed": time_ms, "episode_id": episode, "content": {"role": role, "text": text},
            "context": context, "privacy": {"tier": "local_only"},
@@ -70,7 +78,7 @@ def from_cwd(cwd):
 
 @contextmanager
 def stream(path):
-    if path.suffix != ".zst":
+    if path.suffix not in {".zst", ".zstd"}:
         with path.open("rb") as source:
             yield source
         return
@@ -103,7 +111,7 @@ def lines(path):
 
 def codex_rows(path, project):
     # Rollouts may echo inherited parent turns. Bind items to their actual thread.
-    found = re.search(r"([0-9a-fA-F-]{36})\.jsonl(?:\.zst)?$", path.name)
+    found = re.search(r"([0-9a-fA-F-]{36})\.jsonl(?:\.zstd?)?$", path.name)
     session = found.group(1) if found else None
     origin, workspace = "unknown", None
     native, legacy, messages = {}, [], []
@@ -209,8 +217,8 @@ def chatgpt_rows(data, project):
                 continue
             text = text_blocks(content.get("parts"), ("text",))
             if text and participant_text(role, text):
-                visible[node_id] = (role, text, m.get("create_time") if m.get("create_time") is not None else chat.get("create_time"))
-        for node_id, (role, text, when) in visible.items():
+                visible[node_id] = (role, text, m.get("create_time"))
+        for order, (node_id, (role, text, when)) in enumerate(visible.items()):
             parent = mapping[node_id].get("parent")
             seen = {node_id}
             while parent and parent not in visible and parent in mapping:
@@ -219,7 +227,40 @@ def chatgpt_rows(data, project):
                 seen.add(parent)
                 parent = mapping[parent].get("parent")
             yield event("chatgpt", session, node_id, role, text, when, project,
-                        parent=parent if parent in visible else None, origin="user", ref="mapping:" + node_id)
+                        parent=parent if parent in visible else None, origin="user", ref="mapping:" + node_id, order=order)
+
+
+def claude_web_rows(data, project):
+    """Import exported Claude.ai conversations, which differ from Claude Code JSONL."""
+    for chat in data if isinstance(data, list) else [data]:
+        session = identifier(chat["uuid"])
+        visible, parents = {}, {}
+        for order, msg in enumerate(chat["chat_messages"]):
+            mid = identifier(msg["uuid"])
+            if mid in parents:
+                raise ValueError("Repeated Claude export message identifier.")
+            parent = msg.get("parent_message_uuid")
+            parents[mid] = None if parent == "00000000-0000-0000-0000-000000000000" else parent
+            role = {"human": "user", "assistant": "assistant"}.get(msg.get("sender"))
+            if not role:
+                continue
+            # Legacy exports have plain text only. Modern text blocks disambiguate
+            # visible text from tools, attachments, documents and extended thinking.
+            content = msg.get("content")
+            text = text_blocks(content, ("text",)) if content else text_blocks(msg.get("text"), ())
+            if text and participant_text(role, text):
+                visible[mid] = (role, text, msg.get("created_at"), order)
+        for mid, (role, text, when, order) in visible.items():
+            parent, seen = parents[mid], {mid}
+            while parent in parents and parent not in visible:
+                if parent in seen:
+                    raise ValueError("Cyclic Claude export ancestry.")
+                seen.add(parent)
+                parent = parents[parent]
+            if parent == mid:
+                raise ValueError("A message cannot be its own parent.")
+            yield event("claude-web", session, mid, role, text, when, project,
+                        parent=parent if parent in visible else None, order=order, origin="user")
 
 
 def transcript_rows(data, project):
@@ -229,10 +270,16 @@ def transcript_rows(data, project):
     origin = data.get("origin", "unknown")
     if origin not in {"unknown", "user", "automation", "subagent"}:
         raise ValueError("Unknown conversation origin.")
-    for m in data["messages"]:
+    for index, m in enumerate(data["messages"]):
         if m["role"] in ("user", "assistant") and isinstance(m["text"], str) and m["text"].strip():
-            yield event(name, data["session_id"], m["id"], m["role"], m["text"], m["timestamp"],
-                        project or data.get("project"), parent=m.get("parent_id"), origin=origin)
+            when = m.get("timestamp")
+            if m.get("timestamp_status") == "missing":
+                if when not in (None, 0):
+                    raise ValueError("A missing source timestamp conflicts with the given timestamp.")
+                when = None
+            yield event(name, data["session_id"], m["id"], m["role"], m["text"], when,
+                        project or data.get("project"), parent=m.get("parent_id"), origin=origin,
+                        parent_session=data.get("parent_session_id"), order=index)
 
 
 def rows(path, source, project):
@@ -240,8 +287,11 @@ def rows(path, source, project):
         yield from codex_rows(path, project)
     elif source == "claude":
         yield from claude_rows(path, project)
+    elif source == "deepseek":
+        from .deepseek_history import deepseek_rows
+        yield from deepseek_rows(path, project)
     else:
         with stream(path) as f:
             data = json.load(f)
-        parser = {"gemini": gemini_rows, "chatgpt": chatgpt_rows, "transcript": transcript_rows}[source]
+        parser = {"gemini": gemini_rows, "chatgpt": chatgpt_rows, "claude-web": claude_web_rows, "transcript": transcript_rows}[source]
         yield from parser(data, project)

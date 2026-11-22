@@ -103,9 +103,10 @@ GitHub Actions 在 Linux 上运行测试、验证安装包可独立加载资源�
 | --- | --- |
 | `codex` | Codex rollout JSONL 或 JSONL.zst。支持完成事件与旧版用户、助手消息。对有明确线程 ID 的行检查归属，并区分用户、自动化和子 Agent 来源。读取 zstd 文件时需要本地 `zstd`。 |
 | `claude` | Claude Code 单个会话 JSONL。提取两种角色的文本块，忽略思维、工具结果和运行元数据。子 Agent 保留独立会话标识。 |
+| `claude-web` | Claude.ai 的账户导出 JSON。用会话及消息 UUID 关联人类和助手的可见文本，保留分支父节点。 |
 | `gemini` | Gemini CLI 的会话 JSON，读取 `messages` 中的用户和 Gemini 文本，可按记录中的 projectHash 分组。 |
 | `chatgpt` | 用户导出的 `conversations.json`，保留不同回答分支和 `reply_to`。隐藏节点、工具调用及附件数据跳过。 |
-| `transcript` | 用户持有的其他 Agent 导出，形如 `{"provider":"example","session_id":"demo","project":"example-project","messages":[{"id":"m1","role":"user","timestamp":"2026-01-01T12:00:00Z","text":"首版改为绿色。"}]}`。每个文件一个会话。可选 `origin` 值为 `user`、`subagent`、`automation`、`unknown`，可选 `parent_id` 记录分支。 |
+| `transcript` | 用户持有的其他 Agent 导出，形如 `{"provider":"example","session_id":"demo","project":"example-project","messages":[{"id":"m1","role":"user","timestamp":"2026-01-01T12:00:00Z","text":"首版改为绿色。"}]}`。每个文件一个会话。可选 `origin` 值为 `user`、`subagent`、`automation`、`unknown`，可选的消息 `parent_id` 和会话 `parent_session_id` 记录分支。缺失来源时间的消息保留在库中，可显式传 `timestamp_status: "missing"`，会话视图显示时间未知，并按源顺序排列无时间的消息。 |
 
 以下例子在专用库中运行。用安装好的命令或等价的 `python -m hub.history`。确认多个来源属于同一项目时，使用相同的 `--project`。未指定时，连接器依来源记录中的工作目录指纹、项目标识或独立会话分组。
 

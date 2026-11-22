@@ -51,7 +51,10 @@ _HISTORY = "source='ai_chat' AND substr(connector,1,13)='chat-history/' AND even
 def sessions(store, project=None):
     sql = """SELECT json_extract(event,'$.episode_id') episode, connector,
              json_extract(event,'$.context.project') project, json_extract(event,'$.context.origin') origin,
-             count(*) turns, min(t_start) first_ms, max(t_start) last_ms FROM raw_events WHERE """ + _HISTORY
+             count(*) turns,
+             count(CASE WHEN json_extract(event,'$.context.timestamp_status')='missing' THEN 1 END) unknown_times,
+             min(CASE WHEN json_extract(event,'$.context.timestamp_status') IS NOT 'missing' THEN t_start END) first_ms,
+             max(CASE WHEN json_extract(event,'$.context.timestamp_status') IS NOT 'missing' THEN t_start END) last_ms FROM raw_events WHERE """ + _HISTORY
     params = ()
     if project:
         sql += " AND json_extract(event,'$.context.project')=?"
@@ -66,14 +69,16 @@ def brief(store, session, limit=30, offset=0):
         raise ValueError("Expected limit 1–500 and nonnegative offset.")
     sql = """SELECT id,event,revision FROM raw_events WHERE """ + _HISTORY + """
              AND json_extract(event,'$.episode_id')=?
-             ORDER BY t_start,id LIMIT ? OFFSET ?"""
+             ORDER BY json_extract(event,'$.context.timestamp_status') IS 'missing',
+             t_start,json_extract(event,'$.context.source_order'),id LIMIT ? OFFSET ?"""
     with store._transaction(False) as conn:
         turns = []
         for r in conn.execute(sql, (session, limit, offset)):
             raw = json.loads(r["event"])
             memories = conn.execute("""SELECT m.id,m.body,m.needs_review FROM memories m JOIN evidence e
                 ON m.id=e.memory_id WHERE e.raw_id=? AND m.deleted=0 ORDER BY m.id""", (r["id"],))
-            turns.append({"at_ms": raw["t_start"], "role": raw["content"]["role"], "raw_id": r["id"],
+            when = None if raw["context"].get("timestamp_status") == "missing" else raw["t_start"]
+            turns.append({"at_ms": when, "role": raw["content"]["role"], "raw_id": r["id"],
                           "revision": r["revision"], "locator": raw["provenance"]["locator"],
                           "parents": [v["target_id"] for v in raw.get("links", []) if v["relation"] == "reply_to"],
                           "memories": [dict(m) for m in memories]})
@@ -92,7 +97,8 @@ def digest(store, project=None, session=None, limit=5, origin=None):
     if not 1 <= limit <= 100 or bool(project) == bool(session):
         raise ValueError("Choose one project or session and a per-category limit between 1 and 100.")
     scope = "$.context.project" if project else "$.episode_id"
-    sql = """SELECT r.id,r.t_start,r.connector,r.revision,json_extract(r.event,'$.content.role') role,
+    sql = """SELECT r.id,CASE WHEN json_extract(r.event,'$.context.timestamp_status') IS NOT 'missing'
+             THEN r.t_start END t_start,r.connector,r.revision,json_extract(r.event,'$.content.role') role,
              json_extract(r.event,'$.episode_id') episode,json_extract(r.event,'$.provenance.locator') locator,
              m.id memory_id,m.body FROM raw_events r JOIN evidence e ON e.raw_id=r.id
              JOIN memories m ON e.memory_id=m.id
@@ -102,7 +108,7 @@ def digest(store, project=None, session=None, limit=5, origin=None):
     if origin:
         sql += " AND json_extract(r.event,'$.context.origin')=?"
         params.append(origin)
-    sql += " ORDER BY r.t_start DESC,r.id,e.memory_id"
+    sql += " ORDER BY t_start DESC,r.id,e.memory_id"
     groups = {k: [] for k in ("user_change_mentions","user_requests","other_user_turns",
                               "assistant_progress_reports","other_assistant_turns")}
     totals = dict.fromkeys(groups, 0)
@@ -137,7 +143,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
     imp = sub.add_parser("import", help="Import each complete file in a local transaction")
-    imp.add_argument("--source", choices=("codex", "claude", "gemini", "chatgpt", "transcript"), required=True)
+    imp.add_argument("--source", choices=("codex", "claude", "gemini", "chatgpt", "claude-web", "deepseek", "transcript"), required=True)
     imp.add_argument("files", type=Path, nargs="*")
     imp.add_argument("--files-from", help="Read one path per line, or - for stdin")
     imp.add_argument("--project", help="Explicit project key for this selection")

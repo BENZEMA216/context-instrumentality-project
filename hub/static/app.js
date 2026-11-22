@@ -214,7 +214,7 @@ function renderList() {
     entry.setAttribute("aria-current", String(row.id === state.selected));
     const tail = element("span", "row-tail");
     tail.append(element("span", "", row.needs_review ? "待复核" : typeOf(state.view, row)),
-      element("time", "", datetime(row.updated_at ?? row.t_start, true)));
+      element("time", "", row.context?.timestamp_status === "missing" ? "时间未知" : datetime(row.updated_at ?? row.t_start, true)));
     const title = titleOf(state.view, row), preview = bodyOf(state.view, row);
     entry.append(element("span", "row-title", title));
     entry.append(element("span", "row-preview", preview && preview !== title ? preview : row.provenance?.connector || row.id));
@@ -283,7 +283,8 @@ function renderDetail(node, view, record) {
     button("删除", () => askDelete(view, record), "icon-button", "trash")); head.append(label, actions);
   node.append(head, element("h2", "", titleOf(view, record)));
   const meta = element("div", "metadata-line");
-  const time = datetime(record.updated_at ?? record.t_start);
+  const time = record.context?.timestamp_status === "missing" ? "" : datetime(record.updated_at ?? record.t_start);
+  if (record.context?.timestamp_status === "missing") meta.append(element("span", "", "来源时间未知"));
   if (time) meta.append(element("span", "", (view === "memory" ? "更新于 " : "发生于 ") + time));
   meta.append(element("span", "mono", "v" + record.revision));
   if (record.needs_review) meta.append(element("span", "", "来源已变更 · 待复核"));
