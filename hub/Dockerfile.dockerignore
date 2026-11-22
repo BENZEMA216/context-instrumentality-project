@@ -11,3 +11,4 @@
 !channels/audio/record-for-agent/
 !channels/audio/record-for-agent/AgentBridge/
 !channels/audio/record-for-agent/AgentBridge/library.py
+!channels/audio/record-for-agent/AgentBridge/icloud_drive_library.py

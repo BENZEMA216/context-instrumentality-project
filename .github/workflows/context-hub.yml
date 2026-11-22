@@ -1,9 +1,9 @@
 name: Context Hub
 on:
   push:
-    paths: ['hub/**', 'schema/**', 'pyproject.toml', 'tests/**', '.github/workflows/context-hub.yml', 'channels/audio/record-for-agent/AgentBridge/library.py']
+    paths: ['hub/**', 'schema/**', 'pyproject.toml', 'tests/**', '.github/workflows/context-hub.yml', 'channels/audio/record-for-agent/AgentBridge/library.py', 'channels/audio/record-for-agent/AgentBridge/icloud_drive_library.py']
   pull_request:
-    paths: ['hub/**', 'schema/**', 'pyproject.toml', 'tests/**', '.github/workflows/context-hub.yml', 'channels/audio/record-for-agent/AgentBridge/library.py']
+    paths: ['hub/**', 'schema/**', 'pyproject.toml', 'tests/**', '.github/workflows/context-hub.yml', 'channels/audio/record-for-agent/AgentBridge/library.py', 'channels/audio/record-for-agent/AgentBridge/icloud_drive_library.py']
 permissions:
   contents: read
 jobs:
@@ -20,6 +20,7 @@ jobs:
         working-directory: /tmp
         run: |
           python -c 'from hub.contract import _validator; from hub.imports import recording_source; assert _validator(); assert recording_source().Limits()'
+          python -c 'import subprocess,sys; from hub.contract import data_file; subprocess.run([sys.executable, data_file("channels/audio/record-for-agent/AgentBridge/icloud_drive_library.py"), "--help"], check=True)'
   cloud-container:
     runs-on: ubuntu-latest
     steps:

@@ -3,6 +3,7 @@ WORKDIR /build
 COPY pyproject.toml .
 COPY schema/context-event.schema.json schema/context-event.schema.json
 COPY channels/audio/record-for-agent/AgentBridge/library.py channels/audio/record-for-agent/AgentBridge/library.py
+COPY channels/audio/record-for-agent/AgentBridge/icloud_drive_library.py channels/audio/record-for-agent/AgentBridge/icloud_drive_library.py
 COPY hub hub
 RUN pip install --no-cache-dir . && useradd --system --uid 10001 --create-home hub \
     && mkdir -p /var/lib/context-hub && chown hub /var/lib/context-hub
