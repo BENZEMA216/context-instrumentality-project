@@ -340,3 +340,112 @@ def test_legacy_reader_produces_only_full_evidence(tmp_path, monkeypatch):
     assert sync(root, item.library, db, [item.sid], grant_agent_metadata=True)["created"] == 1
     proof = db.list_raw(agent=True)[0]["provenance"]
     assert proof["evidence"] == icloud_sync.FULL and proof["audio_entry_observed"] is True
+
+
+def test_large_baseline_with_selected_ids_and_future_pages_survives_restart(tmp_path, monkeypatch):
+    import uuid
+    monkeypatch.syspath_prepend(str(BRIDGE / "tests"))
+    from test_icloud_drive_library import Fixture
+    root = tmp_path / "drive"
+    root.mkdir()
+    selected = Fixture(root)
+    selected.commit(audio_present=True)
+    catalog = root / "commits"
+    for number in range(10001):
+        (catalog / str(uuid.UUID(int=number))).mkdir()
+    path = tmp_path / "baseline.json"
+    assert initialize_baseline(root, selected.library, path)["baselineCount"] == 10002
+    baseline = json.loads(path.read_text())
+    for number in range(10001, 10131):
+        Fixture(root, sid=str(uuid.UUID(int=number))).commit(at=baseline["startedAt"] + 1, audio_present=True)
+    db_path = tmp_path / "hub.sqlite3"
+    def run():
+        return sync(root, selected.library, Store(db_path), [selected.sid], baseline)
+    first = run()
+    assert first["created"] == 129 and first["rejected"] == 0
+    second = run()
+    assert second["created"] == 2 and second["unchanged"] == 1
+    assert run()["unchanged"] == 129
+    assert len(Store(db_path).list_raw(limit=200)) == 131
+
+
+def test_legacy_pending_is_never_leaf_proof(tmp_path, monkeypatch):
+    from hub import icloud_sync
+    monkeypatch.syspath_prepend(str(BRIDGE / "tests"))
+    from test_icloud_drive_library import Fixture
+    root = tmp_path / "drive"
+    root.mkdir()
+    selected, strict = Fixture(root), Fixture(root)
+    for source in (selected, strict):
+        source.commit(audio_present=True)
+    store = Store(tmp_path / "hub.sqlite3")
+    observe = icloud_sync.observe
+    def legacy(*args):
+        response = observe(*args)
+        for row in response["segments"]:
+            row.pop("evidence")
+            row.pop("audioEntryObserved")
+            row["audioAvailability"] = "pending"
+        return response
+    monkeypatch.setattr(icloud_sync, "observe", legacy)
+    assert sync(root, selected.library, store, [selected.sid, strict.sid])["pending"] == 2
+    assert sync(root, selected.library, store, [selected.sid], grant_agent_metadata=True)["created"] == 1
+    proof = store.list_raw(agent=True)[0]["provenance"]
+    assert proof["evidence"] == icloud_sync.EARLY and not proof["audio_entry_observed"]
+    monkeypatch.setattr(icloud_sync, "observe", observe)
+    assert sync(root, selected.library, store, [])["updated"] == 1
+    assert store.list_raw(agent=True)[0]["provenance"]["audio_entry_observed"]
+
+
+def test_upgrade_quarantines_ambiguous_leaf_flags_until_source_rechecked(tmp_path, monkeypatch):
+    from hub import icloud_sync
+    from hub.store import _json, _fold
+    monkeypatch.syspath_prepend(str(BRIDGE / "tests"))
+    from test_icloud_drive_library import Fixture
+    root = tmp_path / "drive"
+    root.mkdir()
+    sources = [Fixture(root) for _ in range(4)]
+    selected, before_tracking, enriched, manual = sources
+    leaves = []
+    for source in sources:
+        report, _ = source.commit("synthetic" if source is enriched else None, audio_present=True)
+        leaves.append(root / next(x["relativePath"] for x in report["artifacts"] if x["kind"] == "audio"))
+    path = tmp_path / "db"
+    store = Store(path)
+    sync(root, selected.library, store, [s.sid for s in sources], grant_agent_metadata=True)
+    # Recreate the stored forms used by both earlier importers. Simulate
+    # an existing user edit to prove the migration leaves that revision alone.
+    with store._transaction(True) as conn:
+        conn.execute("DELETE FROM hub_migrations WHERE name='icloud_leaf_observation_v1'")
+        for row in conn.execute("SELECT id,event FROM raw_events").fetchall():
+            event = json.loads(row["event"])
+            proof = event["provenance"]
+            proof.pop("audio_leaf_observation_version")
+            if proof["original_id"] in (before_tracking.sid, enriched.sid):
+                proof.pop("audio_entry_observed")
+                if proof["original_id"] == enriched.sid:
+                    conn.execute("UPDATE raw_events SET revision=2 WHERE id=?", (row["id"],))
+                conn.execute("DELETE FROM icloud_bridge_revisions WHERE raw_id=?", (row["id"],))
+            encoded = _json(event)
+            conn.execute("UPDATE raw_events SET event=?,searchable=? WHERE id=?", (encoded, _fold(encoded), row["id"]))
+    edited = store.list_raw(manual.sid)[0]
+    edited["content"]["text"] = "synthetic owner edit"
+    edited = store.put_raw(edited, edited["revision"])
+    for leaf in leaves:
+        leaf.unlink()
+    store = Store(path)
+    assert store.list_raw(agent=True) == []  # No stale projection on startup, even before any reader runs.
+    assert store.list_raw(manual.sid)[0] == edited
+    for source in (selected, before_tracking):
+        event = store.list_raw(source.sid)[0]
+        assert event["provenance"]["evidence"] == icloud_sync.EARLY and event["revision"] == 2
+    assert store.list_raw(enriched.sid)[0]["revision"] == 3
+    assert sync(root, selected.library, store, [])["unchanged"] == 3
+    assert all(not event["provenance"]["audio_entry_observed"] for event in store.list_raw(agent=True))
+    selected.write(leaves[0].relative_to(root), selected.audio)
+    assert sync(root, selected.library, store, [])["updated"] == 1
+    leaves[0].unlink()
+    assert sync(root, selected.library, Store(path), [])["unchanged"] == 3
+    selected_event, = store.list_raw(selected.sid, agent=True)
+    assert selected_event["provenance"]["audio_entry_observed"]
+    assert selected_event["revision"] == 3

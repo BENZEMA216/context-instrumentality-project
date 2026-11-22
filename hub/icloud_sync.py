@@ -14,14 +14,10 @@ import uuid
 
 from .__main__ import data_dir
 from .contract import data_file
+from .icloud_evidence import CONNECTOR, FULL, EARLY
 from .imports import stable_id
 from .recording_sync import selected_ids
 from .store import Store, StoreError, _fold, _json
-
-
-CONNECTOR = "record-for-agent.icloud"
-FULL = "committed_manifest_and_audio_entry"
-EARLY = "commit_and_manifest_verified"
 
 
 class ObservationError(ValueError):
@@ -133,25 +129,30 @@ def publish_verified_metadata(conn, event, revision):
 def save_observation(store, event):
     # A source revision and its Agent projection advance atomically. Owner edits and deletions always win.
     # Compare stable identity inside SQLite so user-authored content never enters this importer.
-    mutable = "'$.t_observed','$.content.transcript_commit_observed','$.provenance.evidence','$.provenance.audio_entry_observed'"
+    mutable = ("'$.t_observed','$.content.transcript_commit_observed','$.provenance.evidence',"
+               "'$.provenance.audio_entry_observed','$.provenance.audio_leaf_observation_version'")
     provenance = event["provenance"]
     observed = provenance["evidence"]
     encoded = _json(event)
+    early_proof = dict(provenance, evidence=EARLY, audio_entry_observed=False)
+    early_proof.pop("audio_leaf_observation_version", None)
+    matching_early = _json(dict(event, provenance=early_proof))
     with store._transaction(True) as conn:
         grant = conn.execute("SELECT 1 FROM icloud_metadata_grants WHERE library_id=? AND segment_id=? AND raw_id=?",
             (provenance["library_id"], provenance["original_id"], event["id"])).fetchone()
         if observed == EARLY and not grant:
             return "preserved"  # The owner may have revoked this ID while the provider was being queried.
         row = conn.execute(f"""SELECT r.revision, b.revision AS managed,
-            (r.event=? OR r.event=json_remove(?,'$.provenance.audio_entry_observed')) AS exact,
+            (r.event=? OR r.event=?) AS exact,
             json_remove(r.event,{mutable})=json_remove(?,{mutable}) AS same_source,
             json_extract(r.event,'$.provenance.evidence') AS evidence,
             json_type(r.event,'$.provenance.audio_entry_observed') AS audio_flag,
+            json_extract(r.event,'$.provenance.audio_leaf_observation_version') IS 1 AS leaf_verified,
             json_type(r.event,'$.content.transcript_commit_observed') AS transcript_flag,
             json_extract(r.event,'$.t_observed') AS observed_at
             FROM raw_events r LEFT JOIN icloud_bridge_revisions b ON b.raw_id=r.id
             WHERE r.source='voice' AND r.connector=? AND r.source_id=?""",
-            (encoded, encoded, encoded, CONNECTOR, provenance["source_id"])).fetchone()
+            (encoded, matching_early, encoded, CONNECTOR, provenance["source_id"])).fetchone()
         status = "created"
         if row is not None:
             # Before this importer tracked its own revisions, adopt only initial canonical metadata
@@ -163,9 +164,12 @@ def save_observation(store, event):
                 return "preserved"
             had_transcript = row["transcript_flag"] == "true"
             has_transcript = had_transcript or event["content"]["transcript_commit_observed"]
-            stage = FULL if FULL in (row["evidence"], observed) else EARLY
-            advanced = stage != row["evidence"] or has_transcript != had_transcript
+            stage = FULL if observed == FULL or (row["evidence"] == FULL and row["leaf_verified"]) else EARLY
+            advanced = (stage != row["evidence"] or (stage == FULL and not row["leaf_verified"])
+                        or has_transcript != had_transcript)
             provenance.update(evidence=stage, audio_entry_observed=stage == FULL)
+            if stage == FULL:
+                provenance["audio_leaf_observation_version"] = 1
             event["content"]["transcript_commit_observed"] = has_transcript
             event["t_observed"] = max(row["observed_at"], event["t_observed"]) if advanced else row["observed_at"]
             status = "updated" if advanced else "unchanged"
@@ -190,22 +194,39 @@ def sync(root, library_id, store, selection, baseline=None, request_metadata=Fal
         observed = sorted(set(selection) | granted)
         early = granted | (set(selection) if grant_agent_metadata else set())
         scope = {"selection": observed, "baseline": baseline}
+        baseline_started = baseline.get("startedAt") if isinstance(baseline, dict) else None
+        previous = None
+        if type(baseline_started) is int:
+            with store._transaction(False) as conn:
+                cursor = conn.execute("SELECT after_sid FROM icloud_discovery_cursors WHERE library_id=? AND baseline_started=?",
+                                      (library_id, baseline_started)).fetchone()
+            previous = cursor[0] if cursor else None
+            scope["discoveryAfter"] = previous
         if early:
             scope["earlySelection"] = sorted(early)
         result = observe(root, library_id, "hub-metadata", scope, request_metadata)
     counts = {key: result[key] for key in ("absentSelected", "pending", "rejected")}
     if request_metadata:
         counts["metadataRequestsAccepted"] = result["metadataRequestsAccepted"]
+        if "metadataRequestError" in result:
+            counts["metadataRequestError"] = result["metadataRequestError"]
     counts.update(created=0, updated=0, unchanged=0, preserved=0)
     for row in result["segments"]:
         sid, manifest = row["segmentID"], row["manifest"]
-        # The strict pre-stage reader only returned rows after verifying the audio directory entry.
-        if "evidence" not in row and "audioEntryObserved" not in row and row.get("audioAvailability") in {"locally_present", "pending"}:
-            stage, audio_entry = FULL, True
-        else:
-            stage, audio_entry = row.get("evidence"), row.get("audioEntryObserved")
-        if not ((stage == FULL and audio_entry is True) or (stage == EARLY and audio_entry is False and sid in early
-                and row.get("audioAvailability") == "not_observed")):
+        availability = row.get("audioAvailability")
+        stage, audio_entry = row.get("evidence"), row.get("audioEntryObserved")
+        if "evidence" not in row and "audioEntryObserved" not in row:
+            # The older reader used "pending" for both an evicted leaf and its
+            # unmaterialized parent. Only locally-present uniquely proves a leaf.
+            if availability == "locally_present":
+                stage, audio_entry = FULL, True
+            elif availability == "pending":
+                if sid not in early:
+                    counts["pending"] += 1
+                    continue
+                stage, audio_entry, availability = EARLY, False, "not_observed"
+        if not ((stage == FULL and audio_entry is True and availability in {"locally_present", "pending"})
+                or (stage == EARLY and audio_entry is False and sid in early and availability == "not_observed")):
             counts["rejected"] += 1
             continue
         event = {
@@ -221,7 +242,16 @@ def sync(root, library_id, store, selection, baseline=None, request_metadata=Fal
                            "library_id": library_id, "evidence": stage, "audio_entry_observed": audio_entry,
                            "provider_upload_status": "not_established", "audio_content_verified": False},
         }
+        if stage == FULL:
+            event["provenance"]["audio_leaf_observation_version"] = 1
         counts[save_observation(store, event)] += 1
+    if type(baseline_started) is int and "nextDiscoveryAfter" in result:
+        # A failed import retries the same page. Overlapping scans cannot roll
+        # back another run's checkpoint. NULL at the end starts the next pass.
+        with store._transaction(True) as conn:
+            conn.execute("""INSERT INTO icloud_discovery_cursors VALUES(?,?,?)
+                ON CONFLICT(library_id,baseline_started) DO UPDATE SET after_sid=excluded.after_sid
+                WHERE after_sid IS ?""", (library_id, baseline_started, result["nextDiscoveryAfter"], previous))
     return counts
 
 

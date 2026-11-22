@@ -11,6 +11,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from .contract import validate_event
+from .icloud_evidence import downgrade_legacy_audio
 
 
 class StoreError(ValueError):
@@ -53,6 +54,10 @@ CREATE TABLE IF NOT EXISTS icloud_metadata_grants (
 CREATE TABLE IF NOT EXISTS icloud_pending_grants (
  library_id TEXT NOT NULL, segment_id TEXT NOT NULL, raw_id TEXT NOT NULL, request_id TEXT NOT NULL,
  PRIMARY KEY(library_id, segment_id)
+);
+CREATE TABLE IF NOT EXISTS icloud_discovery_cursors (
+ library_id TEXT NOT NULL, baseline_started INTEGER NOT NULL, after_sid TEXT,
+ PRIMARY KEY(library_id, baseline_started)
 );
 CREATE TABLE IF NOT EXISTS hub_migrations (name TEXT PRIMARY KEY);
 CREATE TRIGGER IF NOT EXISTS clear_icloud_projection_on_revision
@@ -178,14 +183,13 @@ def _summary(event):
     return _short(title, 160), _short(body, 900), key
 
 
-def _migrate(conn, name, statements):
+def _migrate(conn, name, apply):
     # A server and a background importer can open the same older Hub concurrently.
     if conn.execute("SELECT 1 FROM hub_migrations WHERE name=?", (name,)).fetchone():
         return
     conn.execute("BEGIN IMMEDIATE")
     if conn.execute("INSERT OR IGNORE INTO hub_migrations(name) VALUES(?)", (name,)).rowcount:
-        for statement in statements:
-            conn.execute(statement)
+        apply(conn)
     conn.commit()
 
 
@@ -198,12 +202,13 @@ class Store:
         with self._transaction(None) as conn:
             conn.execute("PRAGMA journal_mode=WAL")
             conn.executescript(_TABLES)
-            _migrate(conn, "clear_stale_icloud_projections", ["""
+            _migrate(conn, "clear_stale_icloud_projections", lambda c: c.execute("""
                 UPDATE icloud_metadata_grants AS g SET verified_revision=NULL, projection=NULL, searchable=NULL
                 WHERE (projection IS NOT NULL OR searchable IS NOT NULL OR verified_revision IS NOT NULL)
                  AND NOT EXISTS (SELECT 1 FROM raw_events r WHERE r.id=g.raw_id
                                  AND r.event IS NOT NULL AND r.revision=g.verified_revision)
-            """])
+            """))
+            _migrate(conn, "icloud_leaf_observation_v1", lambda c: downgrade_legacy_audio(self, c))
 
     @contextmanager
     def _transaction(self, write):

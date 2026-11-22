@@ -123,6 +123,8 @@ context-hub-icloud-recordings --library-root "$selected_icloud_root" --library-i
 
 Hub 使用 `record-for-agent.icloud` 保存 `cloud_audio_commit` 事件，包含原段 UUID、采集起止时间、音频和 manifest 摘要、转写提交标志，默认 `local_only`。其证据是该库中可验证的 commit、manifest 和音频文件目录项。iPhone 的上传确认、音频内容重验、Mac 自动接收、Agent 正文可读性均有各自独立的证据来源。已修改过或删除的事件沿用所有者的决定。
 
+带基线的定时导入每轮检查所有指定段，并流式浏览目录名，分批校验最多 128 个新增源。Hub 保存巡检位置，进程重启后接着上次的位置继续，到达末尾后从头重查。Finder 辅助文件和正在写入的临时提交会被忽略。单个片段尚未就绪或损坏时，其他验证成功的片段仍会入库。辅助下载失败会单独返回 `metadataRequestError`。
+
 
 #### 让 Agent 读取选定片段的目录元数据
 
@@ -138,4 +140,6 @@ context-hub-icloud-recordings --library-id "$expected_library_id" \
 Agent 视图标为 `redacted`，提供 UTC 时间、原始片段和会话 ID、顺序、采样与大小、库 ID、音频和清单的 SHA-256 及证据状态。正文固定为空。原始记录的修订和隐私等级保持由所有者管理。手动编辑或删除时，Hub 会在同一事务清除对应目录视图和搜索副本。打开旧数据库时会清理已失效的副本。显式授权先登记本批片段，原库核验成功后生效。期间撤销的片段会取消在途授权，其余片段继续核验。撤销仅需访问 Hub 的本地数据库。
 
 
-授权片段的 `provenance.evidence` 为 `commit_and_manifest_verified` 时，Mac 已核验该片段的提交与清单，`audio_entry_observed` 为 `false`。Mac 后续观察到与清单相符的音频目录项，原 ID 上的证据升级为 `committed_manifest_and_audio_entry`，该标记变为 `true`。两种状态的 `audio_content_verified` 均为 `false`。未授权片段仍需核验音频目录项才能进入本地 Hub。
+授权片段的 `provenance.evidence` 为 `commit_and_manifest_verified` 时，Mac 已核验该片段的提交与清单，`audio_entry_observed` 为 `false`。Mac 后续观察到与清单相符的音频目录项，原 ID 上的证据升级为 `committed_manifest_and_audio_entry`，该标记变为 `true`。两种状态的 `audio_content_verified` 均为 `false`。CAF 的上级目录尚未下载时，已授权片段也可显示清单级元数据。未授权片段仍需核验音频目录项才能首次进入本地 Hub。
+
+旧 reader 将文件和上级目录占位都记作 `pending`。升级首次打开数据库时，Hub 将缺乏叶文件核验标记的旧导入记录调回清单级，撤下旧 Agent 投影。下一轮同步依据原来的授权和当前磁盘观察恢复投影。只有对 CAF 文件条目、类型和清单字节数的核对才能升级音频证据。

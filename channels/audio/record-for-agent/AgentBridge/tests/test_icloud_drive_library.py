@@ -327,7 +327,7 @@ class ICloudDriveLibraryTests(unittest.TestCase):
             self.assertEqual((full["segmentID"], full["manifestSHA256"]), (row["segmentID"], row["manifestSHA256"]))
         self.assertTrue(observed_reads)
 
-    def test_early_manifest_rejects_invalid_chain_and_an_unseen_evicted_parent(self):
+    def test_early_manifest_rejects_invalid_chain_but_accepts_an_unseen_evicted_parent(self):
         source = self.fixture
         commit, _ = source.commit()
         artifact = next(a for a in commit["artifacts"] if a["kind"] == "audio")
@@ -345,8 +345,11 @@ class ICloudDriveLibraryTests(unittest.TestCase):
                 raise cloud.ICloudDriveError("icloud_not_downloaded", pending=True)
             return real_sync(path, value)
         with mock.patch.object(self.reader, "_sync", side_effect=block_parent):
-            for result in (observe(), self.reader.hub_metadata([source.sid])):
-                self.assertEqual((result["segments"], result["pending"]), ([], 1))
+            row, = observe()["segments"]
+            self.assertEqual((row["evidence"], row["audioEntryObserved"], row["audioAvailability"]),
+                             ("commit_and_manifest_verified", False, "not_observed"))
+            strict = self.reader.hub_metadata([source.sid])
+            self.assertEqual((strict["segments"], strict["pending"]), ([], 1))
         manifest = next(a for a in commit["artifacts"] if a["kind"] == "manifest")
         file = self.root / manifest["relativePath"]
         data = file.read_bytes()
@@ -373,6 +376,31 @@ class ICloudDriveLibraryTests(unittest.TestCase):
         self.assertEqual([row["segmentID"] for row in result["segments"]], [source.sid])
         self.assertEqual(result["absentSelected"], 1)
         self.assertNotIn(unrelated.sid, json.dumps(result))
+
+    def test_auxiliary_download_failure_preserves_healthy_batch_and_stage(self):
+        good, pending = self.fixture, Fixture(self.root)
+        _, path = good.commit(audio_present=True)
+        pending.commit()
+        for relative in ("commits/.DS_Store", "commits/._ignored", "commits/.partial-writer",
+                         str(path.parent.relative_to(self.root) / ".DS_Store"),
+                         str(path.parent.relative_to(self.root) / ("._" + path.name)),
+                         str(path.parent.relative_to(self.root) / ".partial-test")):
+            good.write(relative, b"not a commit")
+        bad = Fixture(self.root)
+        bad.write("commits/" + bad.sid + "/invalid.json", b"{}")
+        stdout = io.StringIO()
+        scope = {"selection": [good.sid, pending.sid, bad.sid],
+                 "baseline": {"startedAt": 0, "libraryID": good.library, "segments": []}}
+        with (mock.patch.object(sys, "stdin", io.StringIO(json.dumps(scope))), redirect_stdout(stdout),
+              mock.patch.object(cloud.ICloudDriveLibrary, "request_pending_metadata", side_effect=OSError("offline"))):
+            code = cloud.main(["--library-root", str(self.root), "--library-id", good.library,
+                               "--request-metadata", "hub-metadata"])
+        self.assertEqual(code, 0)
+        result = json.loads(stdout.getvalue())
+        self.assertEqual([r["segmentID"] for r in result["segments"]], [good.sid])
+        self.assertEqual((result["pending"], result["rejected"]), (1, 1))
+        self.assertEqual(result["metadataRequestError"], "metadata_download_request_failed")
+        self.assertEqual(result["audioBytesRead"], 0)
 
     def test_early_selection_cli_is_scoped_and_optional(self):
         self.fixture.commit()

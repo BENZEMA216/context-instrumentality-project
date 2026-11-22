@@ -9,6 +9,7 @@ import base64
 from contextlib import contextmanager
 import ctypes
 import hashlib
+import heapq
 import json
 import os
 from pathlib import Path
@@ -27,6 +28,8 @@ SF_DATALESS = 0x40000000
 MAX_METADATA = 1024 * 1024
 MAX_CATALOG_BYTES = 16 * MAX_METADATA
 MAX_COMMITS = 10000
+DISCOVERY_PAGE_SIZE = 128
+SOURCE_NAME = re.compile(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\Z")
 KINDS = {"audio", "manifest", "transcriptJSON", "transcriptText"}
 
 
@@ -184,10 +187,14 @@ class ICloudDriveLibrary:
         paths = []
         with self._root() as root_fd:
             for relative, expected in self._metadata_requests.items():
-                with self._parent(root_fd, relative) as (parent, name):
-                    value = os.stat(name, dir_fd=parent, follow_symlinks=False)
-                    if stat.S_ISREG(value.st_mode) and value.st_nlink == 1 and identity(value) == expected:
-                        paths.append(str(self.root / relative))
+                try:
+                    with self._parent(root_fd, relative) as (parent, name):
+                        value = os.stat(name, dir_fd=parent, follow_symlinks=False)
+                        if stat.S_ISREG(value.st_mode) and value.st_nlink == 1 and identity(value) == expected:
+                            paths.append(str(self.root / relative))
+                except (OSError, ICloudDriveError):
+                    # Eviction or a replaced path only invalidates this request.
+                    continue
         if not paths:
             return 0
         script = """ObjC.import('Foundation'); function run(paths) {
@@ -348,11 +355,13 @@ class ICloudDriveLibrary:
         return sha256(raw)
 
     def _source_names(self, root_fd):
-        with self._parent(root_fd, "commits/.catalog") as (commits, _):
-            names = sorted(os.listdir(commits))
-            require(len(names) <= MAX_COMMITS, "commit_catalog_too_large")
-            require(all(uuid_value(name) == name for name in names), "unexpected_commit_directory")
-            return names
+        # Only canonical source names can participate. Finder metadata and
+        # unrelated siblings are never opened. scandir streams directory names.
+        with self._parent(root_fd, "commits/.catalog") as (directory, _):
+            with os.scandir(directory) as entries:
+                for entry in entries:
+                    if SOURCE_NAME.fullmatch(entry.name):
+                        yield entry.name
 
     def _selected_source_names(self, root_fd, selected):
         # A batch-only grant already supplies its UUIDs. Probe their entries
@@ -364,27 +373,39 @@ class ICloudDriveLibrary:
                     os.stat(sid, dir_fd=directory, follow_symlinks=False)
                 except FileNotFoundError:
                     continue
+                except OSError:
+                    # Probe this ID in the isolated per-source pass. An I/O
+                    # failure is neither a missing selection nor a batch failure.
+                    pass
                 present.add(sid)
         return present
 
-    def _segment_paths(self, root_fd, segment):
+    def _segment_paths(self, root_fd, segment, *, committed_only=False):
         paths = []
-        with self._parent(root_fd, "commits/" + segment + "/.catalog") as (directory, _):
-            for name in sorted(os.listdir(directory)):
+        with self._parent(root_fd, "commits/" + segment + "/.catalog") as (directory, _), os.scandir(directory) as entries:
+            for entry in entries:
+                name = entry.name
+                if name == ".DS_Store" or name.startswith("._"):
+                    continue
+                if committed_only and name.startswith(".partial-"):
+                    # The writer atomically renames this into a digest-named JSON.
+                    # It cannot supersede any already committed version.
+                    continue
                 if name.startswith("."):
                     raise ICloudDriveError("commit_not_finished", pending=True)
                 require(name.endswith(".json") and SHA.fullmatch(name[:-5]), "unexpected_commit_file")
                 path = "commits/" + segment + "/" + name
                 paths.append((path, identity(self._stat(root_fd, path))))
                 require(len(paths) <= MAX_COMMITS, "commit_catalog_too_large")
-        return paths
+        return sorted(paths)
 
     def _commit_paths(self, root_fd):
         paths = []
-        for segment in self._source_names(root_fd):
+        for index, segment in enumerate(self._source_names(root_fd)):
+            require(index < MAX_COMMITS, "commit_catalog_too_large")
             paths.extend(self._segment_paths(root_fd, segment))
             require(len(paths) <= MAX_COMMITS, "commit_catalog_too_large")
-        return paths
+        return sorted(paths)
 
     def _commit(self, raw, path):
         value = self._json(raw)
@@ -484,13 +505,13 @@ class ICloudDriveLibrary:
         """Only the stable names in this selected library, including unfinished directories."""
         with self._root() as root_fd:
             marker = self._marker(root_fd)
-            names = self._source_names(root_fd)
-            if self._marker(root_fd) != marker or self._source_names(root_fd) != names:
+            names = sorted(self._source_names(root_fd))
+            if self._marker(root_fd) != marker or sorted(self._source_names(root_fd)) != names:
                 raise ICloudDriveError("catalog_changed_during_read", pending=True)
             return {"status": "available", "libraryID": self.library_id, "segments": names}
 
     def _hub_segment(self, root_fd, sid, earliest, *, allow_manifest_only=False):
-        snapshot = self._segment_paths(root_fd, sid)
+        snapshot = self._segment_paths(root_fd, sid, committed_only=True)
         if not snapshot:
             raise ICloudDriveError("commit_not_finished", pending=True)
         commits, total = [], 0
@@ -512,11 +533,11 @@ class ICloudDriveLibrary:
         audio_state = self._availability(root_fd, first["artifacts"]["audio"])
         reason = audio_state.get("reason")
         entry_observed = reason is None or reason == "icloud_not_downloaded"
-        if not entry_observed and (not allow_manifest_only or reason != "artifact_not_available"):
+        if not entry_observed and (not allow_manifest_only or reason not in {"artifact_not_available", "audio_parent_not_downloaded"}):
             raise ICloudDriveError(reason, pending=True)
         if allow_manifest_only and identity(self._stat(root_fd, manifest_path)) != manifest_identity:
             raise ICloudDriveError("catalog_changed_during_read", pending=True)
-        if self._segment_paths(root_fd, sid) != snapshot:
+        if self._segment_paths(root_fd, sid, committed_only=True) != snapshot:
             raise ICloudDriveError("catalog_changed_during_read", pending=True)
         return {"segmentID": sid, "audioSHA256": first["audioSHA256"], "manifestSHA256": first["manifestSHA256"],
                 "committedAt": first["committedAt"], "transcriptCommitted": any(c.get("transcriptVersionSHA256") for c in commits),
@@ -527,7 +548,7 @@ class ICloudDriveLibrary:
                     ("sessionID","sequence","startedAt","endedAt","sampleRate","frameCount","byteCount","timeZoneIdentifier")
                     if key in manifest}}
 
-    def hub_metadata(self, selection, baseline=None, *, early_selection=None):
+    def hub_metadata(self, selection, baseline=None, *, early_selection=None, discovery_after=None):
         """Observe committed metadata. Only explicit members may precede their CAF directory entry."""
         require(isinstance(selection, list) and (early_selection is None or isinstance(early_selection, list)),
                 "invalid_arguments")
@@ -536,13 +557,23 @@ class ICloudDriveLibrary:
         require(early <= selected, "early_selection_outside_selection")
         with self._root() as root_fd:
             marker = self._marker(root_fd)
-            names = self._selected_source_names(root_fd, selected) if early and baseline is None else set(self._source_names(root_fd))
-            eligible = names & selected
+            present = self._selected_source_names(root_fd, selected)
+            eligible = set(present)
+            next_after = None
             if baseline is not None:
                 require(isinstance(baseline, dict) and baseline.get("libraryID") == self.library_id
                         and type(baseline.get("startedAt")) is int and baseline["startedAt"] >= 0
                         and isinstance(baseline.get("segments"), list), "invalid_baseline")
-                eligible |= names - {uuid_value(sid) for sid in baseline["segments"]}
+                excluded = {uuid_value(sid) for sid in baseline["segments"]} | selected
+                after = uuid_value(discovery_after) if discovery_after is not None else ""
+                # POSIX directory order is unstable across runs. Stream only names,
+                # keeping one bounded lexicographic page. New lower IDs are found
+                # on wrap; every explicit selection remains independent of this page.
+                page = heapq.nsmallest(DISCOVERY_PAGE_SIZE + 1, (
+                    sid for sid in self._source_names(root_fd) if sid > after and sid not in excluded))
+                eligible.update(page[:DISCOVERY_PAGE_SIZE])
+                if len(page) > DISCOVERY_PAGE_SIZE:
+                    next_after = page[DISCOVERY_PAGE_SIZE - 1]
             self._metadata_sources = eligible
             rows, pending, rejected = [], 0, 0
             ordered = sorted(eligible)
@@ -556,6 +587,8 @@ class ICloudDriveLibrary:
                                             allow_manifest_only=sid in early)
                     if row is not None:
                         rows.append(row)
+                except OSError:
+                    pending += 1
                 except ICloudDriveError as error:
                     if error.pending:
                         pending += 1
@@ -564,7 +597,8 @@ class ICloudDriveLibrary:
             if self._marker(root_fd) != marker:
                 raise ICloudDriveError("library_identity_changed")
             return {"status": "available", "libraryID": self.library_id, "segments": rows,
-                    "pending": pending, "rejected": rejected, "absentSelected": len(selected - names), **self._context()}
+                    "pending": pending, "rejected": rejected, "absentSelected": len(selected - present),
+                    "nextDiscoveryAfter": next_after, **self._context()}
 
     def list_segments(self, *, limit=100, cursor=None):
         require(type(limit) is int and 1 <= limit <= 100, "invalid_arguments")
@@ -666,13 +700,20 @@ def main(argv=None):
             result = reader.directory_baseline()
         elif args.command == "hub-metadata":
             scope = json.load(sys.stdin)
-            result = reader.hub_metadata(scope["selection"], scope.get("baseline"), early_selection=scope.get("earlySelection"))
+            result = reader.hub_metadata(scope["selection"], scope.get("baseline"), early_selection=scope.get("earlySelection"),
+                                         discovery_after=scope.get("discoveryAfter"))
         elif args.command == "list":
             result = reader.list_segments(limit=args.limit, cursor=args.cursor)
         else:
             result = reader.read_transcript(args.segment_id, content_version_sha256=args.content_version_sha256, format=args.format)
         if args.request_metadata:
-            result["metadataRequestsAccepted"] = reader.request_pending_metadata()
+            try:
+                result["metadataRequestsAccepted"] = reader.request_pending_metadata()
+            except (OSError, ICloudDriveError, subprocess.TimeoutExpired):
+                # A best-effort download happens after the library identity fence.
+                # Its failure cannot invalidate the observations already returned.
+                result["metadataRequestsAccepted"] = 0
+                result["metadataRequestError"] = "metadata_download_request_failed"
         print(json.dumps(result, ensure_ascii=True, allow_nan=False))
         return 0 if result["status"] == "available" else 2
     except ICloudDriveError as error:

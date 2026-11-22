@@ -1,9 +1,9 @@
 name: Context Hub
 on:
   push:
-    paths: ['hub/**', 'schema/**', 'pyproject.toml', 'tests/**', '.github/workflows/context-hub.yml', 'channels/audio/record-for-agent/AgentBridge/library.py', 'channels/audio/record-for-agent/AgentBridge/icloud_drive_library.py']
+    paths: ['hub/**', 'schema/**', 'pyproject.toml', 'tests/**', '.github/workflows/context-hub.yml', 'channels/audio/record-for-agent/AgentBridge/library.py', 'channels/audio/record-for-agent/AgentBridge/icloud_drive_library.py', 'channels/audio/record-for-agent/AgentBridge/tests/test_icloud_drive_library.py']
   pull_request:
-    paths: ['hub/**', 'schema/**', 'pyproject.toml', 'tests/**', '.github/workflows/context-hub.yml', 'channels/audio/record-for-agent/AgentBridge/library.py', 'channels/audio/record-for-agent/AgentBridge/icloud_drive_library.py']
+    paths: ['hub/**', 'schema/**', 'pyproject.toml', 'tests/**', '.github/workflows/context-hub.yml', 'channels/audio/record-for-agent/AgentBridge/library.py', 'channels/audio/record-for-agent/AgentBridge/icloud_drive_library.py', 'channels/audio/record-for-agent/AgentBridge/tests/test_icloud_drive_library.py']
 permissions:
   contents: read
 jobs:
@@ -16,6 +16,7 @@ jobs:
           python-version: '3.12'
       - run: pip install '.[agent,test]'
       - run: python -m pytest tests -q
+      - run: python -m unittest discover -s channels/audio/record-for-agent/AgentBridge/tests -p test_icloud_drive_library.py
       - name: Exercise the installed wheel outside the checkout
         working-directory: /tmp
         run: |
