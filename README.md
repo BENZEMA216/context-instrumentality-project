@@ -12,7 +12,7 @@
 
 | 应用 | 功能完整度 | UI 情况 | Context 接入 | Agent 使用 |
 | --- | --- | --- | --- | --- |
-| <a name="check-audio"></a>**[录音 · Record for Agent](channels/audio/record-for-agent/AgentBridge/README.md)** | 两场真机长录逐段核对，序号连续。手机仅收到其中一部分，逐段有双端回执；其余片段仍有手表音频，补传待验。[REC-47](https://linear.app/zhiming-app/issue/REC-47) | Watch / iPhone 新版录制界面已在模拟器验证；真机起录和表冠操作待验。[REC-60](https://linear.app/zhiming-app/issue/REC-60) | 手机上未检出电脑自动交付账本，本机接收库和日常 Hub 在核查时段均为 0。合成 CAF 已验接收、转写和导入。 | 隔离库中，真实 Codex 找到转写原句、Raw 和段内时间。一次 ASR 主体误识也被原样引用。真机同句待验。[验收记录](docs/verification/2026-11-22-source-to-agent.md#录音) |
+| <a name="check-audio"></a>**[录音 · Record for Agent](channels/audio/record-for-agent/AgentBridge/README.md)** | 两场真机长录逐段核对，序号连续。手机仅收到其中一部分，逐段有双端回执；其余片段仍有手表音频，补传待验。[REC-47](https://linear.app/zhiming-app/issue/REC-47) | Watch / iPhone 新版录制界面已在模拟器验证；真机起录和表冠操作待验。[REC-60](https://linear.app/zhiming-app/issue/REC-60) | 用户选定真机片段后，已从 iPhone 定向取到 Mac、校验音频摘要、本机转写并导入隔离 Hub。日常接收库和 Hub 仍未收到同段。 | 独立 Codex 从隔离 Hub 先查 Memory，再取单句 Raw，逐字引用真机选段转写。证据 ID 和覆盖时间吻合，两种本地转写对部分字词有分歧。[验收记录](docs/verification/2026-11-22-source-to-agent.md#录音) |
 | <a name="check-clipboard"></a>**[剪贴板 · ClipContext](channels/clipboard/clipcontext/README.md)** | 0.1.4/build 5 预发行应用已验受控复制、排除隐藏项及重启后续写。 | 卡片和列表有局部验收；0.1.4 普通图形会话的跨 App 自动粘贴待验。 | 发布端实产归档显式导入得到 4 Raw / 3 Memory，重导新增 0 条。 | 默认隐藏。单条授权后，真实 Codex 从 Hub 逐字找回重启后的测试口令，Raw ID 和出处均匹配。[验收记录](docs/verification/2026-11-22-source-to-agent.md#剪贴板) |
 | <a name="check-wechat"></a>**微信 · Mac 采集工具** | 已实现历史文件导入、前台 OCR、周期导出；真实会话漏收率待测。[PR #8](https://github.com/BENZEMA216/context-instrumentality-project/pull/8) | 启动器引导选择标题和消息区域，记录在 Hub 管理页查看；真窗口校准待验。 | 已用合成历史和真实 Vision 识别的合成画面验证入库、去重。屏外消息不在 OCR 覆盖范围。 | 合成验收中 Agent 看不到仅本机记录；明确授权后的会话原文回查待验。 |
 | <a name="check-browser"></a>**浏览器 · 摘录扩展** | 主动保存选区、原网址、标题和时间已验；URL 隐私处理待补。 | Chrome 158 在合成网页实测弹窗保存、撤销，本地条目数 0 → 1 → 0。 | 原型写入扩展本地存储。扩展 → Hub 待接。 | 等待接入后验证 Agent 能找回选区原句和网页出处。 |
@@ -21,7 +21,8 @@
 
 **下一轮验收**　录音和剪贴板优先，可并行验收。勾选时在对应行补上日期、版本和证据。分工和缺陷见 [Linear 渠道看板](https://linear.app/zhiming-app/project/context-补完计划-渠道接入与验收-b0bb633d4d52)，工单需要工作区访问权限。
 
-- [ ] **录音**　先沿现有真机录音核对手表分段、手机回执、Mac 入库和 Hub 记录，再从获准段落核对 Agent 所引原句与录音。[REC-61](https://linear.app/zhiming-app/issue/REC-61)
+- [x] **录音 · 单段回查**　真机片段已核对手表与手机回执。用户选段后，通过 Mac 和隔离 Hub，独立 Codex 逐字找回获准的一句转写及出处。[验收记录](docs/verification/2026-11-22-source-to-agent.md#真机单句回查)
+- [ ] **录音 · 日常自动交付**　核对同片段从手机自动抵达 Mac 的持久回执，以及日常 Hub 入库和 Agent 回查。[REC-61](https://linear.app/zhiming-app/issue/REC-61)
 - [x] **剪贴板**　0.1.4/build 5 预发行应用已完成受控复制、重启、Hub 重导、排除项与 Agent 原句回查（2026-11-22）。[REC-62](https://linear.app/zhiming-app/issue/REC-62)
 - [ ] **微信**　在标题唯一的测试会话中切换、恢复和滚动，核对漏收、误收及获准后的原文回查。[REC-63](https://linear.app/zhiming-app/issue/REC-63)
 - [ ] **浏览器**　保存一个选区到 Hub，验证 URL 处理、重复提交、撤销和 Agent 引用原句。[REC-64](https://linear.app/zhiming-app/issue/REC-64)
