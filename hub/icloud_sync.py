@@ -1,5 +1,6 @@
 """Import owner-only observations of committed recordings from one selected iCloud Drive library."""
 import argparse
+from contextlib import contextmanager, nullcontext
 import json
 import os
 from pathlib import Path
@@ -63,20 +64,50 @@ def initialize_baseline(root, library_id, baseline, request_metadata=False):
     return {"baselineCount": len(result["segments"]), "startedAt": started}
 
 
-def set_metadata_grant(store, library_id, selection, *, enabled):
+def _grant_members(library_id, selection):
     library_id = str(uuid.UUID(library_id))
     members = sorted({str(uuid.UUID(sid)) for sid in selection})
     if not members:
         raise ValueError("Choose explicit original segment UUIDs.")
+    return [(library_id, sid, stable_id(CONNECTOR, library_id, sid)) for sid in members]
+
+
+def set_metadata_grant(store, library_id, selection, *, enabled):
+    members = _grant_members(library_id, selection)
+    changed = 0
     with store._transaction(True) as conn:
-        if enabled:
-            result = conn.executemany(
-                "INSERT OR IGNORE INTO icloud_metadata_grants(library_id,segment_id,raw_id) VALUES(?,?,?)",
-                ((library_id, sid, stable_id(CONNECTOR, library_id, sid)) for sid in members))
-        else:
-            result = conn.executemany("DELETE FROM icloud_metadata_grants WHERE library_id=? AND segment_id=?",
-                                      ((library_id, sid) for sid in members))
-        return result.rowcount
+        for library, sid, raw_id in members:
+            pending = conn.execute("DELETE FROM icloud_pending_grants WHERE library_id=? AND segment_id=?",
+                                   (library, sid)).rowcount
+            if enabled:
+                result = conn.execute("INSERT OR IGNORE INTO icloud_metadata_grants(library_id,segment_id,raw_id) VALUES(?,?,?)",
+                                      (library, sid, raw_id))
+            else:
+                result = conn.execute("DELETE FROM icloud_metadata_grants WHERE library_id=? AND segment_id=?",
+                                      (library, sid))
+            changed += int(bool(result.rowcount or pending))
+    return changed
+
+
+@contextmanager
+def _grant_after_verification(store, library_id, selection):
+    members = _grant_members(library_id, selection)
+    request = str(uuid.uuid4())
+    # Only the latest pending request for each member can activate a grant.
+    # Normal readers and importers never consult this table for authorization.
+    with store._transaction(True) as conn:
+        conn.executemany("INSERT OR REPLACE INTO icloud_pending_grants(library_id,segment_id,raw_id,request_id) VALUES(?,?,?,?)",
+                         ((*member, request) for member in members))
+    verified = False
+    try:
+        yield
+        verified = True
+    finally:
+        with store._transaction(True) as conn:
+            if verified:
+                conn.execute("""INSERT OR IGNORE INTO icloud_metadata_grants(library_id,segment_id,raw_id)
+                    SELECT library_id,segment_id,raw_id FROM icloud_pending_grants WHERE request_id=?""", (request,))
+            conn.execute("DELETE FROM icloud_pending_grants WHERE request_id=?", (request,))
 
 
 def publish_verified_metadata(conn, event, revision):
@@ -151,17 +182,17 @@ def save_observation(store, event):
 
 
 def sync(root, library_id, store, selection, baseline=None, request_metadata=False, *, grant_agent_metadata=False):
-    with store._transaction(False) as conn:
-        granted = {row[0] for row in conn.execute(
-            "SELECT segment_id FROM icloud_metadata_grants WHERE library_id=?", (library_id,))}
-    observed = sorted(set(selection) | granted)
-    early = granted | (set(selection) if grant_agent_metadata else set())
-    scope = {"selection": observed, "baseline": baseline}
-    if early:
-        scope["earlySelection"] = sorted(early)
-    result = observe(root, library_id, "hub-metadata", scope, request_metadata)
-    if grant_agent_metadata:
-        set_metadata_grant(store, library_id, selection, enabled=True)
+    intent = _grant_after_verification(store, library_id, selection) if grant_agent_metadata else nullcontext()
+    with intent:
+        with store._transaction(False) as conn:
+            granted = {row[0] for row in conn.execute(
+                "SELECT segment_id FROM icloud_metadata_grants WHERE library_id=?", (library_id,))}
+        observed = sorted(set(selection) | granted)
+        early = granted | (set(selection) if grant_agent_metadata else set())
+        scope = {"selection": observed, "baseline": baseline}
+        if early:
+            scope["earlySelection"] = sorted(early)
+        result = observe(root, library_id, "hub-metadata", scope, request_metadata)
     counts = {key: result[key] for key in ("absentSelected", "pending", "rejected")}
     if request_metadata:
         counts["metadataRequestsAccepted"] = result["metadataRequestsAccepted"]

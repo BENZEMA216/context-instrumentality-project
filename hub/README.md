@@ -135,7 +135,7 @@ context-hub-icloud-recordings --library-id "$expected_library_id" \
   --selection "$selected_ids" --revoke-agent-metadata
 ```
 
-Agent 视图标为 `redacted`，提供 UTC 时间、原始片段和会话 ID、顺序、采样与大小、库 ID、音频和清单的 SHA-256 及证据状态。正文固定为空。原始记录的修订和隐私等级保持由所有者管理。手动编辑或删除使该修订的目录视图立即失效。撤销仅需访问 Hub 的本地数据库。
+Agent 视图标为 `redacted`，提供 UTC 时间、原始片段和会话 ID、顺序、采样与大小、库 ID、音频和清单的 SHA-256 及证据状态。正文固定为空。原始记录的修订和隐私等级保持由所有者管理。手动编辑或删除时，Hub 会在同一事务清除对应目录视图和搜索副本。打开旧数据库时会清理已失效的副本。显式授权先登记本批片段，原库核验成功后生效。期间撤销的片段会取消在途授权，其余片段继续核验。撤销仅需访问 Hub 的本地数据库。
 
 
 授权片段的 `provenance.evidence` 为 `commit_and_manifest_verified` 时，Mac 已核验该片段的提交与清单，`audio_entry_observed` 为 `false`。Mac 后续观察到与清单相符的音频目录项，原 ID 上的证据升级为 `committed_manifest_and_audio_entry`，该标记变为 `true`。两种状态的 `audio_content_verified` 均为 `false`。未授权片段仍需核验音频目录项才能进入本地 Hub。

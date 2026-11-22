@@ -50,6 +50,16 @@ CREATE TABLE IF NOT EXISTS icloud_metadata_grants (
  verified_revision INTEGER, projection TEXT, searchable TEXT,
  PRIMARY KEY(library_id, segment_id)
 );
+CREATE TABLE IF NOT EXISTS icloud_pending_grants (
+ library_id TEXT NOT NULL, segment_id TEXT NOT NULL, raw_id TEXT NOT NULL, request_id TEXT NOT NULL,
+ PRIMARY KEY(library_id, segment_id)
+);
+CREATE TABLE IF NOT EXISTS hub_migrations (name TEXT PRIMARY KEY);
+CREATE TRIGGER IF NOT EXISTS clear_icloud_projection_on_revision
+ AFTER UPDATE OF revision ON raw_events WHEN OLD.revision != NEW.revision
+ BEGIN
+  UPDATE icloud_metadata_grants SET verified_revision=NULL, projection=NULL, searchable=NULL WHERE raw_id=NEW.id;
+ END;
 CREATE TABLE IF NOT EXISTS icloud_bridge_revisions (
  raw_id TEXT PRIMARY KEY REFERENCES raw_events(id), revision INTEGER NOT NULL
 );
@@ -168,6 +178,17 @@ def _summary(event):
     return _short(title, 160), _short(body, 900), key
 
 
+def _migrate(conn, name, statements):
+    # A server and a background importer can open the same older Hub concurrently.
+    if conn.execute("SELECT 1 FROM hub_migrations WHERE name=?", (name,)).fetchone():
+        return
+    conn.execute("BEGIN IMMEDIATE")
+    if conn.execute("INSERT OR IGNORE INTO hub_migrations(name) VALUES(?)", (name,)).rowcount:
+        for statement in statements:
+            conn.execute(statement)
+    conn.commit()
+
+
 class Store:
     def __init__(self, path):
         self.path = str(path)
@@ -177,6 +198,12 @@ class Store:
         with self._transaction(None) as conn:
             conn.execute("PRAGMA journal_mode=WAL")
             conn.executescript(_TABLES)
+            _migrate(conn, "clear_stale_icloud_projections", ["""
+                UPDATE icloud_metadata_grants AS g SET verified_revision=NULL, projection=NULL, searchable=NULL
+                WHERE (projection IS NOT NULL OR searchable IS NOT NULL OR verified_revision IS NOT NULL)
+                 AND NOT EXISTS (SELECT 1 FROM raw_events r WHERE r.id=g.raw_id
+                                 AND r.event IS NOT NULL AND r.revision=g.verified_revision)
+            """])
 
     @contextmanager
     def _transaction(self, write):
