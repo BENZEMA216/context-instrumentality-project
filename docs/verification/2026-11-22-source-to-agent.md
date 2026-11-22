@@ -46,15 +46,17 @@
 
 | 环节 | 11 月 22 日晚实测 |
 | --- | --- |
-| 手表到手机 | 23:40 核对双端收据和文件，原先留表的 97 段新增送达 0。手机的 76 段合计 1 小时 15 分 01.749 秒，仍在表上的 97 段合计 1 小时 35 分 36.544 秒。最新一场已传完，剩余 97 段排在 902 个更早的未确认片段之后；期间手机实际收到了其他日期的旧段。 |
+| 手表到手机 | 23:40 核对双端收据和文件，原先留表的 97 段新增送达 0。手机的 76 段合计 1 小时 15 分 01.749 秒，仍在表上的 97 段合计 1 小时 35 分 36.544 秒。最新一场已传完，剩余 97 段排在 902 个更早的未确认片段之后；期间手机实际收到了其他日期的旧段。补传修复让上一场未完成的 96 段轮流获得传输机会，另一个跨场短片段仍走历史队列。修复通过 825 项 Swift 测试及 315 个传输桥场景，真机仍为 build 127。 |
 | iPhone 写入 iCloud | 23:24 原录音库标记匹配，但系统给出的目录身份发生变化。23:26 恢复原目录后身份和标记均匹配。在真实 App 确认按原范围继续保存，23:41 复查开关已持久化。23:43 手机持有的 76 段均写出音频、清单和提交记录，摘要与手机收据逐一匹配。此时 76 段中 Apple 上传确认 0。 |
-| Mac 读云盘 | 23:43 通过实际绑定的 iCloud Drive 目录按源片段查询，173 个目录均未出现。后台每分钟检查指定片段和后续新增片段，有效提交、清单和音频目录项匹配后，向本地 Hub 写入元数据。此次核对读取的音频、转写正文均为 0 字节。[云盘接入 #19](https://github.com/BENZEMA216/context-instrumentality-project/pull/19) |
+| Mac 读云盘 | 23:43 初查尚无目标目录。23:52 出现首批 59 个，23:53 达到 76 个。23:59 Mac 读到 76 段的 commit 和 manifest，次日 00:06 用独立 reader 核对，76 个音频摘要与手机原收据逐一一致。此时这 76 段尚无 CAF 文件目录项，另外 97 个源目录也尚未出现。后台每分钟核对。对获准片段，提交和清单校验通过即可登记目录元数据；稍后实际看见音频文件条目，再更新同一条记录。此次核对读取的音频、转写正文均为 0 字节。[云盘接入 #19](https://github.com/BENZEMA216/context-instrumentality-project/pull/19) |
 | Mac 直收 | 旧服务的状态探针曾回 405；更新这台 Mac 上的接收端后，正确凭据回 200，无凭据回 401。直收回执现已接入日常 Hub；手机此次选用云盘，本批直收回执 0/173。[接收服务接入 #18](https://github.com/BENZEMA216/context-instrumentality-project/pull/18) |
-| 日常 Agent | 录音 MCP 同窗查询成功且无后页。Hub 所有者和 Agent 分别按云盘和直收来源查询同一批 173 段，均无匹配 Raw；日常 Agent 可见 Memory 也为 0。 |
+| 日常 Agent | 次日 00:09，日常 Hub 所有者可见已到达的 76 段。默认权限下 Agent 命中 0；开放这批固定 ID 的目录元数据后，同一 Agent 分两页搜到 76 段，逐个按 ID 读取也是 76 段。筛选以外的云盘录音命中 0，每条正文为空，录音 Memory 为 0。录音专用直收 MCP 仍返回空集。[目录授权 #21](https://github.com/BENZEMA216/context-instrumentality-project/pull/21) |
 
 另在 build 127 调度器上复现了确认保存后立刻切后台可能丢掉开启操作，修复通过前台和目录恢复断言，真机本次暂停的具体触发时序未证实。[REC-70](https://linear.app/zhiming-app/issue/REC-70)
 
-补传、跨设备到达和日常 Agent 可见性继续验收。录音消费 skill / prompt 已标记待人工验证和撰写。[手表补传 REC-47](https://linear.app/zhiming-app/issue/REC-47) · [iCloud 调度 REC-31](https://linear.app/zhiming-app/issue/REC-31) · [日常链路 REC-61](https://linear.app/zhiming-app/issue/REC-61)
+单独启动桌面版 Codex，通过该项目日常 `context_hub` 的 `search_raw` 与 `get_raw` 回查先前由用户选取的首分钟。只给查询用的片段标识，Codex 返回的毫秒起止时间、2,880,000 帧和音频源摘要全部匹配，时长 60 秒。后到片段沿用这 173 个 ID 的授权，其他录音继续按原有权限处理。
+
+手表补传和整批音频上传仍待真机验收。录音消费 skill / prompt 已标记待人工验证和撰写。[手表补传 REC-47](https://linear.app/zhiming-app/issue/REC-47) · [iCloud 调度 REC-31](https://linear.app/zhiming-app/issue/REC-31) · [日常链路 REC-61](https://linear.app/zhiming-app/issue/REC-61)
 
 ## 剪贴板
 
