@@ -19,6 +19,14 @@
 
 合成测试覆盖 Mac 的接收逻辑、导出包导入和转写回查。真机验收沿用户已有录音核对手表分段、手机持久回执、Mac 接收、Hub 和获准 Agent 的引用。Mac 现有接收服务对连接状态查询返回 HTTP 405，实际投递应查对应片段的持久回执。[同段真机验收 REC-61](https://linear.app/zhiming-app/issue/REC-61) · [接收端状态探针 REC-35](https://linear.app/zhiming-app/issue/REC-35)
 
+### 真机单句回查
+
+用户从前述长录中选定了已在 iPhone 持久保存的一分钟。Mac 只从手机取这一个片段，核对片段 ID、起止时间、60 秒有效帧、字节数和 SHA-256，然后使用本机 Apple 语音模型转写。完整录音的 Raw 在隔离 Hub 中保持仅本机可见。为一条获准的转写句生成可见 Raw，保留与原始转写的字符区间、ASR 时间段及音频摘要的本地对应关系。
+
+独立 Codex 会话没有预置答案。它通过单句只读接口实时调用隔离 Hub 的生产数据存储，先用 `search_memory` 找到 Memory，再用 `get_raw` 核对该条证据。两次查询分别返回获准句子及对应的证据字段。最终答案中的句子逐字匹配，Memory ID、Raw ID、来源代号和段内覆盖时间全部匹配。该次调用耗时 23.17 秒，含 Codex 启动。覆盖时间取自 Apple ASR 分段，精度止于该分段。
+
+另用禁止联网的 SenseVoiceSmall 识别同一覆盖区间，两种本地模型的转写有字词差异，整句的语音准确性仍待人工校对。日常 Mac 接收库与日常 Hub 按同一片段查询均为 0。单段定向回查已验，日常自动交付继续由 [REC-61](https://linear.app/zhiming-app/issue/REC-61) 跟进。
+
 ## 剪贴板
 
 使用经签名与文件摘要校验的 [ClipContext 0.1.4/build 5 预发行包](https://github.com/BENZEMA216/ClipContext/releases/tag/v0.1.4)。通过发布二进制自带的测试入口指定命名剪贴板与独立持久目录，两次启动同一份原生应用。测试没有接触日常账户的通用剪贴板。
