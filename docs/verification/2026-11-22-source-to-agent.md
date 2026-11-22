@@ -38,7 +38,7 @@
 | 日常 Mac | 接收库、归档成员、逐段持久投递回执和已入库转写均为 0/173。 |
 | 日常 Agent | 原生录音 MCP 的时间窗查询成功，结果为空且无后页。日常 Hub MCP 的 Memory 和 Raw 查询均成功并返回空集，Hub 入库按源片段复核也为 0/173。 |
 
-与上面的定向选段验收分别记账。手机尚未收到的 97 段均仍留在表上，其中较早的长录 96 段、跨界短片段 1 段。已到手机的 76 段尚未进入日常 Mac。补传和日常可达性分别跟踪。[REC-47](https://linear.app/zhiming-app/issue/REC-47) · [REC-61](https://linear.app/zhiming-app/issue/REC-61)
+与上面的定向选段验收分别记账。当晚 20:13 再查同批片段，手机收据、手表确认和表上音频逐段与下午吻合。手机尚未收到的 97 段均仍留在表上，其中较早的长录 96 段、跨界短片段 1 段。已到手机的 76 段尚未进入日常 Mac。补传和日常可达性分别跟踪。[REC-47](https://linear.app/zhiming-app/issue/REC-47) · [REC-61](https://linear.app/zhiming-app/issue/REC-61)
 
 ## 剪贴板
 
