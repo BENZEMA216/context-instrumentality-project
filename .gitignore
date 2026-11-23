@@ -35,3 +35,4 @@ local-data/
 context-vault/
 raw-data/
 markdown-out/
+packages/hub/src/context_hub/static/

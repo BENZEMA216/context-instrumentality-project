@@ -35,8 +35,9 @@ Context Vault v2 (隔离逐条加密库 · 实用型授权代办) ────�
 
 | 模块 | 路径 | 当前状态 | 说明 |
 | :--- | :--- | :---: | :--- |
-| **Context Hub v2** | `packages/hub/` | 🚧 Phase 1 重构中 | L0–L4 引擎、FTS5、Agent-as-Curator 整理队列与强校验回写、双闭环 MCP |
-| **Context Workbench UI** | `web/` | 🚧 Phase 1 重构中 | 统一时间线、项目决策面板、Markdown 预览、渠道与隐私策略管理 |
+| **Context Hub v2** | [`packages/hub/`](packages/hub/README.md) | ✅ Phase 1 已落地 | L0 不可变原档 + L1 FTS5 & 跨源链接 + L2 Episode & Markdown + L3 双时序决策 + Agent-as-Curator 双闭环 MCP |
+| **Context Workbench UI** | `web/` | ✅ Phase 1 已落地 | React + TS 统一工作台：时间线、项目决策、Agent 整理台、Markdown 预览、渠道与隐私策略 |
+| **Agent Curator Skill** | [`skills/context-curator/`](skills/context-curator/SKILL.md) | ✅ Phase 1 已落地 | 暴露给 Antigravity / Codex / WorkBuddy 的整理规则与强校验回写工作流 |
 | **AI 对话历史** | `packages/collectors/` | ⏳ Phase 2 | 10+ AI 客户端增量采集（含 Codex / Claude / Cursor / Antigravity / ChatGPT 等） |
 | **剪贴板（ClipContext）** | `packages/collectors/` | ⏳ Phase 2 | 自动增量监听独立 App `ClipContext` 归档，免手工导入 |
 | **浏览器扩展（MV3）** | `extensions/browser/` | ⏳ Phase 2 | 三层有效停留 + Defuddle/Readability 转 Markdown + 无弹窗划词提权 + 上下文侧边栏 |

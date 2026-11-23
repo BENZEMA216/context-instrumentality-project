@@ -1,0 +1,2356 @@
+"""Context Hub v2 L0-L3 SQLite WAL + FTS5 Engine, Deterministic Linker & Curation Gate."""
+
+from __future__ import annotations
+
+import datetime
+import json
+import sqlite3
+from contextlib import contextmanager
+from pathlib import Path
+from typing import Any
+
+from .anchors import canonicalize_url, extract_anchors
+from .markdown_sync import MarkdownSync
+from .models import (
+    CollectorStatusIn,
+    CurationBatchIn,
+    DecisionCurationIn,
+    MemoryCurationIn,
+    PrivacyRuleIn,
+    PrivacyTier,
+    RawEventIn,
+    new_ulid,
+    now_ms,
+    strictest_tier,
+)
+from .privacy import DEFAULT_CHANNEL_POLICIES, resolve_privacy_tier
+from .raw_log import RawLog
+from .tokenizer import fts_match_query, index_tokens
+
+
+class HubStoreError(ValueError):
+    def __init__(self, message: str, status: int = 400):
+        super().__init__(message)
+        self.status = status
+
+
+_SCHEMA_SQL = """
+CREATE TABLE IF NOT EXISTS raw_events (
+    id TEXT PRIMARY KEY,
+    source TEXT NOT NULL,
+    connector TEXT NOT NULL,
+    source_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    t_start INTEGER NOT NULL,
+    t_end INTEGER NOT NULL,
+    t_observed INTEGER NOT NULL,
+    device_id TEXT,
+    actor TEXT,
+    project TEXT,
+    episode_id TEXT,
+    privacy_tier TEXT NOT NULL,
+    attention REAL,
+    curation_tier TEXT,
+    title TEXT NOT NULL,
+    body_text TEXT NOT NULL,
+    locator TEXT,
+    event_json TEXT,
+    deleted INTEGER NOT NULL DEFAULT 0,
+    revision INTEGER NOT NULL DEFAULT 1,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    UNIQUE(source, connector, source_id)
+);
+CREATE INDEX IF NOT EXISTS idx_raw_time ON raw_events(t_start DESC, id);
+CREATE INDEX IF NOT EXISTS idx_raw_source_time ON raw_events(source, t_start DESC);
+CREATE INDEX IF NOT EXISTS idx_raw_project_time ON raw_events(project, t_start DESC);
+CREATE INDEX IF NOT EXISTS idx_raw_episode_time ON raw_events(episode_id, t_start ASC);
+CREATE INDEX IF NOT EXISTS idx_raw_privacy_time ON raw_events(privacy_tier, deleted, t_start DESC);
+CREATE INDEX IF NOT EXISTS idx_raw_device_interval ON raw_events(device_id, source, t_start, t_end);
+
+CREATE VIRTUAL TABLE IF NOT EXISTS raw_fts USING fts5(
+    raw_id UNINDEXED,
+    tokens,
+    tokenize='unicode61 remove_diacritics 2'
+);
+
+CREATE TABLE IF NOT EXISTS event_anchors (
+    event_id TEXT NOT NULL REFERENCES raw_events(id) ON DELETE CASCADE,
+    anchor TEXT NOT NULL,
+    PRIMARY KEY(event_id, anchor)
+);
+CREATE INDEX IF NOT EXISTS idx_anchors_anchor ON event_anchors(anchor);
+
+CREATE TABLE IF NOT EXISTS links (
+    id TEXT PRIMARY KEY,
+    src_id TEXT NOT NULL REFERENCES raw_events(id) ON DELETE CASCADE,
+    dst_id TEXT NOT NULL REFERENCES raw_events(id) ON DELETE CASCADE,
+    relation TEXT NOT NULL,
+    confidence REAL NOT NULL,
+    evidence TEXT NOT NULL DEFAULT '',
+    method TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    UNIQUE(src_id, dst_id, relation)
+);
+CREATE INDEX IF NOT EXISTS idx_links_src ON links(src_id);
+CREATE INDEX IF NOT EXISTS idx_links_dst ON links(dst_id);
+
+CREATE TABLE IF NOT EXISTS episodes (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    summary TEXT NOT NULL DEFAULT '',
+    overview TEXT NOT NULL DEFAULT '',
+    project TEXT,
+    primary_source TEXT NOT NULL,
+    t_start INTEGER NOT NULL,
+    t_end INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    boundary_reason TEXT NOT NULL DEFAULT '',
+    entities_json TEXT NOT NULL DEFAULT '[]',
+    privacy_tier TEXT NOT NULL,
+    markdown_path TEXT,
+    curated_by TEXT,
+    revision INTEGER NOT NULL DEFAULT 1,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_episodes_status ON episodes(status, privacy_tier, t_end DESC);
+CREATE INDEX IF NOT EXISTS idx_episodes_project ON episodes(project, t_end DESC);
+CREATE INDEX IF NOT EXISTS idx_episodes_time ON episodes(t_end DESC, id);
+
+CREATE TABLE IF NOT EXISTS episode_events (
+    episode_id TEXT NOT NULL REFERENCES episodes(id) ON DELETE CASCADE,
+    raw_id TEXT NOT NULL REFERENCES raw_events(id) ON DELETE CASCADE,
+    PRIMARY KEY(episode_id, raw_id)
+);
+CREATE INDEX IF NOT EXISTS idx_ep_events_raw ON episode_events(raw_id);
+
+CREATE VIRTUAL TABLE IF NOT EXISTS episodes_fts USING fts5(
+    episode_id UNINDEXED,
+    tokens,
+    tokenize='unicode61 remove_diacritics 2'
+);
+
+CREATE TABLE IF NOT EXISTS decisions (
+    id TEXT PRIMARY KEY,
+    project TEXT NOT NULL,
+    topic TEXT NOT NULL,
+    statement TEXT NOT NULL,
+    status TEXT NOT NULL,
+    authority TEXT NOT NULL,
+    confidence REAL NOT NULL,
+    valid_at INTEGER NOT NULL,
+    invalid_at INTEGER,
+    superseded_by TEXT,
+    privacy_tier TEXT NOT NULL,
+    curated_by TEXT,
+    revision INTEGER NOT NULL DEFAULT 1,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_decisions_project ON decisions(project, status, valid_at DESC);
+CREATE INDEX IF NOT EXISTS idx_decisions_privacy ON decisions(privacy_tier, status, valid_at DESC);
+
+CREATE TABLE IF NOT EXISTS decision_evidence (
+    decision_id TEXT NOT NULL REFERENCES decisions(id) ON DELETE CASCADE,
+    raw_id TEXT NOT NULL REFERENCES raw_events(id) ON DELETE CASCADE,
+    PRIMARY KEY(decision_id, raw_id)
+);
+CREATE INDEX IF NOT EXISTS idx_dec_ev_raw ON decision_evidence(raw_id);
+
+CREATE VIRTUAL TABLE IF NOT EXISTS decisions_fts USING fts5(
+    decision_id UNINDEXED,
+    tokens,
+    tokenize='unicode61 remove_diacritics 2'
+);
+
+CREATE TABLE IF NOT EXISTS memories (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    body TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    project TEXT,
+    origin TEXT NOT NULL,
+    tags_json TEXT NOT NULL DEFAULT '[]',
+    privacy_tier TEXT NOT NULL,
+    needs_review INTEGER NOT NULL DEFAULT 0,
+    deleted INTEGER NOT NULL DEFAULT 0,
+    curated_by TEXT,
+    revision INTEGER NOT NULL DEFAULT 1,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_memories_project ON memories(project, deleted, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_memories_privacy ON memories(privacy_tier, deleted, updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS memory_evidence (
+    memory_id TEXT NOT NULL REFERENCES memories(id) ON DELETE CASCADE,
+    raw_id TEXT NOT NULL REFERENCES raw_events(id) ON DELETE CASCADE,
+    PRIMARY KEY(memory_id, raw_id)
+);
+CREATE INDEX IF NOT EXISTS idx_mem_ev_raw ON memory_evidence(raw_id);
+
+CREATE VIRTUAL TABLE IF NOT EXISTS memories_fts USING fts5(
+    memory_id UNINDEXED,
+    tokens,
+    tokenize='unicode61 remove_diacritics 2'
+);
+
+CREATE TABLE IF NOT EXISTS privacy_rules (
+    id TEXT PRIMARY KEY,
+    scope TEXT NOT NULL,
+    match_value TEXT NOT NULL,
+    default_tier TEXT NOT NULL,
+    priority INTEGER NOT NULL DEFAULT 100,
+    description TEXT NOT NULL DEFAULT '',
+    created_at INTEGER NOT NULL,
+    UNIQUE(scope, match_value)
+);
+
+CREATE TABLE IF NOT EXISTS curation_runs (
+    id TEXT PRIMARY KEY,
+    curator_agent TEXT NOT NULL,
+    episodes_count INTEGER NOT NULL DEFAULT 0,
+    decisions_count INTEGER NOT NULL DEFAULT 0,
+    memories_count INTEGER NOT NULL DEFAULT 0,
+    links_count INTEGER NOT NULL DEFAULT 0,
+    notes TEXT NOT NULL DEFAULT '',
+    created_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS collector_status (
+    collector TEXT PRIMARY KEY,
+    source TEXT NOT NULL,
+    status TEXT NOT NULL,
+    items_synced INTEGER NOT NULL DEFAULT 0,
+    watermark TEXT,
+    message TEXT NOT NULL DEFAULT '',
+    updated_at INTEGER NOT NULL
+);
+"""
+
+EPISODE_GAP_MS = 30 * 60 * 1000  # 30 minutes
+CLIPBOARD_WINDOW_BEFORE_MS = 30 * 60 * 1000
+CLIPBOARD_WINDOW_AFTER_MS = 5 * 60 * 1000
+RELATED_WINDOW_MS = 15 * 60 * 1000
+
+
+def _extract_title_and_body(event: dict[str, Any]) -> tuple[str, str]:
+    content = event.get("content") or {}
+    context = event.get("context") or {}
+    excerpts = [
+        str(ex.get("text", "")).strip()
+        for ex in (content.get("excerpts") or [])
+        if isinstance(ex, dict) and str(ex.get("text", "")).strip()
+    ]
+    body_candidates = [
+        content.get("text"),
+        content.get("transcript"),
+        content.get("summary"),
+        "\n\n".join(excerpts) if excerpts else None,
+    ]
+    body = next((str(v).strip() for v in body_candidates if isinstance(v, str) and v.strip()), "")
+    title = (
+        str(content.get("title") or "").strip()
+        or str(context.get("window_title") or "").strip()
+        or (body.splitlines()[0][:80].strip() if body else "")
+        or str((event.get("provenance") or {}).get("source_id") or event["id"])
+    )
+    return title[:240], body
+
+
+def _approx_tokens(obj: Any) -> int:
+    text = json.dumps(obj, ensure_ascii=False, separators=(",", ":"))
+    # Conservative estimate for mixed CJK/English JSON
+    return max(1, len(text) // 3)
+
+
+def _date_utc(ms: int) -> str:
+    return datetime.datetime.fromtimestamp(
+        max(0, ms) / 1000.0, tz=datetime.UTC
+    ).strftime("%Y-%m-%d")
+
+
+class HubStore:
+    """Unified L0-L3 storage engine for Context Hub v2."""
+
+    def __init__(self, data_dir: Path):
+        self.data_dir = Path(data_dir)
+        self.data_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+        self.db_path = self.data_dir / "hub.sqlite3"
+        self.raw_log = RawLog(self.data_dir / "raw")
+        self.markdown = MarkdownSync(self.data_dir / "markdown")
+        init_conn = sqlite3.connect(str(self.db_path), timeout=20, isolation_level=None)
+        try:
+            init_conn.execute("PRAGMA journal_mode=WAL")
+            init_conn.execute("PRAGMA synchronous=NORMAL")
+            init_conn.execute("PRAGMA foreign_keys=ON")
+            init_conn.executescript(_SCHEMA_SQL)
+        finally:
+            init_conn.close()
+        with self._tx(write=True) as conn:
+            self._seed_default_privacy_rules(conn)
+
+    @contextmanager
+    def _tx(self, write: bool = False):
+        conn = sqlite3.connect(str(self.db_path), timeout=20, isolation_level=None)
+        conn.row_factory = sqlite3.Row
+        try:
+            conn.execute("PRAGMA foreign_keys=ON")
+            conn.execute("BEGIN IMMEDIATE" if write else "BEGIN")
+            yield conn
+            conn.commit()
+        except BaseException:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+
+    def _seed_default_privacy_rules(self, conn: sqlite3.Connection) -> None:
+        count = conn.execute("SELECT COUNT(*) FROM privacy_rules").fetchone()[0]
+        if count > 0:
+            return
+        now = now_ms()
+        for rule in DEFAULT_CHANNEL_POLICIES:
+            conn.execute(
+                """INSERT OR IGNORE INTO privacy_rules
+                   (id, scope, match_value, default_tier, priority, description, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    rule["id"],
+                    rule["scope"],
+                    rule["match_value"],
+                    rule["default_tier"],
+                    rule["priority"],
+                    rule["description"],
+                    now,
+                ),
+            )
+
+    # ------------------------------------------------------------------
+    # Privacy Rules
+    # ------------------------------------------------------------------
+    def list_privacy_rules(self) -> list[dict[str, Any]]:
+        with self._tx(False) as conn:
+            rows = conn.execute(
+                "SELECT * FROM privacy_rules ORDER BY priority ASC, scope ASC, match_value ASC"
+            ).fetchall()
+            return [dict(r) for r in rows]
+
+    def upsert_privacy_rule(self, rule: PrivacyRuleIn) -> dict[str, Any]:
+        now = now_ms()
+        rule_id = new_ulid("pr_")
+        with self._tx(True) as conn:
+            existing = conn.execute(
+                "SELECT id FROM privacy_rules WHERE scope=? AND match_value=?",
+                (rule.scope, rule.match_value.strip().lower()),
+            ).fetchone()
+            if existing:
+                rule_id = existing["id"]
+                conn.execute(
+                    """UPDATE privacy_rules
+                       SET default_tier=?, priority=?, description=?
+                       WHERE id=?""",
+                    (rule.default_tier, rule.priority, rule.description, rule_id),
+                )
+            else:
+                conn.execute(
+                    """INSERT INTO privacy_rules
+                       (id, scope, match_value, default_tier, priority, description, created_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        rule_id,
+                        rule.scope,
+                        rule.match_value.strip().lower(),
+                        rule.default_tier,
+                        rule.priority,
+                        rule.description,
+                        now,
+                    ),
+                )
+            row = conn.execute("SELECT * FROM privacy_rules WHERE id=?", (rule_id,)).fetchone()
+            return dict(row)
+
+    def delete_privacy_rule(self, rule_id: str) -> dict[str, Any]:
+        with self._tx(True) as conn:
+            cur = conn.execute("DELETE FROM privacy_rules WHERE id=?", (rule_id,))
+            if cur.rowcount == 0:
+                raise HubStoreError("Privacy rule not found", 404)
+            return {"id": rule_id, "deleted": True}
+
+    # ------------------------------------------------------------------
+    # L0 + L1 Ingest, Deterministic Linking, and Episode Segmentation
+    # ------------------------------------------------------------------
+    def ingest_event(
+        self,
+        raw_in: RawEventIn | dict[str, Any],
+        *,
+        write_l0: bool = True,
+        sync_md: bool = False,
+    ) -> dict[str, Any]:
+        model = raw_in if isinstance(raw_in, RawEventIn) else RawEventIn.model_validate(raw_in)
+        event = model.model_dump(exclude_none=True)
+        now = now_ms()
+        event.setdefault("id", new_ulid("ev_"))
+        event.setdefault("t_end", event["t_start"])
+        if event["t_end"] < event["t_start"]:
+            raise HubStoreError("t_end must be >= t_start", 400)
+        event.setdefault("t_observed", now)
+
+        # Normalize URL if present
+        content = event.setdefault("content", {})
+        if content.get("url") and not content.get("url_norm"):
+            content["url_norm"] = canonicalize_url(str(content["url"]))
+        elif content.get("url_norm"):
+            content["url_norm"] = canonicalize_url(str(content["url_norm"]))
+
+        # Normalize project
+        context = event.setdefault("context", {})
+        project = event.get("project") or context.get("project")
+        if isinstance(project, str):
+            project = project.strip() or None
+        if project:
+            event["project"] = project
+            context["project"] = project
+
+        with self._tx(True) as conn:
+            rules = [
+                dict(r)
+                for r in conn.execute(
+                    "SELECT * FROM privacy_rules ORDER BY priority ASC, id ASC"
+                ).fetchall()
+            ]
+            tier, pii_tags = resolve_privacy_tier(event, rules)
+            event["privacy"] = {"tier": tier, "pii_tags": pii_tags}
+
+            prov = event["provenance"]
+            existing = conn.execute(
+                "SELECT * FROM raw_events WHERE source=? AND connector=? AND source_id=?",
+                (event["source"], prov["connector"], prov["source_id"]),
+            ).fetchone()
+            if existing is not None:
+                if existing["deleted"]:
+                    raise HubStoreError("Source record was deleted", 410)
+                return {
+                    "status": "existing",
+                    "event": self._hydrate_raw(conn, existing),
+                }
+
+            anchors = extract_anchors(event)
+            event["anchors"] = anchors
+            title, body = _extract_title_and_body(event)
+            event_json = json.dumps(event, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+            if write_l0:
+                self.raw_log.append(event)
+
+            episode_id = self._assign_episode(
+                conn,
+                event=event,
+                title=title,
+                project=project,
+                tier=tier,
+                now=now,
+            )
+            event["episode_id"] = episode_id
+
+            conn.execute(
+                """INSERT INTO raw_events
+                   (id, source, connector, source_id, kind, t_start, t_end, t_observed,
+                    device_id, actor, project, episode_id, privacy_tier, attention, curation_tier,
+                    title, body_text, locator, event_json, deleted, revision, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1, ?, ?)""",
+                (
+                    event["id"],
+                    event["source"],
+                    prov["connector"],
+                    prov["source_id"],
+                    event["kind"],
+                    event["t_start"],
+                    event["t_end"],
+                    event["t_observed"],
+                    event.get("device_id"),
+                    event.get("actor"),
+                    project,
+                    episode_id,
+                    tier,
+                    event.get("attention"),
+                    context.get("curation_tier"),
+                    title,
+                    body,
+                    prov.get("locator"),
+                    event_json,
+                    now,
+                    now,
+                ),
+            )
+            conn.execute(
+                "INSERT INTO raw_fts(raw_id, tokens) VALUES (?, ?)",
+                (
+                    event["id"],
+                    index_tokens(f"{title}\n{body}\n{project or ''}\n{' '.join(anchors)}"),
+                ),
+            )
+            conn.executemany(
+                "INSERT OR IGNORE INTO event_anchors(event_id, anchor) VALUES (?, ?)",
+                [(event["id"], a) for a in anchors],
+            )
+            conn.execute(
+                "INSERT OR IGNORE INTO episode_events(episode_id, raw_id) VALUES (?, ?)",
+                (episode_id, event["id"]),
+            )
+
+            # Update episode time bounds & strictest privacy tier
+            self._recompute_episode_envelope(conn, episode_id, now)
+
+            # Insert explicit links from event + run deterministic cross-channel linker
+            self._insert_explicit_links(conn, event, now)
+            new_links = self._run_deterministic_linker(conn, event, title, body, anchors, now)
+
+            row = conn.execute("SELECT * FROM raw_events WHERE id=?", (event["id"],)).fetchone()
+            hydrated = self._hydrate_raw(conn, row)
+
+        if sync_md:
+            self.sync_markdown_for_episode(episode_id)
+
+        return {
+            "status": "created",
+            "event": hydrated,
+            "episode_id": episode_id,
+            "links_created": new_links,
+        }
+
+    def ingest_batch(
+        self,
+        events: list[RawEventIn | dict[str, Any]],
+        *,
+        write_l0: bool = True,
+    ) -> dict[str, Any]:
+        counts = {"created": 0, "existing": 0, "deleted_skipped": 0, "links_created": 0}
+        touched_episodes: set[str] = set()
+        for item in events:
+            try:
+                res = self.ingest_event(item, write_l0=write_l0, sync_md=False)
+            except HubStoreError as exc:
+                if exc.status == 410:
+                    counts["deleted_skipped"] += 1
+                    continue
+                raise
+            counts[res["status"]] += 1
+            counts["links_created"] += res.get("links_created", 0)
+            if res.get("episode_id"):
+                touched_episodes.add(res["episode_id"])
+        return {**counts, "episodes_touched": len(touched_episodes)}
+
+    def _assign_episode(
+        self,
+        conn: sqlite3.Connection,
+        *,
+        event: dict[str, Any],
+        title: str,
+        project: str | None,
+        tier: PrivacyTier,
+        now: int,
+    ) -> str:
+        explicit_ep = event.get("episode_id")
+        if explicit_ep:
+            row = conn.execute("SELECT id FROM episodes WHERE id=?", (explicit_ep,)).fetchone()
+            if row is not None:
+                return row["id"]
+            ep_title = title[:120] or f"{event['source']} 会话"
+            conn.execute(
+                """INSERT INTO episodes
+                   (id, title, summary, overview, project, primary_source, t_start, t_end,
+                    status, boundary_reason, entities_json, privacy_tier, markdown_path,
+                    curated_by, revision, created_at, updated_at)
+                   VALUES (?, ?, '', '', ?, ?, ?, ?, 'pending_curation', 'explicit_session', '[]', ?, NULL, NULL, 1, ?, ?)""",
+                (
+                    explicit_ep,
+                    ep_title,
+                    project,
+                    event["source"],
+                    event["t_start"],
+                    event["t_end"],
+                    tier,
+                    now,
+                    now,
+                ),
+            )
+            conn.execute(
+                "INSERT INTO episodes_fts(episode_id, tokens) VALUES (?, ?)",
+                (explicit_ep, index_tokens(f"{ep_title}\n{project or ''}")),
+            )
+            return explicit_ep
+
+        # Otherwise find most recent open episode within 30min window for same project
+        if project:
+            candidate = conn.execute(
+                """SELECT id, t_start, t_end FROM episodes
+                   WHERE project=? AND t_end >= ? AND t_start <= ?
+                   ORDER BY t_end DESC LIMIT 1""",
+                (project, event["t_start"] - EPISODE_GAP_MS, event["t_end"] + EPISODE_GAP_MS),
+            ).fetchone()
+        else:
+            candidate = conn.execute(
+                """SELECT id, t_start, t_end FROM episodes
+                   WHERE project IS NULL AND t_end >= ? AND t_start <= ?
+                   ORDER BY t_end DESC LIMIT 1""",
+                (event["t_start"] - EPISODE_GAP_MS, event["t_end"] + EPISODE_GAP_MS),
+            ).fetchone()
+
+        if candidate is not None:
+            return candidate["id"]
+
+        new_id = new_ulid("ep_")
+        ep_title = title[:120] or f"{event['source']} 活动"
+        conn.execute(
+            """INSERT INTO episodes
+               (id, title, summary, overview, project, primary_source, t_start, t_end,
+                status, boundary_reason, entities_json, privacy_tier, markdown_path,
+                curated_by, revision, created_at, updated_at)
+               VALUES (?, ?, '', '', ?, ?, ?, ?, 'pending_curation', 'time_gap_or_project', '[]', ?, NULL, NULL, 1, ?, ?)""",
+            (
+                new_id,
+                ep_title,
+                project,
+                event["source"],
+                event["t_start"],
+                event["t_end"],
+                tier,
+                now,
+                now,
+            ),
+        )
+        conn.execute(
+            "INSERT INTO episodes_fts(episode_id, tokens) VALUES (?, ?)",
+            (new_id, index_tokens(f"{ep_title}\n{project or ''}")),
+        )
+        return new_id
+
+    def _recompute_episode_envelope(
+        self, conn: sqlite3.Connection, episode_id: str, now: int
+    ) -> None:
+        rows = conn.execute(
+            """SELECT r.t_start, r.t_end, r.privacy_tier, r.source
+               FROM raw_events r JOIN episode_events ee ON ee.raw_id = r.id
+               WHERE ee.episode_id = ? AND r.deleted = 0""",
+            (episode_id,),
+        ).fetchall()
+        if not rows:
+            return
+        t_start = min(r["t_start"] for r in rows)
+        t_end = max(r["t_end"] for r in rows)
+        tier = strictest_tier([r["privacy_tier"] for r in rows])
+        ep = conn.execute("SELECT status FROM episodes WHERE id=?", (episode_id,)).fetchone()
+        new_status = ep["status"] if ep and ep["status"] == "manual" else "pending_curation"
+        conn.execute(
+            """UPDATE episodes
+               SET t_start=?, t_end=?, privacy_tier=?, status=?, updated_at=?
+               WHERE id=?""",
+            (t_start, t_end, tier, new_status, now, episode_id),
+        )
+
+    def _insert_link(
+        self,
+        conn: sqlite3.Connection,
+        src_id: str,
+        dst_id: str,
+        relation: str,
+        confidence: float,
+        evidence: str,
+        method: str,
+        now: int,
+    ) -> int:
+        if src_id == dst_id:
+            return 0
+        # Ensure both exist
+        exists = conn.execute(
+            "SELECT COUNT(*) FROM raw_events WHERE id IN (?, ?) AND deleted = 0",
+            (src_id, dst_id),
+        ).fetchone()[0]
+        if exists < 2:
+            return 0
+        cur = conn.execute(
+            """INSERT OR IGNORE INTO links
+               (id, src_id, dst_id, relation, confidence, evidence, method, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (new_ulid("lnk_"), src_id, dst_id, relation, confidence, evidence[:400], method, now),
+        )
+        return cur.rowcount
+
+    def _insert_explicit_links(
+        self, conn: sqlite3.Connection, event: dict[str, Any], now: int
+    ) -> None:
+        for link in event.get("links") or []:
+            self._insert_link(
+                conn,
+                event["id"],
+                link["target_id"],
+                link["relation"],
+                float(link.get("confidence", 1.0)),
+                str(link.get("evidence") or "explicit"),
+                "producer_explicit@v1",
+                now,
+            )
+
+    def _run_deterministic_linker(
+        self,
+        conn: sqlite3.Connection,
+        event: dict[str, Any],
+        title: str,
+        body: str,
+        anchors: list[str],
+        now: int,
+    ) -> int:
+        created = 0
+        ev_id = event["id"]
+        t_start = int(event["t_start"])
+        source = event["source"]
+        device = event.get("device_id")
+
+        # Level 1: Exact high-specificity anchor match (url, repo, issue, path)
+        for anchor in anchors:
+            if not anchor.startswith(("url:", "repo:", "issue:", "path:")):
+                continue
+            matches = conn.execute(
+                """SELECT ea.event_id FROM event_anchors ea
+                   JOIN raw_events r ON r.id = ea.event_id
+                   WHERE ea.anchor = ? AND ea.event_id != ? AND r.deleted = 0
+                   ORDER BY r.t_start DESC LIMIT 5""",
+                (anchor, ev_id),
+            ).fetchall()
+            for m in matches:
+                created += self._insert_link(
+                    conn,
+                    ev_id,
+                    m["event_id"],
+                    "same_anchor",
+                    0.95,
+                    anchor,
+                    "deterministic_anchor@v1",
+                    now,
+                )
+
+        # Level 2: Clipboard copy_of recent browser or ai_chat content
+        snippet = body.strip()
+        if source == "clipboard" and len(snippet) >= 12:
+            probe = snippet[:64]
+            fts_q = fts_match_query(probe)
+            if fts_q:
+                candidates = conn.execute(
+                    """SELECT r.id, r.body_text FROM raw_fts f
+                       JOIN raw_events r ON r.id = f.raw_id
+                       WHERE raw_fts MATCH ?
+                         AND r.id != ? AND r.deleted = 0
+                         AND r.source IN ('browser', 'ai_chat', 'wechat')
+                         AND r.t_start BETWEEN ? AND ?
+                       LIMIT 8""",
+                    (
+                        fts_q,
+                        ev_id,
+                        t_start - CLIPBOARD_WINDOW_BEFORE_MS,
+                        t_start + CLIPBOARD_WINDOW_AFTER_MS,
+                    ),
+                ).fetchall()
+                needle = snippet[:120].casefold()
+                for c in candidates:
+                    if needle in c["body_text"].casefold():
+                        created += self._insert_link(
+                            conn,
+                            ev_id,
+                            c["id"],
+                            "copy_of",
+                            0.92,
+                            f"substring:{snippet[:48]}",
+                            "deterministic_substring@v1",
+                            now,
+                        )
+
+        # Level 3: Time-interval intersection (during active window / browser read on same device)
+        if device and source in ("clipboard", "voice", "ai_chat"):
+            overlaps = conn.execute(
+                """SELECT id, source FROM raw_events
+                   WHERE device_id = ? AND id != ? AND deleted = 0
+                     AND source IN ('window', 'browser')
+                     AND t_start <= ? AND t_end >= ?
+                   ORDER BY t_start DESC LIMIT 3""",
+                (device, ev_id, t_start, t_start),
+            ).fetchall()
+            for ov in overlaps:
+                created += self._insert_link(
+                    conn,
+                    ev_id,
+                    ov["id"],
+                    "during",
+                    0.90,
+                    f"interval_overlap:{ov['source']}",
+                    "deterministic_interval@v1",
+                    now,
+                )
+
+        # Level 4: Same-project cross-channel temporal proximity (<= 15 min)
+        project = event.get("project")
+        if project:
+            neighbors = conn.execute(
+                """SELECT id, source FROM raw_events
+                   WHERE project = ? AND source != ? AND id != ? AND deleted = 0
+                     AND t_start BETWEEN ? AND ?
+                   ORDER BY ABS(t_start - ?) ASC LIMIT 3""",
+                (project, source, ev_id, t_start - RELATED_WINDOW_MS, t_start + RELATED_WINDOW_MS, t_start),
+            ).fetchall()
+            for nb in neighbors:
+                created += self._insert_link(
+                    conn,
+                    ev_id,
+                    nb["id"],
+                    "related",
+                    0.75,
+                    f"project_proximity:{project}",
+                    "deterministic_proximity@v1",
+                    now,
+                )
+
+        return created
+
+    # ------------------------------------------------------------------
+    # Raw Reads, Privacy Updates, and Deletions
+    # ------------------------------------------------------------------
+    def _hydrate_raw(self, conn: sqlite3.Connection, row: sqlite3.Row) -> dict[str, Any]:
+        payload = json.loads(row["event_json"]) if row["event_json"] else {}
+        payload["id"] = row["id"]
+        payload["episode_id"] = row["episode_id"]
+        payload["project"] = row["project"]
+        payload["privacy"] = {
+            **(payload.get("privacy") or {}),
+            "tier": row["privacy_tier"],
+        }
+        payload["revision"] = row["revision"]
+        payload["title"] = row["title"]
+        payload["body_text"] = row["body_text"]
+        payload["locator"] = row["locator"]
+        return payload
+
+    def get_raw(self, raw_id: str, *, agent: bool = False) -> dict[str, Any]:
+        with self._tx(False) as conn:
+            row = conn.execute(
+                "SELECT * FROM raw_events WHERE id=? AND deleted=0", (raw_id,)
+            ).fetchone()
+            if row is None or (agent and row["privacy_tier"] == "local_only"):
+                raise HubStoreError("Raw event not found", 404)
+            return self._hydrate_raw(conn, row)
+
+    def list_raw(
+        self,
+        *,
+        q: str = "",
+        sources: list[str] | None = None,
+        project: str | None = None,
+        episode_id: str | None = None,
+        since_ms: int | None = None,
+        until_ms: int | None = None,
+        limit: int = 50,
+        offset: int = 0,
+        agent: bool = False,
+    ) -> list[dict[str, Any]]:
+        limit = max(1, min(limit, 200))
+        offset = max(0, offset)
+        where = ["r.deleted = 0"]
+        params: list[Any] = []
+        if agent:
+            where.append("r.privacy_tier != 'local_only'")
+        if sources:
+            placeholders = ",".join("?" for _ in sources)
+            where.append(f"r.source IN ({placeholders})")
+            params.extend(sources)
+        if project:
+            where.append("r.project = ?")
+            params.append(project)
+        if episode_id:
+            where.append("r.episode_id = ?")
+            params.append(episode_id)
+        if since_ms is not None:
+            where.append("r.t_start >= ?")
+            params.append(since_ms)
+        if until_ms is not None:
+            where.append("r.t_start <= ?")
+            params.append(until_ms)
+
+        fts_q = fts_match_query(q)
+        with self._tx(False) as conn:
+            if fts_q:
+                sql = (
+                    "SELECT r.* FROM raw_fts f JOIN raw_events r ON r.id = f.raw_id "
+                    f"WHERE raw_fts MATCH ? AND {' AND '.join(where)} "
+                    "ORDER BY bm25(raw_fts), r.t_start DESC LIMIT ? OFFSET ?"
+                )
+                rows = conn.execute(sql, [fts_q, *params, limit, offset]).fetchall()
+            else:
+                sql = (
+                    f"SELECT r.* FROM raw_events r WHERE {' AND '.join(where)} "
+                    "ORDER BY r.t_start DESC, r.id LIMIT ? OFFSET ?"
+                )
+                rows = conn.execute(sql, [*params, limit, offset]).fetchall()
+            return [self._hydrate_raw(conn, r) for r in rows]
+
+    def update_raw_privacy(self, raw_id: str, new_tier: PrivacyTier) -> dict[str, Any]:
+        now = now_ms()
+        with self._tx(True) as conn:
+            row = conn.execute(
+                "SELECT * FROM raw_events WHERE id=? AND deleted=0", (raw_id,)
+            ).fetchone()
+            if row is None:
+                raise HubStoreError("Raw event not found", 404)
+            payload = json.loads(row["event_json"])
+            payload["privacy"] = {**(payload.get("privacy") or {}), "tier": new_tier}
+            conn.execute(
+                """UPDATE raw_events
+                   SET privacy_tier=?, event_json=?, revision=revision+1, updated_at=?
+                   WHERE id=?""",
+                (
+                    new_tier,
+                    json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")),
+                    now,
+                    raw_id,
+                ),
+            )
+            self._propagate_evidence_privacy(conn, raw_id, now)
+            updated = conn.execute("SELECT * FROM raw_events WHERE id=?", (raw_id,)).fetchone()
+            return self._hydrate_raw(conn, updated)
+
+    def delete_raw(self, raw_id: str) -> dict[str, Any]:
+        now = now_ms()
+        with self._tx(True) as conn:
+            row = conn.execute(
+                "SELECT * FROM raw_events WHERE id=? AND deleted=0", (raw_id,)
+            ).fetchone()
+            if row is None:
+                raise HubStoreError("Raw event not found", 404)
+            ep_id = row["episode_id"]
+            conn.execute("DELETE FROM raw_fts WHERE raw_id=?", (raw_id,))
+            conn.execute("DELETE FROM event_anchors WHERE event_id=?", (raw_id,))
+            conn.execute("DELETE FROM links WHERE src_id=? OR dst_id=?", (raw_id, raw_id))
+            conn.execute(
+                """UPDATE memories SET needs_review=1, updated_at=?
+                   WHERE id IN (SELECT memory_id FROM memory_evidence WHERE raw_id=?)""",
+                (now, raw_id),
+            )
+            conn.execute("DELETE FROM memory_evidence WHERE raw_id=?", (raw_id,))
+            conn.execute("DELETE FROM decision_evidence WHERE raw_id=?", (raw_id,))
+            conn.execute("DELETE FROM episode_events WHERE raw_id=?", (raw_id,))
+            conn.execute(
+                """UPDATE raw_events
+                   SET deleted=1, title='', body_text='', event_json=NULL, locator=NULL,
+                       revision=revision+1, updated_at=?
+                   WHERE id=?""",
+                (now, raw_id),
+            )
+            if ep_id:
+                self._recompute_episode_envelope(conn, ep_id, now)
+        self.raw_log.record_tombstone(raw_id, now)
+        return {"id": raw_id, "deleted": True}
+
+    def _propagate_evidence_privacy(
+        self, conn: sqlite3.Connection, raw_id: str, now: int
+    ) -> None:
+        # Recompute Episodes
+        ep_ids = [
+            r[0]
+            for r in conn.execute(
+                "SELECT episode_id FROM episode_events WHERE raw_id=?", (raw_id,)
+            ).fetchall()
+        ]
+        for ep_id in ep_ids:
+            tiers = [
+                r[0]
+                for r in conn.execute(
+                    """SELECT r.privacy_tier FROM raw_events r
+                       JOIN episode_events ee ON ee.raw_id = r.id
+                       WHERE ee.episode_id=? AND r.deleted=0""",
+                    (ep_id,),
+                ).fetchall()
+            ]
+            conn.execute(
+                "UPDATE episodes SET privacy_tier=?, updated_at=? WHERE id=?",
+                (strictest_tier(tiers), now, ep_id),
+            )
+
+        # Recompute Decisions
+        dec_ids = [
+            r[0]
+            for r in conn.execute(
+                "SELECT decision_id FROM decision_evidence WHERE raw_id=?", (raw_id,)
+            ).fetchall()
+        ]
+        for dec_id in dec_ids:
+            tiers = [
+                r[0]
+                for r in conn.execute(
+                    """SELECT r.privacy_tier FROM raw_events r
+                       JOIN decision_evidence de ON de.raw_id = r.id
+                       WHERE de.decision_id=? AND r.deleted=0""",
+                    (dec_id,),
+                ).fetchall()
+            ]
+            conn.execute(
+                "UPDATE decisions SET privacy_tier=?, updated_at=? WHERE id=?",
+                (strictest_tier(tiers), now, dec_id),
+            )
+
+        # Recompute Memories
+        mem_ids = [
+            r[0]
+            for r in conn.execute(
+                "SELECT memory_id FROM memory_evidence WHERE raw_id=?", (raw_id,)
+            ).fetchall()
+        ]
+        for mem_id in mem_ids:
+            tiers = [
+                r[0]
+                for r in conn.execute(
+                    """SELECT r.privacy_tier FROM raw_events r
+                       JOIN memory_evidence me ON me.raw_id = r.id
+                       WHERE me.memory_id=? AND r.deleted=0""",
+                    (mem_id,),
+                ).fetchall()
+            ]
+            conn.execute(
+                "UPDATE memories SET privacy_tier=?, updated_at=? WHERE id=?",
+                (strictest_tier(tiers), now, mem_id),
+            )
+
+    # ------------------------------------------------------------------
+    # Episodes, Decisions, Memories Reads
+    # ------------------------------------------------------------------
+    def _episode_dict(self, conn: sqlite3.Connection, row: sqlite3.Row) -> dict[str, Any]:
+        ev_ids = [
+            r[0]
+            for r in conn.execute(
+                """SELECT ee.raw_id FROM episode_events ee
+                   JOIN raw_events r ON r.id = ee.raw_id
+                   WHERE ee.episode_id=? AND r.deleted=0
+                   ORDER BY r.t_start ASC, r.id""",
+                (row["id"],),
+            ).fetchall()
+        ]
+        return {
+            "id": row["id"],
+            "title": row["title"],
+            "summary": row["summary"],
+            "overview": row["overview"],
+            "project": row["project"],
+            "primary_source": row["primary_source"],
+            "t_start": row["t_start"],
+            "t_end": row["t_end"],
+            "status": row["status"],
+            "boundary_reason": row["boundary_reason"],
+            "entities": json.loads(row["entities_json"] or "[]"),
+            "privacy_tier": row["privacy_tier"],
+            "markdown_path": row["markdown_path"],
+            "curated_by": row["curated_by"],
+            "revision": row["revision"],
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+            "event_ids": ev_ids,
+            "event_count": len(ev_ids),
+        }
+
+    def list_episodes(
+        self,
+        *,
+        project: str | None = None,
+        status: str | None = None,
+        source: str | None = None,
+        since_ms: int | None = None,
+        until_ms: int | None = None,
+        limit: int = 30,
+        offset: int = 0,
+        agent: bool = False,
+    ) -> list[dict[str, Any]]:
+        limit = max(1, min(limit, 200))
+        where = ["1=1"]
+        params: list[Any] = []
+        if agent:
+            where.append("privacy_tier != 'local_only'")
+        if project:
+            where.append("project = ?")
+            params.append(project)
+        if status:
+            where.append("status = ?")
+            params.append(status)
+        if source:
+            where.append("primary_source = ?")
+            params.append(source)
+        if since_ms is not None:
+            where.append("t_end >= ?")
+            params.append(since_ms)
+        if until_ms is not None:
+            where.append("t_start <= ?")
+            params.append(until_ms)
+        with self._tx(False) as conn:
+            rows = conn.execute(
+                f"SELECT * FROM episodes WHERE {' AND '.join(where)} ORDER BY t_end DESC, id LIMIT ? OFFSET ?",
+                [*params, limit, max(0, offset)],
+            ).fetchall()
+            return [self._episode_dict(conn, r) for r in rows]
+
+    def get_episode(self, episode_id: str, *, agent: bool = False) -> dict[str, Any]:
+        with self._tx(False) as conn:
+            row = conn.execute("SELECT * FROM episodes WHERE id=?", (episode_id,)).fetchone()
+            if row is None or (agent and row["privacy_tier"] == "local_only"):
+                raise HubStoreError("Episode not found", 404)
+            ep = self._episode_dict(conn, row)
+            ev_rows = conn.execute(
+                """SELECT r.* FROM raw_events r
+                   JOIN episode_events ee ON ee.raw_id = r.id
+                   WHERE ee.episode_id=? AND r.deleted=0
+                   ORDER BY r.t_start ASC, r.id""",
+                (episode_id,),
+            ).fetchall()
+            events = [
+                self._hydrate_raw(conn, r)
+                for r in ev_rows
+                if not (agent and r["privacy_tier"] == "local_only")
+            ]
+            ev_id_set = [e["id"] for e in events]
+            links: list[dict[str, Any]] = []
+            if ev_id_set:
+                ph = ",".join("?" for _ in ev_id_set)
+                link_rows = conn.execute(
+                    f"""SELECT * FROM links
+                        WHERE src_id IN ({ph}) OR dst_id IN ({ph})
+                        ORDER BY confidence DESC LIMIT 50""",
+                    [*ev_id_set, *ev_id_set],
+                ).fetchall()
+                links = [dict(lr) for lr in link_rows]
+            ep["events"] = events
+            ep["links"] = links
+            return ep
+
+    def _decision_dict(self, conn: sqlite3.Connection, row: sqlite3.Row) -> dict[str, Any]:
+        ev_ids = [
+            r[0]
+            for r in conn.execute(
+                "SELECT raw_id FROM decision_evidence WHERE decision_id=? ORDER BY raw_id",
+                (row["id"],),
+            ).fetchall()
+        ]
+        return {
+            **dict(row),
+            "evidence_ids": ev_ids,
+        }
+
+    def list_decisions(
+        self,
+        *,
+        project: str | None = None,
+        status: str | None = None,
+        limit: int = 50,
+        agent: bool = False,
+    ) -> list[dict[str, Any]]:
+        where = ["1=1"]
+        params: list[Any] = []
+        if agent:
+            where.append("privacy_tier != 'local_only'")
+        if project:
+            where.append("project = ?")
+            params.append(project)
+        if status:
+            where.append("status = ?")
+            params.append(status)
+        with self._tx(False) as conn:
+            rows = conn.execute(
+                f"SELECT * FROM decisions WHERE {' AND '.join(where)} ORDER BY valid_at DESC, id LIMIT ?",
+                [*params, max(1, min(limit, 200))],
+            ).fetchall()
+            return [self._decision_dict(conn, r) for r in rows]
+
+    def _memory_dict(self, conn: sqlite3.Connection, row: sqlite3.Row) -> dict[str, Any]:
+        ev_ids = [
+            r[0]
+            for r in conn.execute(
+                "SELECT raw_id FROM memory_evidence WHERE memory_id=? ORDER BY raw_id",
+                (row["id"],),
+            ).fetchall()
+        ]
+        return {
+            "id": row["id"],
+            "title": row["title"],
+            "body": row["body"],
+            "kind": row["kind"],
+            "project": row["project"],
+            "origin": row["origin"],
+            "tags": json.loads(row["tags_json"] or "[]"),
+            "privacy_tier": row["privacy_tier"],
+            "needs_review": bool(row["needs_review"]),
+            "curated_by": row["curated_by"],
+            "revision": row["revision"],
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+            "evidence_ids": ev_ids,
+        }
+
+    def list_memories(
+        self,
+        *,
+        q: str = "",
+        project: str | None = None,
+        kind: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+        agent: bool = False,
+    ) -> list[dict[str, Any]]:
+        where = ["m.deleted = 0"]
+        params: list[Any] = []
+        if agent:
+            where.append("m.privacy_tier != 'local_only'")
+            where.append("m.needs_review = 0")
+        if project:
+            where.append("m.project = ?")
+            params.append(project)
+        if kind:
+            where.append("m.kind = ?")
+            params.append(kind)
+        fts_q = fts_match_query(q)
+        with self._tx(False) as conn:
+            if fts_q:
+                sql = (
+                    "SELECT m.* FROM memories_fts f JOIN memories m ON m.id = f.memory_id "
+                    f"WHERE memories_fts MATCH ? AND {' AND '.join(where)} "
+                    "ORDER BY bm25(memories_fts), m.updated_at DESC LIMIT ? OFFSET ?"
+                )
+                rows = conn.execute(sql, [fts_q, *params, max(1, min(limit, 200)), max(0, offset)]).fetchall()
+            else:
+                sql = (
+                    f"SELECT m.* FROM memories m WHERE {' AND '.join(where)} "
+                    "ORDER BY m.updated_at DESC, m.id LIMIT ? OFFSET ?"
+                )
+                rows = conn.execute(sql, [*params, max(1, min(limit, 200)), max(0, offset)]).fetchall()
+            return [self._memory_dict(conn, r) for r in rows]
+
+    # ------------------------------------------------------------------
+    # Agent-as-Curator: Queue & Verified Atomic Commit
+    # ------------------------------------------------------------------
+    def get_curation_queue(
+        self,
+        *,
+        limit: int = 5,
+        project: str | None = None,
+        source: str | None = None,
+        include_local_only: bool = False,
+    ) -> dict[str, Any]:
+        where = ["status = 'pending_curation'"]
+        params: list[Any] = []
+        if not include_local_only:
+            where.append("privacy_tier != 'local_only'")
+        if project:
+            where.append("project = ?")
+            params.append(project)
+        if source:
+            where.append("primary_source = ?")
+            params.append(source)
+
+        with self._tx(False) as conn:
+            total_pending = conn.execute(
+                f"SELECT COUNT(*) FROM episodes WHERE {' AND '.join(where)}", params
+            ).fetchone()[0]
+            ep_rows = conn.execute(
+                f"SELECT * FROM episodes WHERE {' AND '.join(where)} ORDER BY t_end DESC LIMIT ?",
+                [*params, max(1, min(limit, 20))],
+            ).fetchall()
+
+            bundle: list[dict[str, Any]] = []
+            for row in ep_rows:
+                ep = self._episode_dict(conn, row)
+                ev_rows = conn.execute(
+                    """SELECT r.* FROM raw_events r
+                       JOIN episode_events ee ON ee.raw_id = r.id
+                       WHERE ee.episode_id=? AND r.deleted=0
+                       ORDER BY r.t_start ASC, r.id LIMIT 60""",
+                    (row["id"],),
+                ).fetchall()
+                compact_events = []
+                ev_ids = []
+                for er in ev_rows:
+                    if not include_local_only and er["privacy_tier"] == "local_only":
+                        continue
+                    ev_ids.append(er["id"])
+                    compact_events.append(
+                        {
+                            "id": er["id"],
+                            "source": er["source"],
+                            "kind": er["kind"],
+                            "actor": er["actor"] or "unknown",
+                            "t_start": er["t_start"],
+                            "t_end": er["t_end"],
+                            "title": er["title"],
+                            "text": er["body_text"][:2000],
+                            "locator": er["locator"],
+                            "privacy_tier": er["privacy_tier"],
+                        }
+                    )
+
+                links: list[dict[str, Any]] = []
+                if ev_ids:
+                    ph = ",".join("?" for _ in ev_ids)
+                    links = [
+                        dict(lr)
+                        for lr in conn.execute(
+                            f"SELECT src_id, dst_id, relation, confidence, evidence FROM links WHERE src_id IN ({ph}) OR dst_id IN ({ph}) LIMIT 30",
+                            [*ev_ids, *ev_ids],
+                        ).fetchall()
+                    ]
+
+                existing_decisions = []
+                if row["project"]:
+                    d_rows = conn.execute(
+                        """SELECT * FROM decisions
+                           WHERE project=? AND status='active'
+                           ORDER BY valid_at DESC LIMIT 20""",
+                        (row["project"],),
+                    ).fetchall()
+                    existing_decisions = [
+                        self._decision_dict(conn, dr)
+                        for dr in d_rows
+                        if include_local_only or dr["privacy_tier"] != "local_only"
+                    ]
+
+                bundle.append(
+                    {
+                        "episode": {
+                            "id": ep["id"],
+                            "title": ep["title"],
+                            "project": ep["project"],
+                            "primary_source": ep["primary_source"],
+                            "t_start": ep["t_start"],
+                            "t_end": ep["t_end"],
+                            "revision": ep["revision"],
+                            "existing_summary": ep["summary"],
+                        },
+                        "events": compact_events,
+                        "links": links,
+                        "existing_project_decisions": existing_decisions,
+                    }
+                )
+
+            return {
+                "content_is_untrusted_data": True,
+                "total_pending": total_pending,
+                "returned": len(bundle),
+                "remaining_pending": max(0, total_pending - len(bundle)),
+                "items": bundle,
+            }
+
+    def _verify_evidence_ids(
+        self, conn: sqlite3.Connection, evidence_ids: list[str], *, allow_local_only: bool
+    ) -> tuple[list[str], PrivacyTier]:
+        unique_ids = list(dict.fromkeys(evidence_ids))
+        if not unique_ids:
+            raise HubStoreError("At least one valid evidence_id is required", 400)
+        ph = ",".join("?" for _ in unique_ids)
+        rows = conn.execute(
+            f"SELECT id, privacy_tier FROM raw_events WHERE id IN ({ph}) AND deleted = 0",
+            unique_ids,
+        ).fetchall()
+        found = {r["id"]: r["privacy_tier"] for r in rows}
+        missing = [eid for eid in unique_ids if eid not in found]
+        if missing:
+            raise HubStoreError(
+                f"Evidence gate rejected unknown or deleted raw IDs: {', '.join(missing[:5])}",
+                400,
+            )
+        if not allow_local_only and any(t == "local_only" for t in found.values()):
+            raise HubStoreError(
+                "Evidence gate rejected local_only raw evidence in agent-scoped curation",
+                403,
+            )
+        return unique_ids, strictest_tier(list(found.values()))
+
+    def commit_curation_batch(
+        self,
+        batch: CurationBatchIn | dict[str, Any],
+        *,
+        allow_local_only: bool = False,
+    ) -> dict[str, Any]:
+        model = batch if isinstance(batch, CurationBatchIn) else CurationBatchIn.model_validate(batch)
+        now = now_ms()
+        touched_episodes: set[str] = set()
+        touched_projects: set[str] = set()
+        touched_dates: set[str] = set()
+        results: dict[str, list[str]] = {"episodes": [], "decisions": [], "memories": [], "links": []}
+
+        with self._tx(True) as conn:
+            # 1. Curate Episodes
+            for ep_in in model.episodes:
+                ep_row = conn.execute(
+                    "SELECT * FROM episodes WHERE id=?", (ep_in.episode_id,)
+                ).fetchone()
+                if ep_row is None:
+                    raise HubStoreError(f"Episode not found: {ep_in.episode_id}", 404)
+                if ep_row["status"] == "manual":
+                    raise HubStoreError(
+                        f"Episode {ep_in.episode_id} was manually edited and cannot be overwritten by curator",
+                        409,
+                    )
+                if ep_in.expected_revision is not None and ep_row["revision"] != ep_in.expected_revision:
+                    raise HubStoreError(f"Episode revision conflict for {ep_in.episode_id}", 409)
+
+                ev_ids, cited_tier = self._verify_evidence_ids(
+                    conn, ep_in.evidence_ids, allow_local_only=allow_local_only
+                )
+                for eid in ev_ids:
+                    conn.execute(
+                        "INSERT OR IGNORE INTO episode_events(episode_id, raw_id) VALUES (?, ?)",
+                        (ep_in.episode_id, eid),
+                    )
+                all_tiers = [
+                    r[0]
+                    for r in conn.execute(
+                        """SELECT r.privacy_tier FROM raw_events r
+                           JOIN episode_events ee ON ee.raw_id = r.id
+                           WHERE ee.episode_id=? AND r.deleted=0""",
+                        (ep_in.episode_id,),
+                    ).fetchall()
+                ]
+                final_tier = strictest_tier([cited_tier, *all_tiers])
+                project = ep_in.project if ep_in.project is not None else ep_row["project"]
+                entities_json = json.dumps(
+                    list(dict.fromkeys(e.strip() for e in ep_in.entities if e.strip())),
+                    ensure_ascii=False,
+                )
+                conn.execute(
+                    """UPDATE episodes
+                       SET title=?, summary=?, overview=?, project=?, entities_json=?,
+                           status='curated', privacy_tier=?, curated_by=?,
+                           revision=revision+1, updated_at=?
+                       WHERE id=?""",
+                    (
+                        ep_in.title.strip(),
+                        ep_in.summary.strip(),
+                        ep_in.overview.strip(),
+                        project,
+                        entities_json,
+                        final_tier,
+                        model.curator_agent,
+                        now,
+                        ep_in.episode_id,
+                    ),
+                )
+                conn.execute("DELETE FROM episodes_fts WHERE episode_id=?", (ep_in.episode_id,))
+                conn.execute(
+                    "INSERT INTO episodes_fts(episode_id, tokens) VALUES (?, ?)",
+                    (
+                        ep_in.episode_id,
+                        index_tokens(
+                            f"{ep_in.title}\n{ep_in.summary}\n{ep_in.overview}\n{project or ''}\n{' '.join(ep_in.entities)}"
+                        ),
+                    ),
+                )
+                results["episodes"].append(ep_in.episode_id)
+                touched_episodes.add(ep_in.episode_id)
+                if project:
+                    touched_projects.add(project)
+                touched_dates.add(_date_utc(ep_row["t_start"]))
+
+            # 2. Bi-Temporal Decisions
+            for dec_in in model.decisions:
+                ev_ids, tier = self._verify_evidence_ids(
+                    conn, dec_in.evidence_ids, allow_local_only=allow_local_only
+                )
+                dec_id = new_ulid("dec_")
+                valid_at = dec_in.valid_at or now
+
+                if dec_in.supersedes_decision_id:
+                    old = conn.execute(
+                        "SELECT id, status FROM decisions WHERE id=?",
+                        (dec_in.supersedes_decision_id,),
+                    ).fetchone()
+                    if old is None:
+                        raise HubStoreError(
+                            f"Superseded decision not found: {dec_in.supersedes_decision_id}", 404
+                        )
+                    conn.execute(
+                        """UPDATE decisions
+                           SET status='superseded', invalid_at=?, superseded_by=?,
+                               revision=revision+1, updated_at=?
+                           WHERE id=?""",
+                        (valid_at, dec_id, now, old["id"]),
+                    )
+
+                conn.execute(
+                    """INSERT INTO decisions
+                       (id, project, topic, statement, status, authority, confidence,
+                        valid_at, invalid_at, superseded_by, privacy_tier, curated_by,
+                        revision, created_at, updated_at)
+                       VALUES (?, ?, ?, ?, 'active', ?, ?, ?, NULL, NULL, ?, ?, 1, ?, ?)""",
+                    (
+                        dec_id,
+                        dec_in.project.strip(),
+                        dec_in.topic.strip(),
+                        dec_in.statement.strip(),
+                        dec_in.authority,
+                        dec_in.confidence,
+                        valid_at,
+                        tier,
+                        model.curator_agent,
+                        now,
+                        now,
+                    ),
+                )
+                conn.executemany(
+                    "INSERT INTO decision_evidence(decision_id, raw_id) VALUES (?, ?)",
+                    [(dec_id, eid) for eid in ev_ids],
+                )
+                conn.execute(
+                    "INSERT INTO decisions_fts(decision_id, tokens) VALUES (?, ?)",
+                    (
+                        dec_id,
+                        index_tokens(f"{dec_in.project}\n{dec_in.topic}\n{dec_in.statement}"),
+                    ),
+                )
+                results["decisions"].append(dec_id)
+                touched_projects.add(dec_in.project.strip())
+                touched_dates.add(_date_utc(valid_at))
+
+            # 3. Curated Memories
+            for mem_in in model.memories:
+                mem_id = self._save_memory_tx(
+                    conn,
+                    mem_in,
+                    origin="curated",
+                    curated_by=model.curator_agent,
+                    allow_local_only=allow_local_only,
+                    now=now,
+                )
+                results["memories"].append(mem_id)
+                if mem_in.project:
+                    touched_projects.add(mem_in.project.strip())
+
+            # 4. Curated Cross-Channel Links
+            for lk in model.links:
+                self._verify_evidence_ids(
+                    conn, [lk.src_id, lk.dst_id], allow_local_only=allow_local_only
+                )
+                added = self._insert_link(
+                    conn,
+                    lk.src_id,
+                    lk.dst_id,
+                    lk.relation,
+                    lk.confidence,
+                    lk.evidence,
+                    f"curator:{model.curator_agent}",
+                    now,
+                )
+                if added:
+                    results["links"].append(f"{lk.src_id}->{lk.dst_id}")
+
+            run_id = new_ulid("cur_")
+            conn.execute(
+                """INSERT INTO curation_runs
+                   (id, curator_agent, episodes_count, decisions_count, memories_count, links_count, notes, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    run_id,
+                    model.curator_agent,
+                    len(results["episodes"]),
+                    len(results["decisions"]),
+                    len(results["memories"]),
+                    len(results["links"]),
+                    model.notes,
+                    now,
+                ),
+            )
+
+        # Sync L2 Markdown artifacts outside the SQLite write lock
+        written_md: list[str] = []
+        for ep_id in touched_episodes:
+            p = self.sync_markdown_for_episode(ep_id)
+            if p:
+                written_md.append(p)
+        for proj in touched_projects:
+            written_md.append(self.sync_markdown_for_project(proj))
+        for d_str in touched_dates:
+            written_md.append(self.sync_markdown_for_day(d_str))
+
+        return {
+            "run_id": run_id,
+            "curator_agent": model.curator_agent,
+            "committed": results,
+            "markdown_updated": written_md,
+        }
+
+    def _save_memory_tx(
+        self,
+        conn: sqlite3.Connection,
+        mem_in: MemoryCurationIn,
+        *,
+        origin: str,
+        curated_by: str | None,
+        allow_local_only: bool,
+        now: int,
+    ) -> str:
+        ev_ids, tier = self._verify_evidence_ids(
+            conn, mem_in.evidence_ids, allow_local_only=allow_local_only
+        )
+        tags_json = json.dumps(
+            list(dict.fromkeys(t.strip() for t in mem_in.tags if t.strip())),
+            ensure_ascii=False,
+        )
+        project = mem_in.project.strip() if mem_in.project else None
+        if mem_in.id:
+            existing = conn.execute(
+                "SELECT * FROM memories WHERE id=? AND deleted=0", (mem_in.id,)
+            ).fetchone()
+            if existing is None:
+                raise HubStoreError("Memory not found", 404)
+            if origin == "curated" and existing["origin"] == "manual":
+                raise HubStoreError("Curator cannot overwrite manually authored memory", 409)
+            if mem_in.expected_revision is not None and existing["revision"] != mem_in.expected_revision:
+                raise HubStoreError("Memory revision conflict", 409)
+            mem_id = mem_in.id
+            conn.execute(
+                """UPDATE memories
+                   SET title=?, body=?, kind=?, project=?, origin=?, tags_json=?,
+                       privacy_tier=?, needs_review=0, curated_by=?, revision=revision+1, updated_at=?
+                   WHERE id=?""",
+                (
+                    mem_in.title.strip(),
+                    mem_in.body.strip(),
+                    mem_in.kind,
+                    project,
+                    origin,
+                    tags_json,
+                    tier,
+                    curated_by,
+                    now,
+                    mem_id,
+                ),
+            )
+            conn.execute("DELETE FROM memory_evidence WHERE memory_id=?", (mem_id,))
+            conn.execute("DELETE FROM memories_fts WHERE memory_id=?", (mem_id,))
+        else:
+            mem_id = new_ulid("mem_")
+            conn.execute(
+                """INSERT INTO memories
+                   (id, title, body, kind, project, origin, tags_json, privacy_tier,
+                    needs_review, deleted, curated_by, revision, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, 1, ?, ?)""",
+                (
+                    mem_id,
+                    mem_in.title.strip(),
+                    mem_in.body.strip(),
+                    mem_in.kind,
+                    project,
+                    origin,
+                    tags_json,
+                    tier,
+                    curated_by,
+                    now,
+                    now,
+                ),
+            )
+
+        conn.executemany(
+            "INSERT INTO memory_evidence(memory_id, raw_id) VALUES (?, ?)",
+            [(mem_id, eid) for eid in ev_ids],
+        )
+        conn.execute(
+            "INSERT INTO memories_fts(memory_id, tokens) VALUES (?, ?)",
+            (
+                mem_id,
+                index_tokens(f"{mem_in.title}\n{mem_in.body}\n{project or ''}\n{' '.join(mem_in.tags)}"),
+            ),
+        )
+        return mem_id
+
+    def save_manual_memory(
+        self,
+        mem_in: MemoryCurationIn | dict[str, Any],
+        *,
+        author: str = "owner",
+        allow_local_only: bool = True,
+    ) -> dict[str, Any]:
+        model = mem_in if isinstance(mem_in, MemoryCurationIn) else MemoryCurationIn.model_validate(mem_in)
+        now = now_ms()
+        with self._tx(True) as conn:
+            mem_id = self._save_memory_tx(
+                conn,
+                model,
+                origin="manual",
+                curated_by=author,
+                allow_local_only=allow_local_only,
+                now=now,
+            )
+            row = conn.execute("SELECT * FROM memories WHERE id=?", (mem_id,)).fetchone()
+            result = self._memory_dict(conn, row)
+        if result.get("project"):
+            self.sync_markdown_for_project(result["project"])
+        return result
+
+    def correct_decision(
+        self,
+        decision_id: str,
+        *,
+        statement: str,
+        evidence_ids: list[str],
+        authority: str = "user_confirmed",
+        author: str = "owner",
+        allow_local_only: bool = True,
+    ) -> dict[str, Any]:
+        with self._tx(False) as conn:
+            old = conn.execute("SELECT * FROM decisions WHERE id=?", (decision_id,)).fetchone()
+            if old is None:
+                raise HubStoreError("Decision not found", 404)
+        batch = CurationBatchIn(
+            curator_agent=author,
+            decisions=[
+                DecisionCurationIn(
+                    project=old["project"],
+                    topic=old["topic"],
+                    statement=statement,
+                    authority=authority,  # type: ignore[arg-type]
+                    supersedes_decision_id=decision_id,
+                    evidence_ids=evidence_ids,
+                )
+            ],
+            notes=f"Decision correction for {decision_id}",
+        )
+        committed = self.commit_curation_batch(batch, allow_local_only=allow_local_only)
+        new_id = committed["committed"]["decisions"][0]
+        with self._tx(False) as conn:
+            row = conn.execute("SELECT * FROM decisions WHERE id=?", (new_id,)).fetchone()
+            return self._decision_dict(conn, row)
+
+    # ------------------------------------------------------------------
+    # L2 Markdown Sync Helpers
+    # ------------------------------------------------------------------
+    def sync_markdown_for_episode(self, episode_id: str) -> str | None:
+        with self._tx(False) as conn:
+            ep_row = conn.execute("SELECT * FROM episodes WHERE id=?", (episode_id,)).fetchone()
+            if ep_row is None:
+                return None
+            ep = self._episode_dict(conn, ep_row)
+            ev_rows = conn.execute(
+                """SELECT r.* FROM raw_events r
+                   JOIN episode_events ee ON ee.raw_id = r.id
+                   WHERE ee.episode_id=? AND r.deleted=0
+                   ORDER BY r.t_start ASC""",
+                (episode_id,),
+            ).fetchall()
+            events = [dict(r) for r in ev_rows]
+            ev_ids = [r["id"] for r in ev_rows]
+            decisions: list[dict[str, Any]] = []
+            if ev_ids:
+                ph = ",".join("?" for _ in ev_ids)
+                d_rows = conn.execute(
+                    f"""SELECT DISTINCT d.* FROM decisions d
+                        JOIN decision_evidence de ON de.decision_id = d.id
+                        WHERE de.raw_id IN ({ph})""",
+                    ev_ids,
+                ).fetchall()
+                decisions = [self._decision_dict(conn, dr) for dr in d_rows]
+
+        rel_path = self.markdown.write_episode(ep, events, decisions)
+        with self._tx(True) as conn:
+            conn.execute(
+                "UPDATE episodes SET markdown_path=? WHERE id=?", (rel_path, episode_id)
+            )
+        return rel_path
+
+    def sync_markdown_for_project(self, project: str) -> str:
+        with self._tx(False) as conn:
+            decisions = [
+                self._decision_dict(conn, r)
+                for r in conn.execute(
+                    "SELECT * FROM decisions WHERE project=? ORDER BY valid_at DESC",
+                    (project,),
+                ).fetchall()
+            ]
+            episodes = [
+                self._episode_dict(conn, r)
+                for r in conn.execute(
+                    "SELECT * FROM episodes WHERE project=? ORDER BY t_end DESC LIMIT 50",
+                    (project,),
+                ).fetchall()
+            ]
+            memories = [
+                self._memory_dict(conn, r)
+                for r in conn.execute(
+                    "SELECT * FROM memories WHERE project=? AND deleted=0 ORDER BY updated_at DESC LIMIT 50",
+                    (project,),
+                ).fetchall()
+            ]
+        return self.markdown.write_project(project, decisions, episodes, memories)
+
+    def sync_markdown_for_day(self, date_str: str) -> str:
+        dt = datetime.datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=datetime.UTC)
+        start_ms = int(dt.timestamp() * 1000)
+        end_ms = start_ms + 86_400_000 - 1
+        with self._tx(False) as conn:
+            episodes = [
+                self._episode_dict(conn, r)
+                for r in conn.execute(
+                    "SELECT * FROM episodes WHERE t_end >= ? AND t_start <= ? ORDER BY t_start ASC",
+                    (start_ms, end_ms),
+                ).fetchall()
+            ]
+            decisions = [
+                self._decision_dict(conn, r)
+                for r in conn.execute(
+                    "SELECT * FROM decisions WHERE valid_at BETWEEN ? AND ? ORDER BY valid_at ASC",
+                    (start_ms, end_ms),
+                ).fetchall()
+            ]
+        return self.markdown.write_daily(date_str, episodes, decisions)
+
+    # ------------------------------------------------------------------
+    # L4 High-Level Agent Consumption Queries
+    # ------------------------------------------------------------------
+    def what_was_i_doing(
+        self,
+        *,
+        minutes: int = 120,
+        at_ms: int | None = None,
+        agent: bool = True,
+        max_tokens: int = 2000,
+    ) -> dict[str, Any]:
+        center = at_ms if at_ms is not None else now_ms()
+        since = center - max(1, minutes) * 60 * 1000
+        episodes = self.list_episodes(since_ms=since, until_ms=center, limit=15, agent=agent)
+
+        packed_eps: list[dict[str, Any]] = []
+        used = 80
+        projects: set[str] = set()
+        for ep in episodes:
+            item = {
+                "id": ep["id"],
+                "title": ep["title"],
+                "project": ep["project"],
+                "primary_source": ep["primary_source"],
+                "status": ep["status"],
+                "t_start": ep["t_start"],
+                "t_end": ep["t_end"],
+                "summary": ep["summary"] or "(待整理，可调用 expand 读取原文)",
+                "event_count": ep["event_count"],
+                "event_ids": ep["event_ids"][:8],
+                "markdown_path": ep["markdown_path"],
+            }
+            cost = _approx_tokens(item)
+            if used + cost > max_tokens and packed_eps:
+                break
+            packed_eps.append(item)
+            used += cost
+            if ep["project"]:
+                projects.add(ep["project"])
+
+        active_decisions: list[dict[str, Any]] = []
+        for proj in sorted(projects):
+            for d in self.list_decisions(project=proj, status="active", limit=5, agent=agent):
+                compact = {
+                    "id": d["id"],
+                    "project": d["project"],
+                    "topic": d["topic"],
+                    "statement": d["statement"],
+                    "authority": d["authority"],
+                    "evidence_ids": d["evidence_ids"][:4],
+                }
+                if used + _approx_tokens(compact) <= max_tokens:
+                    active_decisions.append(compact)
+                    used += _approx_tokens(compact)
+
+        return {
+            "content_is_untrusted_data": True,
+            "window": {"since_ms": since, "until_ms": center, "minutes": minutes},
+            "episodes": packed_eps,
+            "active_decisions": active_decisions,
+            "approx_tokens": used,
+        }
+
+    def search_context(
+        self,
+        query: str,
+        *,
+        sources: list[str] | None = None,
+        project: str | None = None,
+        since_ms: int | None = None,
+        until_ms: int | None = None,
+        limit: int = 15,
+        agent: bool = True,
+        max_tokens: int = 3000,
+    ) -> dict[str, Any]:
+        fts_q = fts_match_query(query)
+        limit = max(1, min(limit, 50))
+        decisions_out: list[dict[str, Any]] = []
+        episodes_out: list[dict[str, Any]] = []
+        memories_out: list[dict[str, Any]] = []
+        raw_out: list[dict[str, Any]] = []
+
+        with self._tx(False) as conn:
+            # 1. Decisions (highest signal)
+            if fts_q:
+                d_where = ["decisions_fts MATCH ?"]
+                d_params: list[Any] = [fts_q]
+                if agent:
+                    d_where.append("d.privacy_tier != 'local_only'")
+                if project:
+                    d_where.append("d.project = ?")
+                    d_params.append(project)
+                if since_ms is not None:
+                    d_where.append("d.valid_at >= ?")
+                    d_params.append(since_ms)
+                if until_ms is not None:
+                    d_where.append("d.valid_at <= ?")
+                    d_params.append(until_ms)
+                d_rows = conn.execute(
+                    f"""SELECT d.* FROM decisions_fts f JOIN decisions d ON d.id = f.decision_id
+                        WHERE {' AND '.join(d_where)}
+                        ORDER BY (d.status != 'active'), bm25(decisions_fts), d.valid_at DESC LIMIT ?""",
+                    [*d_params, limit],
+                ).fetchall()
+                decisions_out = [self._decision_dict(conn, r) for r in d_rows]
+
+            # 2. Episodes
+            if fts_q:
+                e_where = ["episodes_fts MATCH ?"]
+                e_params: list[Any] = [fts_q]
+                if agent:
+                    e_where.append("e.privacy_tier != 'local_only'")
+                if project:
+                    e_where.append("e.project = ?")
+                    e_params.append(project)
+                if sources:
+                    ph = ",".join("?" for _ in sources)
+                    e_where.append(f"e.primary_source IN ({ph})")
+                    e_params.extend(sources)
+                if since_ms is not None:
+                    e_where.append("e.t_end >= ?")
+                    e_params.append(since_ms)
+                if until_ms is not None:
+                    e_where.append("e.t_start <= ?")
+                    e_params.append(until_ms)
+                e_rows = conn.execute(
+                    f"""SELECT e.* FROM episodes_fts f JOIN episodes e ON e.id = f.episode_id
+                        WHERE {' AND '.join(e_where)}
+                        ORDER BY bm25(episodes_fts), e.t_end DESC LIMIT ?""",
+                    [*e_params, limit],
+                ).fetchall()
+                episodes_out = [self._episode_dict(conn, r) for r in e_rows]
+
+            # 3. Memories
+            if fts_q:
+                m_where = ["memories_fts MATCH ?", "m.deleted = 0"]
+                m_params: list[Any] = [fts_q]
+                if agent:
+                    m_where.append("m.privacy_tier != 'local_only'")
+                    m_where.append("m.needs_review = 0")
+                if project:
+                    m_where.append("m.project = ?")
+                    m_params.append(project)
+                m_rows = conn.execute(
+                    f"""SELECT m.* FROM memories_fts f JOIN memories m ON m.id = f.memory_id
+                        WHERE {' AND '.join(m_where)}
+                        ORDER BY bm25(memories_fts), m.updated_at DESC LIMIT ?""",
+                    [*m_params, limit],
+                ).fetchall()
+                memories_out = [self._memory_dict(conn, r) for r in m_rows]
+
+        # 4. Raw events (always searchable for verbatim evidence)
+        raw_hits = self.list_raw(
+            q=query,
+            sources=sources,
+            project=project,
+            since_ms=since_ms,
+            until_ms=until_ms,
+            limit=limit,
+            agent=agent,
+        )
+
+        # Apply token budget progressively: Decisions -> Episodes -> Memories -> Raw excerpts
+        used = 100
+        bounded_dec, bounded_ep, bounded_mem, bounded_raw = [], [], [], []
+        for d in decisions_out:
+            cost = _approx_tokens(d)
+            if used + cost <= max_tokens or not bounded_dec:
+                bounded_dec.append(d)
+                used += cost
+        for ep in episodes_out:
+            compact = {k: ep[k] for k in ("id", "title", "summary", "project", "primary_source", "t_start", "t_end", "status", "event_ids", "markdown_path")}
+            cost = _approx_tokens(compact)
+            if used + cost <= max_tokens:
+                bounded_ep.append(compact)
+                used += cost
+        for m in memories_out:
+            cost = _approx_tokens(m)
+            if used + cost <= max_tokens:
+                bounded_mem.append(m)
+                used += cost
+        for r in raw_hits:
+            compact_r = {
+                "id": r["id"],
+                "source": r["source"],
+                "kind": r["kind"],
+                "actor": r.get("actor"),
+                "project": r.get("project"),
+                "episode_id": r.get("episode_id"),
+                "t_start": r["t_start"],
+                "title": r["title"],
+                "snippet": r["body_text"][:400],
+                "locator": r.get("locator"),
+            }
+            cost = _approx_tokens(compact_r)
+            if used + cost <= max_tokens or (not bounded_dec and not bounded_ep and not bounded_mem and not bounded_raw):
+                bounded_raw.append(compact_r)
+                used += cost
+
+        raw_out = bounded_raw
+        return {
+            "content_is_untrusted_data": True,
+            "query": query,
+            "decisions": bounded_dec,
+            "episodes": bounded_ep,
+            "memories": bounded_mem,
+            "raw_matches": raw_out,
+            "approx_tokens": used,
+        }
+
+    def get_project_state(
+        self,
+        project: str,
+        *,
+        include_history: bool = False,
+        agent: bool = True,
+    ) -> dict[str, Any]:
+        active_decisions = self.list_decisions(project=project, status="active", limit=50, agent=agent)
+        history = (
+            self.list_decisions(project=project, status="superseded", limit=50, agent=agent)
+            if include_history
+            else []
+        )
+        episodes = self.list_episodes(project=project, limit=20, agent=agent)
+        memories = self.list_memories(project=project, limit=20, agent=agent)
+        return {
+            "content_is_untrusted_data": True,
+            "project": project,
+            "active_decisions": active_decisions,
+            "superseded_decisions": history,
+            "recent_episodes": [
+                {
+                    "id": ep["id"],
+                    "title": ep["title"],
+                    "summary": ep["summary"],
+                    "status": ep["status"],
+                    "t_start": ep["t_start"],
+                    "t_end": ep["t_end"],
+                    "event_count": ep["event_count"],
+                    "markdown_path": ep["markdown_path"],
+                }
+                for ep in episodes
+            ],
+            "memories": memories,
+        }
+
+    def related(
+        self,
+        *,
+        item_id: str | None = None,
+        url: str | None = None,
+        text: str | None = None,
+        limit: int = 15,
+        agent: bool = True,
+    ) -> dict[str, Any]:
+        related_raw_ids: dict[str, dict[str, Any]] = {}
+        with self._tx(False) as conn:
+            seed_ids: set[str] = set()
+            if item_id:
+                if item_id.startswith("ep_"):
+                    for (rid,) in conn.execute(
+                        "SELECT raw_id FROM episode_events WHERE episode_id=?", (item_id,)
+                    ).fetchall():
+                        seed_ids.add(rid)
+                else:
+                    seed_ids.add(item_id)
+
+            if url:
+                norm = canonicalize_url(url)
+                for (rid,) in conn.execute(
+                    "SELECT event_id FROM event_anchors WHERE anchor=?", (f"url:{norm}",)
+                ).fetchall():
+                    seed_ids.add(rid)
+                    related_raw_ids[rid] = {"reason": "url_match", "anchor": f"url:{norm}"}
+
+            if seed_ids:
+                ph = ",".join("?" for _ in seed_ids)
+                for lr in conn.execute(
+                    f"SELECT * FROM links WHERE src_id IN ({ph}) OR dst_id IN ({ph}) ORDER BY confidence DESC LIMIT ?",
+                    [*seed_ids, *seed_ids, limit * 2],
+                ).fetchall():
+                    other = lr["dst_id"] if lr["src_id"] in seed_ids else lr["src_id"]
+                    if other not in seed_ids:
+                        related_raw_ids[other] = {
+                            "reason": lr["relation"],
+                            "confidence": lr["confidence"],
+                            "evidence": lr["evidence"],
+                        }
+                # Shared anchors
+                anchors = [
+                    r[0]
+                    for r in conn.execute(
+                        f"SELECT DISTINCT anchor FROM event_anchors WHERE event_id IN ({ph})",
+                        list(seed_ids),
+                    ).fetchall()
+                    if r[0].startswith(("url:", "repo:", "issue:", "path:"))
+                ]
+                for anc in anchors[:10]:
+                    for (rid,) in conn.execute(
+                        "SELECT event_id FROM event_anchors WHERE anchor=? LIMIT 10", (anc,)
+                    ).fetchall():
+                        if rid not in seed_ids and rid not in related_raw_ids:
+                            related_raw_ids[rid] = {"reason": "shared_anchor", "anchor": anc}
+
+            items: list[dict[str, Any]] = []
+            for rid, meta in list(related_raw_ids.items())[:limit]:
+                row = conn.execute(
+                    "SELECT * FROM raw_events WHERE id=? AND deleted=0", (rid,)
+                ).fetchone()
+                if row is None or (agent and row["privacy_tier"] == "local_only"):
+                    continue
+                items.append(
+                    {
+                        "id": row["id"],
+                        "source": row["source"],
+                        "project": row["project"],
+                        "episode_id": row["episode_id"],
+                        "t_start": row["t_start"],
+                        "title": row["title"],
+                        "snippet": row["body_text"][:320],
+                        "locator": row["locator"],
+                        "relation": meta,
+                    }
+                )
+
+        if text and len(items) < limit:
+            for r in self.list_raw(q=text, limit=limit - len(items), agent=agent):
+                if r["id"] not in related_raw_ids:
+                    items.append(
+                        {
+                            "id": r["id"],
+                            "source": r["source"],
+                            "project": r.get("project"),
+                            "episode_id": r.get("episode_id"),
+                            "t_start": r["t_start"],
+                            "title": r["title"],
+                            "snippet": r["body_text"][:320],
+                            "locator": r.get("locator"),
+                            "relation": {"reason": "text_match"},
+                        }
+                    )
+
+        return {"content_is_untrusted_data": True, "items": items[:limit]}
+
+    def expand(
+        self,
+        item_id: str,
+        *,
+        kind: str = "auto",
+        level: str = "overview",
+        agent: bool = True,
+    ) -> dict[str, Any]:
+        if kind == "auto":
+            if item_id.startswith("ep_"):
+                kind = "episode"
+            elif item_id.startswith("dec_"):
+                kind = "decision"
+            elif item_id.startswith("mem_"):
+                kind = "memory"
+            else:
+                kind = "raw"
+
+        if kind == "raw":
+            return {"content_is_untrusted_data": True, "kind": "raw", "record": self.get_raw(item_id, agent=agent)}
+
+        if kind == "episode":
+            ep = self.get_episode(item_id, agent=agent)
+            if level == "summary":
+                ep.pop("events", None)
+                ep.pop("overview", None)
+            elif level == "overview":
+                ep["events"] = [
+                    {
+                        "id": e["id"],
+                        "source": e["source"],
+                        "actor": e.get("actor"),
+                        "t_start": e["t_start"],
+                        "title": e["title"],
+                        "snippet": e["body_text"][:400],
+                        "locator": e.get("locator"),
+                    }
+                    for e in ep.get("events", [])
+                ]
+            return {"content_is_untrusted_data": True, "kind": "episode", "record": ep}
+
+        if kind == "decision":
+            with self._tx(False) as conn:
+                row = conn.execute("SELECT * FROM decisions WHERE id=?", (item_id,)).fetchone()
+                if row is None or (agent and row["privacy_tier"] == "local_only"):
+                    raise HubStoreError("Decision not found", 404)
+                dec = self._decision_dict(conn, row)
+            if level == "raw":
+                dec["evidence"] = [
+                    self.get_raw(eid, agent=agent) for eid in dec["evidence_ids"]
+                ]
+            return {"content_is_untrusted_data": True, "kind": "decision", "record": dec}
+
+        if kind == "memory":
+            with self._tx(False) as conn:
+                row = conn.execute(
+                    "SELECT * FROM memories WHERE id=? AND deleted=0", (item_id,)
+                ).fetchone()
+                if row is None or (agent and (row["privacy_tier"] == "local_only" or row["needs_review"])):
+                    raise HubStoreError("Memory not found", 404)
+                mem = self._memory_dict(conn, row)
+            if level == "raw":
+                mem["evidence"] = [
+                    self.get_raw(eid, agent=agent) for eid in mem["evidence_ids"]
+                ]
+            return {"content_is_untrusted_data": True, "kind": "memory", "record": mem}
+
+        raise HubStoreError(f"Unknown expand kind: {kind}", 400)
+
+    # ------------------------------------------------------------------
+    # Dashboard Stats, Projects, Collectors & L0 Replay Rebuild
+    # ------------------------------------------------------------------
+    def list_projects(self, *, agent: bool = False) -> list[dict[str, Any]]:
+        priv_clause = "AND privacy_tier != 'local_only'" if agent else ""
+        with self._tx(False) as conn:
+            names = {
+                r[0]
+                for r in conn.execute(
+                    f"SELECT DISTINCT project FROM raw_events WHERE project IS NOT NULL AND deleted=0 {priv_clause}"
+                ).fetchall()
+            } | {
+                r[0]
+                for r in conn.execute(
+                    f"SELECT DISTINCT project FROM decisions WHERE project IS NOT NULL {priv_clause}"
+                ).fetchall()
+            }
+            out: list[dict[str, Any]] = []
+            for name in sorted(names):
+                ev_count, last_ms = conn.execute(
+                    f"SELECT COUNT(*), COALESCE(MAX(t_start), 0) FROM raw_events WHERE project=? AND deleted=0 {priv_clause}",
+                    (name,),
+                ).fetchone()
+                ep_count, pending_count = conn.execute(
+                    f"""SELECT COUNT(*),
+                               SUM(CASE WHEN status='pending_curation' THEN 1 ELSE 0 END)
+                        FROM episodes WHERE project=? {priv_clause}""",
+                    (name,),
+                ).fetchone()
+                active_dec = conn.execute(
+                    f"SELECT COUNT(*) FROM decisions WHERE project=? AND status='active' {priv_clause}",
+                    (name,),
+                ).fetchone()[0]
+                out.append(
+                    {
+                        "project": name,
+                        "event_count": ev_count,
+                        "episode_count": ep_count,
+                        "pending_curation": pending_count or 0,
+                        "active_decisions": active_dec,
+                        "last_activity_ms": last_ms,
+                    }
+                )
+            out.sort(key=lambda x: x["last_activity_ms"], reverse=True)
+            return out
+
+    def stats(self) -> dict[str, Any]:
+        with self._tx(False) as conn:
+            raw_total = conn.execute("SELECT COUNT(*) FROM raw_events WHERE deleted=0").fetchone()[0]
+            raw_shareable = conn.execute(
+                "SELECT COUNT(*) FROM raw_events WHERE deleted=0 AND privacy_tier != 'local_only'"
+            ).fetchone()[0]
+            ep_total = conn.execute("SELECT COUNT(*) FROM episodes").fetchone()[0]
+            ep_pending = conn.execute(
+                "SELECT COUNT(*) FROM episodes WHERE status='pending_curation'"
+            ).fetchone()[0]
+            dec_active = conn.execute(
+                "SELECT COUNT(*) FROM decisions WHERE status='active'"
+            ).fetchone()[0]
+            mem_total = conn.execute("SELECT COUNT(*) FROM memories WHERE deleted=0").fetchone()[0]
+            links_total = conn.execute("SELECT COUNT(*) FROM links").fetchone()[0]
+            by_source = {
+                r[0]: r[1]
+                for r in conn.execute(
+                    "SELECT source, COUNT(*) FROM raw_events WHERE deleted=0 GROUP BY source"
+                ).fetchall()
+            }
+            recent_runs = [
+                dict(r)
+                for r in conn.execute(
+                    "SELECT * FROM curation_runs ORDER BY created_at DESC LIMIT 10"
+                ).fetchall()
+            ]
+        return {
+            "raw_total": raw_total,
+            "raw_agent_visible": raw_shareable,
+            "episodes_total": ep_total,
+            "episodes_pending_curation": ep_pending,
+            "decisions_active": dec_active,
+            "memories_total": mem_total,
+            "links_total": links_total,
+            "by_source": by_source,
+            "markdown_files": len(self.markdown.list_files()),
+            "recent_curation_runs": recent_runs,
+        }
+
+    def update_collector_status(self, status_in: CollectorStatusIn) -> dict[str, Any]:
+        now = now_ms()
+        with self._tx(True) as conn:
+            conn.execute(
+                """INSERT INTO collector_status
+                   (collector, source, status, items_synced, watermark, message, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(collector) DO UPDATE SET
+                     source=excluded.source,
+                     status=excluded.status,
+                     items_synced=excluded.items_synced,
+                     watermark=excluded.watermark,
+                     message=excluded.message,
+                     updated_at=excluded.updated_at""",
+                (
+                    status_in.collector,
+                    status_in.source,
+                    status_in.status,
+                    status_in.items_synced,
+                    status_in.watermark,
+                    status_in.message,
+                    now,
+                ),
+            )
+            row = conn.execute(
+                "SELECT * FROM collector_status WHERE collector=?", (status_in.collector,)
+            ).fetchone()
+            return dict(row)
+
+    def list_collector_statuses(self) -> list[dict[str, Any]]:
+        with self._tx(False) as conn:
+            return [
+                dict(r)
+                for r in conn.execute("SELECT * FROM collector_status ORDER BY collector").fetchall()
+            ]
+
+    def rebuild_from_l0(self) -> dict[str, Any]:
+        """Destroy derived L1 raw index/links and deterministically replay from L0 raw/ JSONL."""
+        with self._tx(True) as conn:
+            conn.executescript(
+                """
+                DELETE FROM raw_fts;
+                DELETE FROM event_anchors;
+                DELETE FROM links;
+                DELETE FROM episode_events;
+                DELETE FROM raw_events;
+                """
+            )
+        replayed = 0
+        for ev in self.raw_log.iter_events():
+            self.ingest_event(ev, write_l0=False, sync_md=False)
+            replayed += 1
+        return {"replayed_raw_events": replayed}
