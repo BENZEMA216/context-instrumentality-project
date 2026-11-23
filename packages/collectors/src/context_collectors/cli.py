@@ -12,6 +12,7 @@ from context_hub.mcp_server import default_data_dir
 from context_hub.store import HubStore
 
 from .ai_chat import AIChatCollector, parse_export_file
+from .audio import AudioCollector, ensure_sensevoice_models
 from .clipcontext import ClipContextCollector
 from .runtime import (
     CheckpointBackend,
@@ -26,10 +27,11 @@ from .runtime import (
 )
 
 
-def _build_collectors(selected: str) -> list[Collector]:
+def _build_collectors(selected: str, *, asr_mode: str = "auto") -> list[Collector]:
     mapping: dict[str, Collector] = {
         "ai_chat": AIChatCollector(),
         "clipcontext": ClipContextCollector(),
+        "audio": AudioCollector(asr_mode=asr_mode),
     }
     if selected == "all":
         return list(mapping.values())
@@ -77,15 +79,22 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="command", required=True)
 
     doc_p = sub.add_parser("doctor", help="Inspect local channel availability & health without mutating state")
-    doc_p.add_argument("--collector", default="all", choices=("all", "ai_chat", "clipcontext"))
+    doc_p.add_argument("--collector", default="all", choices=("all", "ai_chat", "clipcontext", "audio"))
 
     sync_p = sub.add_parser("sync", help="Run one incremental checkpointed sync pass")
-    sync_p.add_argument("--collector", default="all", choices=("all", "ai_chat", "clipcontext"))
+    sync_p.add_argument("--collector", default="all", choices=("all", "ai_chat", "clipcontext", "audio"))
+    sync_p.add_argument("--asr-mode", default="auto", choices=("auto", "sensevoice", "existing_only"))
 
     watch_p = sub.add_parser("watch", help="Run resilient continuous background collector loop")
-    watch_p.add_argument("--collector", default="all", choices=("all", "ai_chat", "clipcontext"))
+    watch_p.add_argument("--collector", default="all", choices=("all", "ai_chat", "clipcontext", "audio"))
+    watch_p.add_argument("--asr-mode", default="auto", choices=("auto", "sensevoice", "existing_only"))
     watch_p.add_argument("--interval", type=float, default=30.0, help="Polling interval in seconds")
     watch_p.add_argument("--max-ticks", type=int, default=None, help="Optional tick limit for testing")
+
+    sub.add_parser(
+        "download-asr-models",
+        help="Download local offline SenseVoice-Small (int8) + Silero-VAD ONNX models into user cache",
+    )
 
     imp_p = sub.add_parser("import-chat", help="Import exported AI chat files (ChatGPT, Claude Web, Gemini, Codex, Claude, DeepSeek, Antigravity)")
     imp_p.add_argument(
@@ -98,6 +107,11 @@ def main(argv: list[str] | None = None) -> int:
 
     args = parser.parse_args(argv)
 
+    if args.command == "download-asr-models":
+        status = ensure_sensevoice_models()
+        print(json.dumps(status, ensure_ascii=False, indent=2))
+        return 0
+
     if args.command == "doctor":
         cols = _build_collectors(args.collector)
         out = {"collectors": [c.doctor() for c in cols]}
@@ -107,13 +121,13 @@ def main(argv: list[str] | None = None) -> int:
     sink, checkpoints = _build_sink_and_checkpoints(args)
 
     if args.command == "sync":
-        cols = _build_collectors(args.collector)
+        cols = _build_collectors(args.collector, asr_mode=args.asr_mode)
         reports = [run_collector(c, sink, checkpoints).to_dict() for c in cols]
         print(json.dumps({"reports": reports}, ensure_ascii=False, indent=2))
         return 0
 
     if args.command == "watch":
-        cols = _build_collectors(args.collector)
+        cols = _build_collectors(args.collector, asr_mode=args.asr_mode)
 
         def _on_tick(tick_reports: list[Any]) -> None:
             summary = [

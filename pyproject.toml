@@ -24,6 +24,10 @@ dev = [
     "httpx>=0.28,<1",
     "ruff>=0.9,<1",
 ]
+audio = [
+    "sherpa-onnx>=1.10,<3",
+    "numpy>=1.26,<3",
+]
 
 [project.scripts]
 context-hub = "context_hub.cli:main"
