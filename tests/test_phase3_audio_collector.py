@@ -311,3 +311,52 @@ def test_audio_packet_roundtrip_and_webdav_and_gdrive_incremental_pull(tmp_path:
     assert r_gd2.downloaded == 0
     assert r_gd2.cursor == "tok-2"
     assert any("/changes?" in u for u in gd_calls)
+
+
+def test_audio_soak_report_checks_integrity_ratio_latency_and_gaps(tmp_path: Path) -> None:
+    import hashlib
+    import time
+
+    from context_collectors.audio import build_audio_soak_report
+
+    inbox = tmp_path / "inbox"
+    inbox.mkdir()
+    comp_dir = tmp_path / "companion"
+    comp_dir.mkdir()
+    (comp_dir / "ck-engine-state.bin").write_bytes(b"state-bytes")
+    (comp_dir / "synced-ids.json").write_text('["s1", "s3"]', encoding="utf-8")
+
+    now_ms = int((time.time() - 12.0) * 1000)
+    for seg_id, seq in (("s1", 1), ("s3", 3)):
+        audio = inbox / f"{seg_id}.m4a"
+        payload = f"aac-bytes-{seg_id}".encode()
+        audio.write_bytes(payload)
+        meta = {
+            "id": seg_id,
+            "sessionID": "sess-soak",
+            "sequence": seq,
+            "startedAt": now_ms - 60_000,
+            "endedAt": now_ms,
+            "fileName": audio.name,
+            "sha256": hashlib.sha256(payload).hexdigest(),
+            "byteCount": len(payload),
+            "originalByteCount": len(payload) * 30,
+        }
+        (inbox / f"{seg_id}.json").write_text(json.dumps(meta), encoding="utf-8")
+
+    rep = build_audio_soak_report(
+        inbox_dir=inbox,
+        companion_state_dir=comp_dir,
+        since_hours=24.0,
+        verify_sha256=True,
+        probe_cloud=False,
+    )
+    assert rep["inbox"]["segments_total"] == 2
+    assert rep["inbox"]["segments_recorded_in_window"] == 2
+    assert rep["inbox"]["sha256_mismatches"] == 0
+    assert rep["inbox"]["missing_audio_pairs"] == 0
+    assert rep["inbox"]["compression_ratio"] == 30.0
+    assert rep["inbox"]["sequence_gap_sessions"] == 1
+    assert rep["inbox"]["sequence_gaps"][0]["missing_sequences"] == [2]
+    assert rep["inbox"]["delivery_latency_seconds"]["samples"] == 2
+    assert rep["inbox"]["delivery_latency_seconds"]["p50"] >= 10.0

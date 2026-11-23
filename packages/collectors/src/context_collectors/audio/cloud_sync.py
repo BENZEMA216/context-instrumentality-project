@@ -597,3 +597,159 @@ def probe_cloud_endpoints() -> list[dict[str, Any]]:
                 }
             )
     return results
+
+
+def _percentile(sorted_values: list[float], p: float) -> float | None:
+    if not sorted_values:
+        return None
+    idx = min(len(sorted_values) - 1, max(0, int(round((len(sorted_values) - 1) * p))))
+    return round(sorted_values[idx], 2)
+
+
+def build_audio_soak_report(
+    *,
+    inbox_dir: Path | None = None,
+    companion_state_dir: Path | None = None,
+    since_hours: float = 72.0,
+    verify_sha256: bool = True,
+    probe_cloud: bool = True,
+) -> dict[str, Any]:
+    """Audit real-world iCloud/WebDAV audio sync health, integrity, compression, and SLA latency."""
+    hub_root = Path.home() / ".local" / "share" / "context-hub-v2"
+    inbox = inbox_dir or (hub_root / "inbox" / "audio")
+    comp_dir = companion_state_dir or (hub_root / "mac-companion")
+    now = time.time()
+    cutoff = now - max(0.0, since_hours) * 3600.0
+
+    # 1. Mac Companion process & CloudKit engine state
+    companion_running = False
+    try:
+        ps = subprocess.run(["pgrep", "-x", "ContextAudioCompanion"], capture_output=True, text=True, timeout=3)
+        companion_running = ps.returncode == 0 and bool(ps.stdout.strip())
+    except Exception:  # noqa: BLE001
+        companion_running = False
+
+    state_file = comp_dir / "ck-engine-state.bin"
+    ledger_file = comp_dir / "synced-ids.json"
+    synced_ledger_count = 0
+    if ledger_file.is_file():
+        try:
+            loaded = json.loads(ledger_file.read_text(encoding="utf-8"))
+            if isinstance(loaded, list):
+                synced_ledger_count = len(loaded)
+        except Exception:  # noqa: BLE001
+            pass
+
+    companion_info = {
+        "process_running": companion_running,
+        "ck_engine_state_exists": state_file.is_file(),
+        "ck_engine_state_bytes": state_file.stat().st_size if state_file.is_file() else 0,
+        "ck_engine_state_age_seconds": (
+            round(max(0.0, now - state_file.stat().st_mtime), 1) if state_file.is_file() else None
+        ),
+        "synced_ledger_count": synced_ledger_count,
+    }
+
+    # 2. Inbox segments integrity, compression ratio, latency & sequence gaps
+    sidecars = sorted(p for p in inbox.glob("*.json") if p.is_file() and not p.is_symlink()) if inbox.is_dir() else []
+    missing_audio: list[str] = []
+    sha_mismatches: list[str] = []
+    parse_errors: list[str] = []
+    total_compressed = 0
+    total_original = 0
+    recent_landed = 0
+    latencies_s: list[float] = []
+    sessions: dict[str, set[int]] = {}
+    newest_landed_at: float | None = None
+
+    for meta_path in sidecars:
+        try:
+            m = json.loads(meta_path.read_text(encoding="utf-8"))
+        except Exception as exc:  # noqa: BLE001
+            parse_errors.append(f"{meta_path.name}: {exc}")
+            continue
+
+        seg_id = str(m.get("id") or meta_path.stem)
+        fname = str(m.get("fileName") or f"{seg_id}.m4a")
+        audio_path = inbox / Path(fname).name
+        if not audio_path.is_file():
+            missing_audio.append(seg_id)
+            continue
+
+        audio_size = audio_path.stat().st_size
+        total_compressed += audio_size
+        orig_size = int(m.get("originalByteCount") or audio_size)
+        total_original += orig_size
+
+        expected_sha = str(m.get("sha256") or "").strip().lower()
+        if verify_sha256 and expected_sha:
+            actual_sha = _sha256_file(audio_path).lower()
+            if actual_sha != expected_sha:
+                sha_mismatches.append(seg_id)
+
+        landed_ts = meta_path.stat().st_mtime
+        if newest_landed_at is None or landed_ts > newest_landed_at:
+            newest_landed_at = landed_ts
+
+        ended_raw = m.get("endedAt")
+        ended_s: float | None = None
+        if isinstance(ended_raw, (int, float)):
+            ended_s = float(ended_raw) / 1000.0 if ended_raw > 1e11 else float(ended_raw)
+
+        if ended_s is not None and ended_s >= cutoff:
+            recent_landed += 1
+            delta = landed_ts - ended_s
+            # Exclude huge negative clock skew; include positive real delivery latencies
+            if -5.0 <= delta <= 7 * 86400:
+                latencies_s.append(max(0.0, delta))
+
+        sess_id = str(m.get("sessionID") or "")
+        seq = m.get("sequence")
+        if sess_id and isinstance(seq, int):
+            sessions.setdefault(sess_id, set()).add(seq)
+
+    sequence_gaps: list[dict[str, Any]] = []
+    for sess_id, seqs in sessions.items():
+        if len(seqs) >= 2:
+            lo, hi = min(seqs), max(seqs)
+            missing_seqs = sorted(set(range(lo, hi + 1)) - seqs)
+            if missing_seqs:
+                sequence_gaps.append({"session_id": sess_id, "missing_sequences": missing_seqs})
+
+    latencies_s.sort()
+    report: dict[str, Any] = {
+        "window_hours": since_hours,
+        "companion": companion_info,
+        "inbox": {
+            "path": str(inbox),
+            "segments_total": len(sidecars),
+            "segments_recorded_in_window": recent_landed,
+            "missing_audio_pairs": len(missing_audio),
+            "sha256_mismatches": len(sha_mismatches),
+            "parse_errors": len(parse_errors),
+            "sequence_gap_sessions": len(sequence_gaps),
+            "sequence_gaps": sequence_gaps[:10],
+            "total_compressed_bytes": total_compressed,
+            "total_original_bytes": total_original,
+            "compression_ratio": round(total_original / max(1, total_compressed), 2) if total_compressed else None,
+            "newest_landed_age_seconds": (
+                round(max(0.0, now - newest_landed_at), 1) if newest_landed_at is not None else None
+            ),
+            "delivery_latency_seconds": {
+                "samples": len(latencies_s),
+                "p50": _percentile(latencies_s, 0.50),
+                "p95": _percentile(latencies_s, 0.95),
+                "max": round(latencies_s[-1], 2) if latencies_s else None,
+            },
+        },
+        "healthy": (
+            companion_info["process_running"]
+            and companion_info["ck_engine_state_exists"]
+            and not missing_audio
+            and not sha_mismatches
+            and not parse_errors
+        ),
+    }
+    if probe_cloud:
+        report["cloud_endpoints"] = probe_cloud_endpoints()
+    return report

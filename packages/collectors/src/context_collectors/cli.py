@@ -16,6 +16,7 @@ from .audio import (
     AudioCollector,
     GoogleDriveAudioTransport,
     WebDAVAudioTransport,
+    build_audio_soak_report,
     discover_audio_paths,
     ensure_sensevoice_models,
     probe_cloud_endpoints,
@@ -108,6 +109,13 @@ def main(argv: list[str] | None = None) -> int:
         help="Test live reachability & latency of Apple CloudKit, Nutstore WebDAV, and Google Drive (proxy vs direct)",
     )
 
+    soak_p = sub.add_parser(
+        "audio-soak-report",
+        help="Audit live CloudKit Mac companion status, SHA-256 integrity, compression ratio, sequence gaps, and delivery latency",
+    )
+    soak_p.add_argument("--hours", type=float, default=72.0, help="Lookback soak window in hours (default 72)")
+    soak_p.add_argument("--no-probe", action="store_true", help="Skip live HTTP cloud endpoint probing")
+
     wd_p = sub.add_parser(
         "pull-webdav",
         help="Incrementally pull .ctxaudio.zip packets from WebDAV (e.g. Nutstore/坚果云 or NAS) into inbox/audio",
@@ -143,6 +151,14 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "probe-cloud":
         print(json.dumps({"endpoints": probe_cloud_endpoints()}, ensure_ascii=False, indent=2))
         return 0
+
+    if args.command == "audio-soak-report":
+        rep = build_audio_soak_report(
+            since_hours=args.hours,
+            probe_cloud=not args.no_probe,
+        )
+        print(json.dumps(rep, ensure_ascii=False, indent=2))
+        return 0 if rep["healthy"] else 1
 
     if args.command == "doctor":
         cols = _build_collectors(args.collector)
