@@ -1,0 +1,21 @@
+{
+  "name": "context-hub-browser-mv3",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit && node scripts/build.mjs",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@mozilla/readability": "^0.6.0",
+    "defuddle": "^0.6.6"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.312",
+    "esbuild": "^0.25.1",
+    "jsdom": "^24.1.0",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.8"
+  }
+}

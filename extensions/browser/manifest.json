@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Context Hub · Browser Signal & Contextual Sidebar",
+  "version": "0.2.0",
+  "description": "Local-first 3-layer dwell reader, Defuddle Markdown extractor, implicit highlight capture, and Promnesia contextual sidebar for Context Hub v2.",
+  "permissions": [
+    "tabs",
+    "storage",
+    "idle",
+    "alarms"
+  ],
+  "host_permissions": [
+    "http://127.0.0.1:8741/*",
+    "http://localhost:8741/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Context Hub",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

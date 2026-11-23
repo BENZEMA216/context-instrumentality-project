@@ -1,0 +1,27 @@
+{
+  "name": "context-hub",
+  "version": "0.2.0",
+  "description": "Personal Context OS plugin rooted inside your AI Agent: progressive-disclosure Memory recall (MCP), Agent-as-Curator synthesis rules, and deep-linkable local Web Workbench views opened directly from chat.",
+  "entry_experience": "agent-plugin-with-web-deeplinks",
+  "workbench_base_url": "http://127.0.0.1:8741",
+  "mcp_servers": {
+    "context-hub": {
+      "command": "uv",
+      "args": ["run", "context-hub", "mcp"]
+    }
+  },
+  "skills": [
+    "skills/context-recall/SKILL.md",
+    "../../skills/context-curator/SKILL.md"
+  ],
+  "deeplinks": {
+    "timeline": "/#/timeline",
+    "episode": "/#/episodes/{episode_id}",
+    "project": "/#/projects/{project}",
+    "memory_index": "/#/artifacts/MEMORY.md",
+    "artifact": "/#/artifacts/{path}",
+    "curator": "/#/curator",
+    "channels": "/#/channels",
+    "vault": "/#/vault"
+  }
+}

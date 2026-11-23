@@ -157,7 +157,7 @@ class CurationBatchIn(BaseModel):
 class CollectorStatusIn(BaseModel):
     collector: str = Field(..., min_length=1, max_length=120)
     source: str = Field(..., min_length=1, max_length=100)
-    status: Literal["idle", "running", "ok", "error", "unconfigured"] = "ok"
+    status: Literal["idle", "running", "ok", "degraded", "error", "unconfigured"] = "ok"
     items_synced: int = 0
     watermark: str | None = None
     message: str = ""

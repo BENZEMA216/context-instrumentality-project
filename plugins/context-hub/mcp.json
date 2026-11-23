@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "context-hub": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "<PATH_TO_CONTEXT_INSTRUMENTALITY_REPO>",
+        "run",
+        "context-hub",
+        "mcp"
+      ],
+      "env": {
+        "CONTEXT_HUB_WORKBENCH_URL": "http://127.0.0.1:8741"
+      }
+    }
+  }
+}

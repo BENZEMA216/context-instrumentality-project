@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Context Hub Browser</title>
+    <style>
+      body {
+        width: 300px;
+        margin: 0;
+        padding: 14px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #fbf7f0;
+        color: #1f1a17;
+        font-size: 13px;
+      }
+      h1 { font-size: 15px; margin: 0 0 8px; }
+      .pill { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; margin-bottom: 8px; }
+      .ok { background: #dcfce7; color: #166534; }
+      .warn { background: #fef3c7; color: #92400e; }
+      .meta { color: #574c42; font-size: 12px; margin-bottom: 10px; }
+      label { display: flex; align-items: center; gap: 6px; margin: 6px 0; }
+      input[type="text"] { width: 100%; box-sizing: border-box; padding: 6px 8px; border: 1px solid #d6cbb9; border-radius: 6px; margin-top: 4px; }
+      .row { display: flex; gap: 6px; margin-top: 10px; }
+      button {
+        flex: 1;
+        padding: 7px 8px;
+        border-radius: 6px;
+        border: 1px solid #d6cbb9;
+        background: #fff;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      button.primary { background: #b45309; color: #fff; border-color: #b45309; }
+    </style>
+  </head>
+  <body>
+    <h1>Context Hub · 浏览器信号</h1>
+    <div id="status" class="pill warn">检查中…</div>
+    <div id="spool" class="meta">离线待补传队列：0 条</div>
+    <label><input id="enabled" type="checkbox" checked /> 启用三层停留与划词采集</label>
+    <label><input id="sidebar" type="checkbox" checked /> 显示 Promnesia 上下文关联侧边栏</label>
+    <div style="margin-top:8px;">
+      <div style="font-size:12px;color:#574c42;">本地 Hub 地址</div>
+      <input id="hubUrl" type="text" value="http://127.0.0.1:8741" />
+    </div>
+    <div class="row">
+      <button id="captureBtn" class="primary">立即抓取本页</button>
+      <button id="saveBtn">保存设置</button>
+    </div>
+    <div class="row">
+      <button id="flushBtn">补传队列</button>
+      <button id="openBtn">打开工作台 ↗</button>
+    </div>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

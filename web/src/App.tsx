@@ -153,6 +153,37 @@ export function App() {
     }
   }, [sourceFilter, selectedEpId, selectedProj, flash]);
 
+  const applyHashRoute = useCallback(() => {
+    const raw = window.location.hash.replace(/^#\/?/, "");
+    if (!raw) return;
+    const [head, ...rest] = raw.split("/");
+    const tail = decodeURIComponent(rest.join("/"));
+    if (head === "episodes" && tail) {
+      setTab("timeline");
+      setSelectedEpId(tail);
+    } else if (head === "projects") {
+      setTab("projects");
+      if (tail) setSelectedProj(tail);
+    } else if (head === "artifacts" || head === "markdown") {
+      setTab("markdown");
+      if (tail) setSelectedMd(tail);
+    } else if (head === "curator") {
+      setTab("curator");
+    } else if (head === "channels") {
+      setTab("channels");
+    } else if (head === "vault") {
+      setTab("vault");
+    } else if (head === "timeline") {
+      setTab("timeline");
+    }
+  }, []);
+
+  useEffect(() => {
+    applyHashRoute();
+    window.addEventListener("hashchange", applyHashRoute);
+    return () => window.removeEventListener("hashchange", applyHashRoute);
+  }, [applyHashRoute]);
+
   useEffect(() => {
     refreshCore();
   }, [refreshCore]);

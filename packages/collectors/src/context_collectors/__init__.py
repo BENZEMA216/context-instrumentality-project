@@ -1,3 +1,26 @@
-"""Multi-channel context collectors."""
+"""Context Hub v2 Multi-Channel Collectors."""
 
-__version__ = "0.2.0"
+from .ai_chat import AIChatCollector, AIChatPaths
+from .clipcontext import ClipContextCollector
+from .runtime import (
+    DirectHubSink,
+    HttpHubSink,
+    HubCheckpointStore,
+    StandaloneCheckpointStore,
+    SyncReport,
+    run_collector,
+    watch_collectors,
+)
+
+__all__ = [
+    "AIChatCollector",
+    "AIChatPaths",
+    "ClipContextCollector",
+    "DirectHubSink",
+    "HttpHubSink",
+    "HubCheckpointStore",
+    "StandaloneCheckpointStore",
+    "SyncReport",
+    "run_collector",
+    "watch_collectors",
+]

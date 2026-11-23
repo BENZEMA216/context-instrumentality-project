@@ -35,14 +35,14 @@ Context Vault v2 (隔离逐条加密库 · 实用型授权代办) ────�
 
 | 模块 | 路径 | 当前状态 | 说明 |
 | :--- | :--- | :---: | :--- |
-| **Context Hub v2** | [`packages/hub/`](packages/hub/README.md) | ✅ Phase 1 已落地 | L0 不可变原档 + L1 FTS5 & 跨源链接 + L2 Episode & Markdown + L3 双时序决策 + Agent-as-Curator 双闭环 MCP |
-| **Context Workbench UI** | `web/` | ✅ Phase 1 已落地 | React + TS 统一工作台：时间线、项目决策、Agent 整理台、Markdown 预览、渠道与隐私策略 |
-| **Agent Curator Skill** | [`skills/context-curator/`](skills/context-curator/SKILL.md) | ✅ Phase 1 已落地 | 暴露给 Antigravity / Codex / WorkBuddy 的整理规则与强校验回写工作流 |
-| **AI 对话历史** | `packages/collectors/` | ⏳ Phase 2 | 10+ AI 客户端增量采集（含 Codex / Claude / Cursor / Antigravity / ChatGPT 等） |
-| **剪贴板（ClipContext）** | `packages/collectors/` | ⏳ Phase 2 | 自动增量监听独立 App `ClipContext` 归档，免手工导入 |
-| **浏览器扩展（MV3）** | `extensions/browser/` | ⏳ Phase 2 | 三层有效停留 + Defuddle/Readability 转 Markdown + 无弹窗划词提权 + 上下文侧边栏 |
-| **微信渠道** | `packages/collectors/` · `native/macos/` | ⏳ Phase 3 | WeFlow 合规历史导入 + macOS AX 优先 / 自适应 OCR 多会话监听 |
-| **录音（Record for Agent）** | `packages/collectors/` | ⏳ Phase 3 | Mac/iCloud 自动增量接入 + `sherpa-onnx` + `SenseVoice-Small` 离线高精度转写 |
+| **Context Hub v2** | [`packages/hub/`](packages/hub/README.md) | ✅ Phase 1-2 已落地 | L0 原档 + L0.5 内容寻址 Blob 仓 + L1 多块 FTS5 & 跨源链接 + L2 `MEMORY.md`/分域记忆/Episode + L3 双时序决策 + `get_context_pack` MCP |
+| **Agent 插件包** | [`plugins/context-hub/`](plugins/context-hub/README.md) | ✅ Phase 2 已落地 | 根植于 Agent 的 MCP + `context-recall` / `context-curator` Skill + 对话直达深链打开本地 Workbench 网页视图 |
+| **Context Workbench UI** | `web/` | ✅ Phase 1-2 已落地 | React + TS 统一工作台（支持 `#/episodes/...`、`#/projects/...`、`#/artifacts/MEMORY.md` 深度直达路由） |
+| **AI 对话历史采集器** | [`packages/collectors/`](packages/collectors/src/context_collectors/ai_chat/) | ✅ Phase 2 已落地 | 11 端增量断点续传（含 **Antigravity** / Codex / Claude Code / Cursor / OpenCode / WorkBuddy / QClaw / DeepSeek / ChatGPT / Claude Web / Gemini）+ 离线 Spool |
+| **剪贴板（ClipContext）** | [`packages/collectors/`](packages/collectors/src/context_collectors/clipcontext.py) | ✅ Phase 2 已落地 | 兼容 `Agent/clipboard.json` 与 `Raw/manifest.json` 双格式 + 防版本回滚 + 撤销同步 + 密码管理器/隐匿 UTI 拦截 |
+| **浏览器扩展（MV3）** | [`extensions/browser/`](extensions/browser/README.md) | ✅ Phase 2 已落地 | 三层有效停留 + Defuddle/Readability 转 Markdown + 无弹窗划词提权 + 离线补传队列 + Promnesia 上下文侧边栏 |
+| **微信渠道** | `packages/collectors/` · `native/macos/` | 🚧 Phase 3 | WeFlow 合规历史导入 + macOS AX 优先 / 自适应 OCR 多会话监听 |
+| **录音（Record for Agent）** | `packages/collectors/` | 🚧 Phase 3 | Mac/iCloud 自动增量接入 + `sherpa-onnx` + `SenseVoice-Small` 离线高精度转写 |
 | **Context Vault v2** | `packages/vault/` | ⏳ Phase 4 | 逐条加密私密库 + Touch ID 解锁 + HPKE 手机扫描 + 实用型白名单代理与 CLI 注入 |
 
 ---

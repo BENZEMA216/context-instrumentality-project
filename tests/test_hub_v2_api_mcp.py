@@ -73,6 +73,7 @@ def test_mcp_dual_loop_tools_resources_and_prompt(tmp_path: Path) -> None:
         tools = await mcp.list_tools()
         tool_names = {t.name for t in tools}
         expected = {
+            "get_context_pack",
             "what_was_i_doing",
             "search_context",
             "get_project_state",
@@ -88,7 +89,12 @@ def test_mcp_dual_loop_tools_resources_and_prompt(tmp_path: Path) -> None:
 
         resources = await mcp.list_resources()
         res_uris = {str(r.uri) for r in resources}
-        assert {"context://now", "context://curation-rules", "context://projects"} <= res_uris
+        assert {
+            "context://now",
+            "context://curation-rules",
+            "context://projects",
+            "context://memory-index",
+        } <= res_uris
 
         prompts = await mcp.list_prompts()
         assert any(p.name == "curate_pending_context" for p in prompts)
@@ -126,5 +132,13 @@ def test_mcp_dual_loop_tools_resources_and_prompt(tmp_path: Path) -> None:
             "expand", {"id": "ev_demo_voice_01", "level": "raw"}
         )
         assert "Agent-as-Curator" in raw_payload["record"]["body_text"]
+
+        _, pack_payload = await mcp.call_tool(
+            "get_context_pack", {"project": "context-os", "query": "Agent-as-Curator"}
+        )
+        assert len(pack_payload["active_decisions"]) == 2
+        assert "workbench_urls" in pack_payload
+        assert "/#/projects/context-os" in pack_payload["workbench_urls"]["project"]
+        assert "Active Decisions" in pack_payload["rendered_markdown"]
 
     asyncio.run(_exercise())

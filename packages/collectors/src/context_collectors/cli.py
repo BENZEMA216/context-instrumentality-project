@@ -1,0 +1,156 @@
+"""CLI for Context Hub v2 Channel Collectors (`doctor`, `sync`, `watch`, `import-chat`)."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+from typing import Any
+
+from context_hub.mcp_server import default_data_dir
+from context_hub.store import HubStore
+
+from .ai_chat import AIChatCollector, parse_export_file
+from .clipcontext import ClipContextCollector
+from .runtime import (
+    CheckpointBackend,
+    Collector,
+    DirectHubSink,
+    HttpHubSink,
+    HubCheckpointStore,
+    HubSink,
+    StandaloneCheckpointStore,
+    run_collector,
+    watch_collectors,
+)
+
+
+def _build_collectors(selected: str) -> list[Collector]:
+    mapping: dict[str, Collector] = {
+        "ai_chat": AIChatCollector(),
+        "clipcontext": ClipContextCollector(),
+    }
+    if selected == "all":
+        return list(mapping.values())
+    if selected not in mapping:
+        raise ValueError(f"Unknown collector: {selected}")
+    return [mapping[selected]]
+
+
+def _build_sink_and_checkpoints(args: argparse.Namespace) -> tuple[HubSink, CheckpointBackend]:
+    data_dir = Path(args.data_dir).expanduser() if args.data_dir else default_data_dir()
+    if args.hub_url:
+        token = args.token
+        if not token:
+            tok_file = data_dir / "owner.token"
+            if tok_file.is_file():
+                token = tok_file.read_text(encoding="ascii").strip()
+        sink: HubSink = HttpHubSink(
+            args.hub_url,
+            owner_token=token,
+            spool_dir=data_dir / "spool",
+        )
+        checkpoints: CheckpointBackend = StandaloneCheckpointStore(
+            data_dir / "collector_checkpoints.sqlite3"
+        )
+        return sink, checkpoints
+    store = HubStore(data_dir)
+    return DirectHubSink(store), HubCheckpointStore(store)
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        prog="context-collectors",
+        description="Context Hub v2 resilient multi-channel collectors",
+    )
+    parser.add_argument(
+        "--data-dir",
+        help="Context Hub data directory (default: ~/.local/share/context-hub-v2 or CONTEXT_HUB_DATA_DIR)",
+    )
+    parser.add_argument(
+        "--hub-url",
+        help="Push over HTTP to a running Hub (e.g. http://127.0.0.1:8741) with offline spooling; omit for direct local SQLite mode",
+    )
+    parser.add_argument("--token", help="Owner bearer token when using --hub-url")
+
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    doc_p = sub.add_parser("doctor", help="Inspect local channel availability & health without mutating state")
+    doc_p.add_argument("--collector", default="all", choices=("all", "ai_chat", "clipcontext"))
+
+    sync_p = sub.add_parser("sync", help="Run one incremental checkpointed sync pass")
+    sync_p.add_argument("--collector", default="all", choices=("all", "ai_chat", "clipcontext"))
+
+    watch_p = sub.add_parser("watch", help="Run resilient continuous background collector loop")
+    watch_p.add_argument("--collector", default="all", choices=("all", "ai_chat", "clipcontext"))
+    watch_p.add_argument("--interval", type=float, default=30.0, help="Polling interval in seconds")
+    watch_p.add_argument("--max-ticks", type=int, default=None, help="Optional tick limit for testing")
+
+    imp_p = sub.add_parser("import-chat", help="Import exported AI chat files (ChatGPT, Claude Web, Gemini, Codex, Claude, DeepSeek, Antigravity)")
+    imp_p.add_argument(
+        "--source",
+        required=True,
+        choices=("chatgpt", "claude-web", "gemini", "codex", "claude", "deepseek", "antigravity", "transcript"),
+    )
+    imp_p.add_argument("--project", help="Explicit canonical project slug override")
+    imp_p.add_argument("files", nargs="+", type=Path)
+
+    args = parser.parse_args(argv)
+
+    if args.command == "doctor":
+        cols = _build_collectors(args.collector)
+        out = {"collectors": [c.doctor() for c in cols]}
+        print(json.dumps(out, ensure_ascii=False, indent=2))
+        return 0
+
+    sink, checkpoints = _build_sink_and_checkpoints(args)
+
+    if args.command == "sync":
+        cols = _build_collectors(args.collector)
+        reports = [run_collector(c, sink, checkpoints).to_dict() for c in cols]
+        print(json.dumps({"reports": reports}, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "watch":
+        cols = _build_collectors(args.collector)
+
+        def _on_tick(tick_reports: list[Any]) -> None:
+            summary = [
+                f"{r.collector}:{r.status}(+{r.created},err={r.skipped_errors},spool={r.spooled})"
+                for r in tick_reports
+            ]
+            print(f"[watch] {' | '.join(summary)}", file=sys.stderr, flush=True)
+
+        watch_collectors(
+            cols,
+            sink,
+            checkpoints,
+            interval_seconds=args.interval,
+            max_ticks=args.max_ticks,
+            on_tick=_on_tick,
+        )
+        return 0
+
+    if args.command == "import-chat":
+        totals = {"files": 0, "events": 0, "created": 0, "existing": 0, "spooled": 0, "errors": 0}
+        for path in args.files:
+            try:
+                events = parse_export_file(path, args.source, project=args.project)
+                res = sink.emit_batch(f"import-{args.source}", events)
+                totals["files"] += 1
+                totals["events"] += len(events)
+                totals["created"] += res.get("created", 0)
+                totals["existing"] += res.get("existing", 0)
+                totals["spooled"] += res.get("spooled", 0)
+            except (OSError, ValueError) as exc:
+                totals["errors"] += 1
+                print(f"[import-chat] skipped {path}: {exc}", file=sys.stderr)
+        print(json.dumps(totals, ensure_ascii=False, indent=2))
+        return 1 if totals["errors"] else 0
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

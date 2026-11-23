@@ -37,3 +37,22 @@ jobs:
         run: npm ci
       - name: Typecheck & build Workbench
         run: npm run build
+
+  browser-extension:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: extensions/browser
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: extensions/browser/package-lock.json
+      - name: Install extension dependencies
+        run: npm ci
+      - name: Test MV3 pipeline
+        run: npm test
+      - name: Typecheck & bundle MV3 extension
+        run: npm run build

@@ -42,6 +42,12 @@ class BatchIngestBody(BaseModel):
     events: list[RawEventIn]
 
 
+class RevokeSourceBody(BaseModel):
+    source: str
+    connector: str
+    source_id: str
+
+
 def _load_or_create_token(data_dir: Path, name: str) -> str:
     path = data_dir / f"{name}.token"
     if path.is_file():
@@ -250,7 +256,7 @@ def create_app(
             "http://127.0.0.1:5173",
             "http://localhost:5173",
         ],
-        allow_origin_regex=r"^chrome-extension://[a-z]{32}$",
+        allow_origin_regex=r"^(chrome-extension://[a-z]{32}|moz-extension://[a-f0-9-]+)$",
         allow_methods=["*"],
         allow_headers=["*"],
     )
@@ -332,6 +338,22 @@ def create_app(
     @app.get("/api/v2/events/{raw_id}")
     def get_event(raw_id: str, role: str = Depends(resolve_role)) -> dict[str, Any]:
         return store.get_raw(raw_id, agent=(role == "agent"))
+
+    @app.get("/api/v2/events/{raw_id}/content")
+    def get_event_content(
+        raw_id: str,
+        offset: int = 0,
+        limit: int = 8000,
+        role: str = Depends(resolve_role),
+    ) -> dict[str, Any]:
+        return store.get_raw_content(raw_id, offset=offset, limit=limit, agent=(role == "agent"))
+
+    @app.post("/api/v2/events/revoke")
+    def revoke_event_by_source(
+        body: RevokeSourceBody,
+        _: str = Depends(require_owner),
+    ) -> dict[str, Any]:
+        return store.delete_raw_by_source(body.source, body.connector, body.source_id)
 
     @app.patch("/api/v2/events/{raw_id}/privacy")
     def patch_event_privacy(
@@ -473,6 +495,25 @@ def create_app(
     ) -> dict[str, Any]:
         return store.related(item_id=id, url=url, text=text, limit=limit, agent=(role == "agent"))
 
+    @app.get("/api/v2/context-pack")
+    def context_pack(
+        request: Request,
+        q: str | None = None,
+        project: str | None = None,
+        minutes: int = 240,
+        max_tokens: int = 2500,
+        role: str = Depends(resolve_role),
+    ) -> dict[str, Any]:
+        base = str(request.base_url).rstrip("/")
+        return store.get_context_pack(
+            query=q,
+            project=project,
+            minutes=minutes,
+            max_tokens=max_tokens,
+            agent=(role == "agent"),
+            workbench_base_url=base,
+        )
+
     # ---------------- Agent-as-Curator Endpoints ----------------
     @app.get("/api/v2/curation/rules")
     def curation_rules(_: str = Depends(resolve_role)) -> dict[str, Any]:
@@ -536,11 +577,22 @@ def create_app(
     def collectors_status(_: str = Depends(require_owner)) -> dict[str, Any]:
         return {"items": store.list_collector_statuses()}
 
+    @app.get("/api/v2/collectors/checkpoints")
+    def collectors_checkpoints(
+        collector: str | None = None,
+        _: str = Depends(require_owner),
+    ) -> dict[str, Any]:
+        return {"items": store.list_collector_checkpoints(collector)}
+
     @app.post("/api/v2/collectors/status")
     def update_collector(
         body: CollectorStatusIn, _: str = Depends(require_owner)
     ) -> dict[str, Any]:
         return store.update_collector_status(body)
+
+    @app.post("/api/v2/maintenance/sync-memory")
+    def sync_memory_layer(_: str = Depends(require_owner)) -> dict[str, Any]:
+        return {"written": store.sync_markdown_memory_layer()}
 
     @app.post("/api/v2/demo/seed")
     def demo_seed(_: str = Depends(require_owner)) -> dict[str, Any]:

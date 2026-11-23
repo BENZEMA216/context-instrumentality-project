@@ -27,6 +27,7 @@ dev = [
 
 [project.scripts]
 context-hub = "context_hub.cli:main"
+context-collectors = "context_collectors.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = [

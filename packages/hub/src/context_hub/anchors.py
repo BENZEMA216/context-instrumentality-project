@@ -43,7 +43,9 @@ SENSITIVE_QUERY_KEYS = {
     "signature",
 }
 
-_URL_RE = re.compile(r"https?://[^\s<>\"'()\[\]{}]+", re.I)
+_URL_RE = re.compile(
+    r"https?://[^\s<>\"'`()\[\]{}\u3000-\u303f\uff00-\uffef\u4e00-\u9fff]+", re.I
+)
 _GH_REPO_RE = re.compile(r"github\.com/([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)")
 _ISSUE_KEY_RE = re.compile(r"\b([A-Z]{2,8}-\d{1,6})\b")
 _UNIX_PATH_RE = re.compile(r"(?:^|[\s`'(])(/[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+){2,})")
@@ -51,9 +53,10 @@ _UNIX_PATH_RE = re.compile(r"(?:^|[\s`'(])(/[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+){
 
 def canonicalize_url(raw_url: str) -> str:
     """Normalize URL for deterministic Promnesia-style matching and strip secret/tracking params."""
-    raw_url = raw_url.strip().rstrip(".,;:!?)")
+    raw_url = raw_url.strip().rstrip(".,;:!?)'\"`")
     try:
         parts = urlsplit(raw_url)
+        port = parts.port
     except ValueError:
         return raw_url
     if parts.scheme.lower() not in ("http", "https") or not parts.hostname:
@@ -62,7 +65,6 @@ def canonicalize_url(raw_url: str) -> str:
     host = parts.hostname.lower()
     if host.startswith("www."):
         host = host[4:]
-    port = parts.port
     netloc = host if port in (None, 80, 443) else f"{host}:{port}"
 
     path = re.sub(r"/{2,}", "/", parts.path or "/")
@@ -114,9 +116,13 @@ def extract_anchors(event: dict[str, Any]) -> list[str]:
     for u in urls[:20]:
         norm = canonicalize_url(u)
         anchors.add(f"url:{norm}")
-        parsed = urlsplit(norm)
-        if parsed.hostname:
-            anchors.add(f"domain:{parsed.hostname}")
+        try:
+            parsed = urlsplit(norm)
+            hostname = parsed.hostname
+        except ValueError:
+            hostname = None
+        if hostname:
+            anchors.add(f"domain:{hostname}")
         gh = _GH_REPO_RE.search(norm)
         if gh:
             repo = gh.group(1).removesuffix(".git").lower()
