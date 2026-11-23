@@ -106,6 +106,18 @@ Watch 修复提交 `50ae6c3` 在传输桥的受控系统队列中填满了 12 �
 
 **云盘计数怎么读。** Mac 的日常导入器从 commit 和 manifest 核对片段。默认只读取已在本机的元数据。启用 `--request-metadata` 后，导入器只会请求库标记、选定提交和绑定的清单 JSON，每轮最多 64 个文件，每个不超过 1 MiB。对 CAF，它只查询文件条目、类型、字节数和占位状态。Mac 完整下载数、iPhone 记录的 Apple 上传确认数和 Agent 可查目录数因此需要分别测量。日常 Agent 的目录记录包含时间、帧数、大小和来源摘要，正文为空。授权目录的范围无需随音频下载进度变动。[Mac reader](https://github.com/BENZEMA216/context-instrumentality-project/blob/c6d357a50dd0d9f1e9a1b66d8d8557a4ffc140fe/channels/audio/record-for-agent/AgentBridge/icloud_drive_library.py#L166-L205) · [Hub 目录字段](https://github.com/BENZEMA216/context-instrumentality-project/blob/c6d357a50dd0d9f1e9a1b66d8d8557a4ffc140fe/hub/icloud_sync.py#L109-L124)
 
+#### 配对构建与补传复查
+
+11 月 23 日，针对手表实际版本从 128 回到 127 的问题，核对了原始签名归档和现有手机安装。127 签名 iPhone 包内嵌 Watch 127，它与独立安装的 Watch 128 使用同一组应用和团队标识。11:17，通过已连接 iPhone 的系统安装服务定向查询，当前 iPhone 127 的签发者标签为 TestFlight Beta。11:21 再查，手机实际安装的 8 项云盘与 OAuth 配置及签名数据访问权限与 127 基线相符。在最后观察到 Watch 128 与首次观察到 127 之间，Mac 日志按目标应用和安装操作未检出替换事务。触发方待设备侧证据核对。[REC-77](https://linear.app/zhiming-app/issue/REC-77)
+
+11:29:59–11:30:17，升级前再次在同一 iPhone 与 Watch 直接读到 build 127。手机持久收据和手表持久确认各为 93/173，原先留表的 80 段新增手机收件 0。表上 80 个 CAF 逐段核到源清单字节数，当时没有进行中的录音。手机已有 iCloud 与 Google Drive 配置可读。11:32–11:33，日常 Hub Agent 逐项回查 93/173 份目录元数据，留表 80 段命中 0。11:36:33，Mac 云盘可见 93 个源目录，其 76 个可识别的 CAF 文件条目均为占位，实驻 0。此前完成过一次按需下载并校验摘要的那个片段，此时也已变回占位。
+
+联合候选 `c312b30` 包含配对升级校验，以及手表在有界后台机会内推进已封存片段的改动。构建产物必须是包含同号 Watch 的 iPhone App，已有云配置、OAuth 和持久数据访问签名须与已验证基线一致。独立复核通过 828 项 Swift 测试、42 项配对升级检查，以及 11 个传输边界场景的 233 个断言。作者的传输桥全量测试通过 321/321 个场景。独立首次全量运行通过 320/321，双等待者场景的一条诊断时间断言相差约 30 毫秒，两个传输任务及其完成回调均正常。独立评审用同一二进制再跑全套，321 个场景和 4,437 个断言全部通过。该诊断时序在 [REC-78](https://linear.app/zhiming-app/issue/REC-78) 跟踪。实际安装按原两台设备的应用清单分别核验，录音交付按同一批 173 段的持久收据核验。[联合候选 #7（私有源码）](https://github.com/BENZEMA216/record-for-agent-source/pull/7) · [配对校验 #6（私有源码）](https://github.com/BENZEMA216/record-for-agent-source/pull/6) · [后台补传 #8（私有源码）](https://github.com/BENZEMA216/record-for-agent-source/pull/8)
+
+**只安装配对 iPhone 的观察。** 11:44:53–56，原位安装签名 Phone 129 整包，内嵌 Watch 129。手机独立读回 129，原有 93 份持久收据和 iCloud、Google Drive 配置均保留。尚未发起单独手表安装时，11:50:09 和 11:50:37 两次直接读取同一手表均为 127。此次至少观察 5 分 41 秒，期间未见手表随手机自动升级。这一时间窗不足以判定此前 TestFlight 127 替换 Watch 128 的触发者。11:51:22–34，随后只在原手表上原位安装同一完整包内嵌的 Watch 应用。配对校验器再按固定设备标识独立读回 iPhone 129 与 Watch 129，双端实际版本核对通过。[REC-77](https://linear.app/zhiming-app/issue/REC-77)
+
+**配对 129 的后台实测。** 截至 11:59:46，手机仍有原先的 93 份持久收据，表端仍有对应的 93 份持久确认。对升级前尚留表的 80 段，新增手机收据 0、表端新增确认 0，80 个原音频文件逐一核到仍在手表。观测期间，系统自动触发的一次 WatchConnectivity 后台任务到期，系统接受了一次应用后台刷新预约，未观察到实际应用刷新回调。11:59 后两设备离线，12:05 Xcode 对两者均报不可用，最后连接时间均为 11:59。其后收件数未知。配对升级与原有状态保留已实测，持续后台交付仍待验证。[REC-47](https://linear.app/zhiming-app/issue/REC-47)
+
 ## 剪贴板
 
 使用经签名与文件摘要校验的 [ClipContext 0.1.4/build 5 预发行包](https://github.com/BENZEMA216/ClipContext/releases/tag/v0.1.4)。通过发布二进制自带的测试入口指定命名剪贴板与独立持久目录，两次启动同一份原生应用。测试没有接触日常账户的通用剪贴板。
