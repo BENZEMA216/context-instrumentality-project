@@ -6,7 +6,16 @@ import json
 import sqlite3
 from pathlib import Path
 
-from context_collectors.audio import ASRResult, ASRSpan, AudioCollector, AudioPaths
+from context_collectors.audio import (
+    ASRResult,
+    ASRSpan,
+    AudioCollector,
+    AudioPaths,
+    GoogleDriveAudioTransport,
+    WebDAVAudioTransport,
+    pack_audio_packet,
+    unpack_audio_packet,
+)
 from context_collectors.runtime import DirectHubSink, HubCheckpointStore, run_collector
 from context_hub.store import HubStore
 
@@ -199,3 +208,106 @@ def test_audio_collector_cloudkit_inbox_m4a_sidecar(tmp_path: Path) -> None:
     assert ev["provenance"]["connector"] == "record-for-agent/cloudkit-inbox"
     assert ev["context"]["audio_format"] == "m4a"
     assert "CloudKit" in ev["body_text"]
+
+
+def test_audio_packet_roundtrip_and_webdav_and_gdrive_incremental_pull(tmp_path: Path) -> None:
+    store = HubStore(tmp_path / "hub")
+    checkpoints = HubCheckpointStore(store)
+
+    # 1. Pack & verify single atomic `.ctxaudio.zip` packet
+    raw_m4a = tmp_path / "seg-99.m4a"
+    raw_m4a.write_bytes(b"compact-aac-audio-bytes-99")
+    pkt_path = tmp_path / "seg-99.ctxaudio.zip"
+    packed = pack_audio_packet(
+        raw_m4a,
+        {"id": "seg-99", "sessionID": "sess-99", "startedAt": "2026-11-23T12:00:00Z"},
+        pkt_path,
+        compress=False,
+    )
+    pkt_bytes = pkt_path.read_bytes()
+    assert packed["segment_id"] == "seg-99"
+
+    inbox_direct = tmp_path / "inbox-direct"
+    unpacked = unpack_audio_packet(pkt_bytes, inbox_direct)
+    assert unpacked["segment_id"] == "seg-99"
+    assert (inbox_direct / "seg-99.m4a").read_bytes() == b"compact-aac-audio-bytes-99"
+    assert json.loads((inbox_direct / "seg-99.json").read_text())["id"] == "seg-99"
+
+    # 2. WebDAV incremental pull (simulates 坚果云 Nutstore PROPFIND + GET + ETag skip)
+    webdav_inbox = tmp_path / "inbox-webdav"
+    wd = WebDAVAudioTransport(
+        "https://dav.jianguoyun.com/dav/RecordForAgent/",
+        username="u",
+        password="p",
+    )
+    propfind_xml = b"""<?xml version="1.0" encoding="utf-8"?>
+    <d:multistatus xmlns:d="DAV:">
+      <d:response>
+        <d:href>/dav/RecordForAgent/seg-99.ctxaudio.zip</d:href>
+        <d:propstat><d:prop>
+          <d:getetag>"etag-99"</d:getetag>
+          <d:getcontentlength>512</d:getcontentlength>
+        </d:prop></d:propstat>
+      </d:response>
+    </d:multistatus>"""
+
+    def _fake_wd(method: str, url: str, *, data=None, headers=None):
+        if method == "PROPFIND":
+            return 207, propfind_xml, {}
+        if method == "GET" and url.endswith("seg-99.ctxaudio.zip"):
+            return 200, pkt_bytes, {}
+        raise AssertionError(f"Unexpected WebDAV request: {method} {url}")
+
+    wd._request = _fake_wd  # type: ignore[method-assign]
+    r_wd1 = wd.pull_to_inbox(webdav_inbox, checkpoints)
+    assert r_wd1.downloaded == 1
+    assert not r_wd1.errors
+    assert (webdav_inbox / "seg-99.m4a").is_file()
+
+    # Second pass skips via persisted ETag without downloading again
+    r_wd2 = wd.pull_to_inbox(webdav_inbox, checkpoints)
+    assert r_wd2.downloaded == 0
+    assert r_wd2.skipped_existing == 1
+
+    # 3. Google Drive incremental pull (`startPageToken` -> `changes.list` delta)
+    import hashlib
+
+    gd_inbox = tmp_path / "inbox-gdrive"
+    gd = GoogleDriveAudioTransport("fake-token", "folder-123")
+    pkt_sha = hashlib.sha256(pkt_bytes).hexdigest()
+    gd_calls: list[str] = []
+
+    def _fake_gd(method: str, url: str, *, data=None, headers=None):
+        gd_calls.append(url)
+        if url.endswith("/changes/startPageToken"):
+            return json.dumps({"startPageToken": "tok-1"}).encode()
+        if "/files?" in url:
+            return json.dumps(
+                {
+                    "files": [
+                        {
+                            "id": "file-99",
+                            "name": "seg-99.ctxaudio.zip",
+                            "sha256Checksum": pkt_sha,
+                            "parents": ["folder-123"],
+                        }
+                    ]
+                }
+            ).encode()
+        if url.endswith("/files/file-99?alt=media"):
+            return pkt_bytes
+        if "/changes?" in url:
+            return json.dumps({"changes": [], "newStartPageToken": "tok-2"}).encode()
+        raise AssertionError(f"Unexpected Drive request: {method} {url}")
+
+    gd._request = _fake_gd  # type: ignore[method-assign]
+    r_gd1 = gd.pull_to_inbox(gd_inbox, checkpoints)
+    assert r_gd1.downloaded == 1
+    assert r_gd1.cursor == "tok-1"
+    assert (gd_inbox / "seg-99.json").is_file()
+
+    # Second pass uses incremental `/changes?pageToken=tok-1` instead of full folder scan!
+    r_gd2 = gd.pull_to_inbox(gd_inbox, checkpoints)
+    assert r_gd2.downloaded == 0
+    assert r_gd2.cursor == "tok-2"
+    assert any("/changes?" in u for u in gd_calls)

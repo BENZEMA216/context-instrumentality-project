@@ -12,7 +12,14 @@ from context_hub.mcp_server import default_data_dir
 from context_hub.store import HubStore
 
 from .ai_chat import AIChatCollector, parse_export_file
-from .audio import AudioCollector, ensure_sensevoice_models
+from .audio import (
+    AudioCollector,
+    GoogleDriveAudioTransport,
+    WebDAVAudioTransport,
+    discover_audio_paths,
+    ensure_sensevoice_models,
+    probe_cloud_endpoints,
+)
 from .clipcontext import ClipContextCollector
 from .runtime import (
     CheckpointBackend,
@@ -96,6 +103,27 @@ def main(argv: list[str] | None = None) -> int:
         help="Download local offline SenseVoice-Small (int8) + Silero-VAD ONNX models into user cache",
     )
 
+    sub.add_parser(
+        "probe-cloud",
+        help="Test live reachability & latency of Apple CloudKit, Nutstore WebDAV, and Google Drive (proxy vs direct)",
+    )
+
+    wd_p = sub.add_parser(
+        "pull-webdav",
+        help="Incrementally pull .ctxaudio.zip packets from WebDAV (e.g. Nutstore/坚果云 or NAS) into inbox/audio",
+    )
+    wd_p.add_argument("--url", required=True, help="WebDAV folder URL (e.g. https://dav.jianguoyun.com/dav/RecordForAgent/)")
+    wd_p.add_argument("--username", required=True)
+    wd_p.add_argument("--password", required=True)
+    wd_p.add_argument("--use-proxy", action="store_true")
+
+    gd_p = sub.add_parser(
+        "pull-gdrive",
+        help="Incrementally pull .ctxaudio.zip packets from Google Drive (via system proxy if set) into inbox/audio",
+    )
+    gd_p.add_argument("--folder-id", required=True, help="Google Drive folder ID")
+    gd_p.add_argument("--access-token", required=True, help="Google OAuth access token")
+
     imp_p = sub.add_parser("import-chat", help="Import exported AI chat files (ChatGPT, Claude Web, Gemini, Codex, Claude, DeepSeek, Antigravity)")
     imp_p.add_argument(
         "--source",
@@ -112,6 +140,10 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(status, ensure_ascii=False, indent=2))
         return 0
 
+    if args.command == "probe-cloud":
+        print(json.dumps({"endpoints": probe_cloud_endpoints()}, ensure_ascii=False, indent=2))
+        return 0
+
     if args.command == "doctor":
         cols = _build_collectors(args.collector)
         out = {"collectors": [c.doctor() for c in cols]}
@@ -119,6 +151,27 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     sink, checkpoints = _build_sink_and_checkpoints(args)
+
+    if args.command == "pull-webdav":
+        inbox = discover_audio_paths().inbox_dir
+        assert inbox is not None
+        transport = WebDAVAudioTransport(
+            args.url,
+            username=args.username,
+            password=args.password,
+            use_system_proxy=args.use_proxy,
+        )
+        rep = transport.pull_to_inbox(inbox, checkpoints)
+        print(json.dumps(rep.to_dict(), ensure_ascii=False, indent=2))
+        return 1 if rep.errors else 0
+
+    if args.command == "pull-gdrive":
+        inbox = discover_audio_paths().inbox_dir
+        assert inbox is not None
+        transport = GoogleDriveAudioTransport(args.access_token, args.folder_id)
+        rep = transport.pull_to_inbox(inbox, checkpoints)
+        print(json.dumps(rep.to_dict(), ensure_ascii=False, indent=2))
+        return 1 if rep.errors else 0
 
     if args.command == "sync":
         cols = _build_collectors(args.collector, asr_mode=args.asr_mode)
