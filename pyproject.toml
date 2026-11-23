@@ -1,0 +1,55 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "context-instrumentality"
+version = "0.2.0"
+description = "Local-first personal context OS: L0-L4 Hub, Agent-as-Curator MCP, multi-channel collectors, and Context Vault"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115,<1",
+    "uvicorn>=0.32,<1",
+    "pydantic>=2.10,<3",
+    "jsonschema>=4.23,<5",
+    "pyyaml>=6.0,<7",
+    "mcp>=1.9,<2",
+    "cryptography>=44,<47",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3,<10",
+    "httpx>=0.28,<1",
+    "ruff>=0.9,<1",
+]
+
+[project.scripts]
+context-hub = "context_hub.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = [
+    "packages/hub/src/context_hub",
+    "packages/collectors/src/context_collectors",
+    "packages/vault/src/context_vault",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+extend-exclude = [
+    "channels",
+    "web",
+    "extensions",
+    "native",
+    "docs",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]

@@ -8,8 +8,9 @@ import json
 import shutil
 import subprocess
 import sys
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 DEFAULT_PLAN_PATH = Path(__file__).resolve().parent.parent / "project" / "issues.json"
 REQUIRED_ISSUE_KEYS = {
