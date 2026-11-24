@@ -161,3 +161,20 @@ class CollectorStatusIn(BaseModel):
     items_synced: int = 0
     watermark: str | None = None
     message: str = ""
+
+
+class StatusPointerIn(BaseModel):
+    label: str = Field(..., min_length=1, max_length=160)
+    how_to_check: str = Field(..., min_length=1, max_length=800)
+
+
+class ProjectProfileIn(BaseModel):
+    project: str = Field(..., min_length=1, max_length=160)
+    display_name: str = Field(default="", max_length=200)
+    summary: str = Field(default="", max_length=2000)
+    repos: list[str] = Field(default_factory=list)
+    domains: list[str] = Field(default_factory=list)
+    status_pointers: list[StatusPointerIn] = Field(default_factory=list)
+    tech_notes: list[str] = Field(default_factory=list)
+    evidence_ids: list[str] = Field(default_factory=list)
+    updated_by: str = Field(default="owner", max_length=120)

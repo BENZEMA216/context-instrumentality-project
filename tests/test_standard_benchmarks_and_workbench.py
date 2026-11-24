@@ -6,13 +6,21 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
+from context_eval.fidelity import inspect_compression_fidelity
 from context_eval.standard_benchmarks import (
     evaluate_locomo,
     evaluate_longmemeval,
     render_benchmark_markdown,
 )
 from context_eval.workbench import create_workbench_app, summarize_adjudications
-from context_hub.models import CurationBatchIn, DecisionCurationIn, RawEventIn
+from context_hub.models import (
+    CurationBatchIn,
+    DecisionCurationIn,
+    MemoryCurationIn,
+    ProjectProfileIn,
+    RawEventIn,
+    StatusPointerIn,
+)
 from context_hub.store import HubStore
 from context_hub.tokenizer import fts_match_query, fts_match_query_or
 
@@ -194,3 +202,141 @@ def test_human_in_the_loop_debug_workbench_endpoints(tmp_path: Path) -> None:
     summary = summarize_adjudications(hub_dir)
     assert summary["total_adjudicated"] == 1
     assert summary["query_feedback_count"] == 1
+
+
+def test_project_profile_exchange_window_and_anti_noise_gate(tmp_path: Path) -> None:
+    """Verify Project Profiles, Q&A exchange windows, retract/delete hygiene, and Anti-Noise flags."""
+    hub_dir = tmp_path / "hub_v21"
+    store = HubStore(hub_dir)
+    base_ms = 1_764_100_000_000
+
+    # 3-turn Q&A conversation + 1 local_only secret turn that must never leak into context window
+    store.ingest_event(
+        RawEventIn(
+            id="ev_qa_1",
+            source="ai_chat",
+            kind="chat_turn",
+            t_start=base_ms,
+            t_end=base_ms + 1000,
+            actor="antigravity",
+            project="clip-for-agent",
+            content={"title": "Naming proposal", "text": "建议把 macOS 剪贴板工具改名叫 Clip for Agent"},
+            context={"session_id": "sess_qa"},
+            provenance={"connector": "chat-history/antigravity", "source_id": "qa:1"},
+        )
+    )
+    store.ingest_event(
+        RawEventIn(
+            id="ev_qa_2",
+            source="ai_chat",
+            kind="chat_turn",
+            t_start=base_ms + 2000,
+            t_end=base_ms + 3000,
+            actor="self",
+            project="clip-for-agent",
+            content={"title": "Short confirm", "text": "那就叫 Clip for Agent"},
+            context={"session_id": "sess_qa", "signal_hints": ["user_decision"]},
+            provenance={"connector": "chat-history/antigravity", "source_id": "qa:2"},
+        )
+    )
+    store.ingest_event(
+        RawEventIn(
+            id="ev_qa_3",
+            source="ai_chat",
+            kind="chat_turn",
+            t_start=base_ms + 4000,
+            t_end=base_ms + 5000,
+            actor="antigravity",
+            project="clip-for-agent",
+            content={"title": "Applied", "text": "已同步更新 Info.plist 为 Clip for Agent"},
+            context={"session_id": "sess_qa"},
+            provenance={"connector": "chat-history/antigravity", "source_id": "qa:3"},
+        )
+    )
+    store.ingest_event(
+        RawEventIn(
+            id="ev_qa_secret",
+            source="ai_chat",
+            kind="chat_turn",
+            t_start=base_ms + 6000,
+            t_end=base_ms + 7000,
+            actor="self",
+            project="clip-for-agent",
+            privacy={"tier": "local_only"},
+            content={"title": "Private", "text": "SECRET_TOKEN_XYZ"},
+            context={"session_id": "sess_qa"},
+            provenance={"connector": "chat-history/antigravity", "source_id": "qa:secret"},
+        )
+    )
+
+    # 1. Exchange-pair context window returns [prev, cited, next] and excludes local_only
+    win = store.get_evidence_context_window("ev_qa_2", before=1, after=1, agent=True)
+    assert [t["role"] for t in win["turns"]] == ["prev_context", "cited", "next_context"]
+    assert [t["raw_id"] for t in win["turns"]] == ["ev_qa_1", "ev_qa_2", "ev_qa_3"]
+    win_tail = store.get_evidence_context_window("ev_qa_3", before=1, after=1, agent=True)
+    assert all(t["raw_id"] != "ev_qa_secret" for t in win_tail["turns"])
+
+    # 2. Project Profile surfaces in get_project_state & get_context_pack
+    store.upsert_project_profile(
+        ProjectProfileIn(
+            project="clip-for-agent",
+            display_name="Clip for Agent",
+            summary="macOS 剪贴板采集工具",
+            repos=["BENZEMA216/ClipContext"],
+            status_pointers=[
+                StatusPointerIn(label="Linear 进度", how_to_check="查询 Linear REC-62")
+            ],
+            tech_notes=["使用 Apple Development 正式证书签名"],
+            evidence_ids=["ev_qa_2"],
+        )
+    )
+    state = store.get_project_state("clip-for-agent", agent=True)
+    assert state["profile"]["display_name"] == "Clip for Agent"
+    pack = store.get_context_pack(query="Clip for Agent 状态去哪查", project="clip-for-agent", agent=True)
+    assert len(pack["project_profiles"]) == 1
+    assert "Project Profile" in pack["rendered_markdown"]
+    assert "Linear REC-62" in pack["rendered_markdown"]
+
+    # 3. Anti-Noise Gate catches volatile Build snapshot, isolated short reply, and Decision<->Memory duplicate
+    batch = store.commit_curation_batch(
+        CurationBatchIn(
+            curator_agent="test",
+            decisions=[
+                DecisionCurationIn(
+                    project="clip-for-agent",
+                    topic="build_status",
+                    statement="App Store 提审已挂载 Build 154 并推进内测",
+                    authority="user_confirmed",
+                    valid_at=base_ms + 3000,
+                    evidence_ids=["ev_qa_2"],
+                )
+            ],
+            memories=[
+                MemoryCurationIn(
+                    title="重复记录",
+                    body="App Store 提审已挂载 Build 154 并推进内测",
+                    kind="fact",
+                    project="clip-for-agent",
+                    evidence_ids=["ev_qa_2"],
+                )
+            ],
+        )
+    )
+    rep_before = inspect_compression_fidelity(hub_dir, include_quotes=True)
+    assert rep_before.project_profiles_count == 1
+    assert rep_before.total_noise_flags >= 3
+    dec_item = next(i for i in rep_before.items if i.item_kind == "decision")
+    mem_item = next(i for i in rep_before.items if i.item_kind == "memory")
+    assert "volatile_status_snapshot" in dec_item.noise_flags
+    assert "isolated_short_reply" in dec_item.noise_flags
+    assert any(f.startswith("duplicate_of:") for f in mem_item.noise_flags)
+    assert len(dec_item.evidence_quotes[0]["exchange_window"]) == 3
+
+    # 4. Retract & delete remove noise cleanly from fidelity audit
+    store.retract_decision(batch["committed"]["decisions"][0], reason="noise")
+    store.delete_memory(batch["committed"]["memories"][0])
+    rep_after = inspect_compression_fidelity(hub_dir, include_quotes=True)
+    assert len(rep_after.items) == 0
+    assert rep_after.total_noise_flags == 0
+    assert rep_after.durability_hygiene_rate == 1.0
+

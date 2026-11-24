@@ -158,10 +158,14 @@ def audit_curated_memory(data_dir: Path, *, run_live_ab: bool = True) -> MemoryA
         curated_episodes = conn.execute(
             "SELECT * FROM episodes WHERE status IN ('curated', 'manual')"
         ).fetchall()
-        all_decisions = conn.execute("SELECT * FROM decisions ORDER BY valid_at ASC").fetchall()
+        all_decisions = conn.execute(
+            "SELECT * FROM decisions WHERE status != 'retracted' ORDER BY valid_at ASC"
+        ).fetchall()
         active_decisions = [d for d in all_decisions if d["status"] == "active"]
         superseded_decisions = [d for d in all_decisions if d["status"] == "superseded"]
-        all_memories = conn.execute("SELECT * FROM memories ORDER BY created_at ASC").fetchall()
+        all_memories = conn.execute(
+            "SELECT * FROM memories WHERE deleted = 0 ORDER BY created_at ASC"
+        ).fetchall()
 
         dec_evidence: dict[str, list[str]] = defaultdict(list)
         for row in conn.execute("SELECT decision_id, raw_id FROM decision_evidence"):

@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from .curation_rules import build_curator_prompt, load_curation_rules
-from .models import CurationBatchIn, MemoryCurationIn
+from .models import CurationBatchIn, MemoryCurationIn, ProjectProfileIn
 from .store import HubStore
 
 MCP_INSTRUCTIONS = (
@@ -151,10 +151,52 @@ def build_mcp_server(
         project: str,
         include_history: bool = False,
     ) -> dict[str, Any]:
-        """Return active decisions, optional superseded decision history, recent episodes, and memories for a project."""
+        """Return Project Profile (identity, repos, live status pointers), active decisions, recent episodes, and memories for a project."""
         return store.get_project_state(
             project, include_history=include_history, agent=True
         )
+
+    @mcp.tool(annotations=read_only)
+    def list_project_profiles() -> dict[str, Any]:
+        """Return canonical Project Profiles (display names, repos, domains, live status lookup pointers, repo notes)."""
+        return {"content_is_untrusted_data": True, "profiles": store.list_project_profiles()}
+
+    @mcp.tool(annotations=write_safe)
+    def upsert_project_profile(
+        project: str,
+        display_name: str = "",
+        summary: str = "",
+        repos: list[str] | None = None,
+        domains: list[str] | None = None,
+        status_pointers: list[dict[str, str]] | None = None,
+        tech_notes: list[str] | None = None,
+        evidence_ids: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """Create or update static Project Profile metadata & live status pointers (never put volatile build/PR snapshots into L3 memory)."""
+        prof = ProjectProfileIn(
+            project=project,
+            display_name=display_name,
+            summary=summary,
+            repos=repos or [],
+            domains=domains or [],
+            status_pointers=status_pointers or [],  # type: ignore[arg-type]
+            tech_notes=tech_notes or [],
+            evidence_ids=evidence_ids or [],
+            updated_by="agent",
+        )
+        return store.upsert_project_profile(prof)
+
+    @mcp.tool(annotations=read_only)
+    def get_evidence_context(
+        raw_id: str,
+        before: int = 1,
+        after: int = 1,
+    ) -> dict[str, Any]:
+        """Return conversational exchange context window ([prev..., cited, next...]) for an evidence raw_id."""
+        return {
+            "content_is_untrusted_data": True,
+            **store.get_evidence_context_window(raw_id, before=before, after=after, agent=True),
+        }
 
     @mcp.tool(annotations=read_only)
     def related(
