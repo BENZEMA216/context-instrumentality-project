@@ -15,6 +15,7 @@ Safety guarantees:
 
 from __future__ import annotations
 
+import base64
 import datetime
 import hashlib
 import json
@@ -50,13 +51,35 @@ _SENSITIVE_BUNDLE_PREFIXES = (
 _TEXT_UTI_PRIORITY = (
     "public.utf8-plain-text",
     "public.plain-text",
+    "public.text",
     "public.url",
     "public.file-url",
     "public.utf16-plain-text",
+    "public.utf16-external-plain-text",
     "public.html",
 )
 
-_URL_ONLY_RE = re.compile(r"^https?://\S+$", re.I)
+_DECODABLE_TEXT_UTIS = {
+    "public.utf8-plain-text",
+    "public.plain-text",
+    "public.text",
+    "public.url",
+    "public.file-url",
+    "org.chromium.source-url",
+    "public.utf16-plain-text",
+    "public.utf16-external-plain-text",
+    "public.utf8-tab-separated-values-text",
+    "public.html",
+}
+
+_UTF16_UTIS = {
+    "public.utf16-plain-text",
+    "public.utf16-external-plain-text",
+}
+
+_MAX_BASE64_TEXT_CHARS = 2_000_000
+_HTTP_URL_RE = re.compile(r"^https?://\S+$", re.I)
+_URL_ONLY_RE = _HTTP_URL_RE
 _CODE_HINT_RE = re.compile(
     r"(?:^\s*(?:def |class |function |const |let |import |export |SELECT |curl |git |uv |npm |docker )|[{};]=>|```)",
     re.M,
@@ -106,19 +129,52 @@ def _is_blocked_item(item: dict[str, Any]) -> bool:
     return False
 
 
-def _extract_preferred_text_and_url(item: dict[str, Any]) -> tuple[str, str | None, bool]:
-    """Return `(text, url, has_image)` from ClipContext `contents[]` parts."""
+def _decode_part_text(part: dict[str, Any], uti: str) -> str:
+    """Return decoded text from `part['text']`, falling back to `part['base64']` for text/URL UTIs."""
+    txt = part.get("text")
+    if isinstance(txt, str) and txt.strip():
+        return txt.strip()
+    if uti not in _DECODABLE_TEXT_UTIS:
+        return ""
+    b64 = part.get("base64")
+    if not isinstance(b64, str) or not b64.strip() or len(b64) > _MAX_BASE64_TEXT_CHARS:
+        return ""
+    try:
+        raw = base64.b64decode(b64, validate=False)
+    except (ValueError, TypeError):
+        return ""
+    if not raw:
+        return ""
+    if uti in _UTF16_UTIS:
+        encoding = "utf-16" if raw.startswith((b"\xff\xfe", b"\xfe\xff")) else "utf-16-le"
+        decoded = raw.decode(encoding, errors="ignore")
+    else:
+        decoded = raw.decode("utf-8", errors="ignore")
+    return decoded.replace("\x00", "").strip()
+
+
+def _extract_preferred_text_and_url(
+    item: dict[str, Any],
+) -> tuple[str, str | None, str | None, bool]:
+    """Return `(text, url, source_url, has_image)` from ClipContext `contents[]` parts."""
     by_uti: dict[str, str] = {}
+    source_url: str | None = None
     has_image = False
     for part in item.get("contents") or []:
         if not isinstance(part, dict):
             continue
         uti = str(part.get("type") or "").strip().lower()
-        if any(img in uti for img in ("png", "jpeg", "tiff", "heic", "image")):
+        if any(img in uti for img in ("png", "jpeg", "tiff", "heic", "webp", "image")):
             has_image = True
-        txt = part.get("text")
-        if isinstance(txt, str) and txt.strip() and uti not in by_uti:
-            by_uti[uti] = txt.strip()
+        decoded = _decode_part_text(part, uti)
+        if not decoded:
+            continue
+        if uti == "org.chromium.source-url":
+            if not source_url and _HTTP_URL_RE.match(decoded):
+                source_url = decoded
+            continue
+        if uti not in by_uti:
+            by_uti[uti] = decoded
 
     chosen_text = ""
     for uti in _TEXT_UTI_PRIORITY:
@@ -135,7 +191,7 @@ def _extract_preferred_text_and_url(item: dict[str, Any]) -> tuple[str, str | No
     url: str | None = by_uti.get("public.url")
     if not url and chosen_text and _URL_ONLY_RE.match(chosen_text):
         url = chosen_text
-    return chosen_text, url, has_image
+    return chosen_text, url, source_url, has_image
 
 
 def _classify_clipboard_content(text: str, url: str | None, has_image: bool) -> str:
@@ -159,7 +215,7 @@ def _item_to_event(
     item_id = str(item.get("id") or "").strip()
     if not item_id:
         return None
-    text, url, has_image = _extract_preferred_text_and_url(item)
+    text, url, source_url, has_image = _extract_preferred_text_and_url(item)
     if not text and not has_image:
         return None
 
@@ -180,16 +236,22 @@ def _item_to_event(
     }
     if url:
         content["url"] = url
+    if source_url:
+        content["source_url"] = source_url
 
     context: dict[str, Any] = {
         "app_bundle": item.get("application"),
         "number_of_copies": int(item.get("numberOfCopies") or 1),
         "pinned": bool(item.get("pin")),
     }
+    if source_url:
+        context["source_url"] = source_url
     if item.get("sequence") is not None:
         context["sequence"] = int(item["sequence"])
     if item.get("origin"):
         context["origin"] = str(item["origin"])
+    if item.get("originHistoryID"):
+        context["origin_history_id"] = str(item["originHistoryID"])
     if bool(item.get("pin")) or int(item.get("numberOfCopies") or 1) >= 2:
         context["curation_tier"] = "auto_curated"
 
@@ -373,13 +435,17 @@ class ClipContextCollector:
 
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         device_id = str(manifest.get("deviceID") or manifest.get("device_id") or default_device_id())
+        archive_id = str(manifest.get("archiveID") or manifest.get("archive_id") or "")
         revision = int(manifest.get("revision") or 0)
         chunks_dir = manifest_path.parent / "chunks"
         chunk_entries = manifest.get("chunks") or []
         prev_cursor = (cp or {}).get("cursor") or {}
+        prev_archive_id = str(prev_cursor.get("archive_id") or "")
         same_device = prev_cursor.get("device_id") == device_id
+        same_archive = not archive_id or not prev_archive_id or prev_archive_id == archive_id
+        same_stream = same_device and same_archive
         prev_rev = int(prev_cursor.get("revision") or 0)
-        if same_device and revision < prev_rev:
+        if same_stream and revision < prev_rev:
             report.status = "degraded"
             msg = (
                 f"Rejected stale ClipContext Raw manifest rollback "
@@ -389,8 +455,18 @@ class ClipContextCollector:
             report.message = msg
             return
 
-        seen_chunks: dict[str, str] = dict(prev_cursor.get("chunk_hashes") or {})
-        events: list[RawEventIn] = []
+        seen_chunks: dict[str, str] = dict(prev_cursor.get("chunk_hashes") or {}) if same_stream else {}
+        prev_chunk_item_ids: dict[str, list[str]] = (
+            {
+                str(k): [str(i) for i in v]
+                for k, v in (prev_cursor.get("chunk_item_ids") or {}).items()
+                if isinstance(v, list)
+            }
+            if same_stream
+            else {}
+        )
+        new_seen_chunks: dict[str, str] = {}
+        new_chunk_item_ids: dict[str, list[str]] = {}
 
         for entry in chunk_entries:
             chunk_name = entry.get("file") if isinstance(entry, dict) else str(entry)
@@ -402,8 +478,14 @@ class ClipContextCollector:
                 continue
             cst = chunk_path.stat()
             chunk_sig = declared_sha or f"size:{cst.st_size}:mtime:{cst.st_mtime_ns}"
-            if seen_chunks.get(chunk_path.name) == chunk_sig:
+            if (
+                seen_chunks.get(chunk_path.name) == chunk_sig
+                and chunk_path.name in prev_chunk_item_ids
+            ):
+                new_seen_chunks[chunk_path.name] = chunk_sig
+                new_chunk_item_ids[chunk_path.name] = prev_chunk_item_ids[chunk_path.name]
                 continue
+
             raw_text = chunk_path.read_text(encoding="utf-8")
             parsed_items: list[dict[str, Any]] = []
             if chunk_path.suffix == ".jsonl":
@@ -418,6 +500,9 @@ class ClipContextCollector:
                     parsed_items = [x for x in obj if isinstance(x, dict)]
                 elif isinstance(obj, dict) and isinstance(obj.get("items"), list):
                     parsed_items = [x for x in obj["items"] if isinstance(x, dict)]
+
+            chunk_events: list[RawEventIn] = []
+            chunk_ids: list[str] = []
             for item in parsed_items:
                 ev = _item_to_event(
                     item,
@@ -425,15 +510,27 @@ class ClipContextCollector:
                     locator_prefix=f"clipcontext://Raw/chunks/{chunk_path.name}",
                 )
                 if ev is not None:
-                    events.append(ev)
-            seen_chunks[chunk_path.name] = chunk_sig
+                    chunk_events.append(ev)
+                    chunk_ids.append(str(item["id"]).strip())
 
-        if events:
-            report.events_emitted += len(events)
-            res = sink.emit_batch(self.name, events)
-            report.created += res.get("created", 0)
-            report.existing += res.get("existing", 0)
-            report.spooled += res.get("spooled", 0)
+            # Stream chunk-by-chunk so large archives never accumulate every chunk in memory.
+            if chunk_events:
+                report.events_emitted += len(chunk_events)
+                res = sink.emit_batch(self.name, chunk_events)
+                report.created += res.get("created", 0)
+                report.existing += res.get("existing", 0)
+                report.spooled += res.get("spooled", 0)
+
+            new_seen_chunks[chunk_path.name] = chunk_sig
+            new_chunk_item_ids[chunk_path.name] = chunk_ids
+
+        # Propagate deletions/revocations when items disappear across chunks or manifest drops a chunk.
+        if same_stream and prev_chunk_item_ids:
+            prior_all_ids = {iid for ids in prev_chunk_item_ids.values() for iid in ids}
+            current_all_ids = {iid for ids in new_chunk_item_ids.values() for iid in ids}
+            for rid in sorted(prior_all_ids - current_all_ids):
+                if sink.revoke("clipboard", "clipcontext", f"{device_id}:{rid}"):
+                    report.revoked += 1
 
         checkpoints.put(
             self.name,
@@ -444,11 +541,13 @@ class ClipContextCollector:
             mtime_ns=st.st_mtime_ns,
             cursor={
                 "device_id": device_id,
+                "archive_id": archive_id,
                 "revision": revision,
-                "chunk_hashes": seen_chunks,
+                "chunk_hashes": new_seen_chunks,
+                "chunk_item_ids": new_chunk_item_ids,
             },
         )
-        report.watermark = f"raw_device={device_id},rev={revision},chunks={len(seen_chunks)}"
+        report.watermark = f"raw_device={device_id},rev={revision},chunks={len(new_seen_chunks)}"
 
     def sync(self, sink: HubSink, checkpoints: CheckpointBackend) -> SyncReport:
         report = SyncReport(collector=self.name, source=self.source)

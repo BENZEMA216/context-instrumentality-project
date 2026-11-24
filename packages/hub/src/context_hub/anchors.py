@@ -94,10 +94,13 @@ def extract_anchors(event: dict[str, Any]) -> list[str]:
     context = event.get("context") or {}
 
     urls: list[str] = []
-    for key in ("url_norm", "url"):
+    for key in ("url_norm", "url", "source_url"):
         val = content.get(key)
         if isinstance(val, str) and val.strip():
             urls.append(val.strip())
+    ctx_source_url = context.get("source_url")
+    if isinstance(ctx_source_url, str) and ctx_source_url.strip():
+        urls.append(ctx_source_url.strip())
 
     text_blobs = [
         str(content.get("title") or ""),
@@ -113,7 +116,7 @@ def extract_anchors(event: dict[str, Any]) -> list[str]:
     for m in _URL_RE.finditer(joined):
         urls.append(m.group(0))
 
-    for u in urls[:20]:
+    for u in list(dict.fromkeys(urls))[:20]:
         norm = canonicalize_url(u)
         anchors.add(f"url:{norm}")
         try:

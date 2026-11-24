@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import json
 import sqlite3
 from pathlib import Path
@@ -404,6 +405,162 @@ def test_clipcontext_snapshot_rollback_guard_revocation_and_raw_manifest(tmp_pat
     r_rev = run_collector(col, sink, checkpoints)
     assert r_rev.revoked == 1
     assert len(store.list_raw(sources=["clipboard"])) == 1
+
+
+def test_clipcontext_base64_chromium_source_url_anchors_and_raw_revocation(tmp_path: Path) -> None:
+    store = HubStore(tmp_path / "hub")
+    sink = DirectHubSink(store)
+    checkpoints = HubCheckpointStore(store)
+
+    raw_dir = tmp_path / "Raw"
+    chunks_dir = raw_dir / "chunks"
+    chunks_dir.mkdir(parents=True)
+
+    source_url = "https://github.com/BENZEMA216/ClipContext/issues/42?utm_source=test"
+    source_url_b64 = base64.b64encode(source_url.encode("utf-8")).decode("ascii")
+    utf16_text = "来自 UTF-16 base64 的剪贴板文本"
+    utf16_b64 = base64.b64encode(utf16_text.encode("utf-16-le")).decode("ascii")
+
+    chunk0 = {
+        "deviceID": "mac-dev-2",
+        "revision": 2,
+        "schemaVersion": 1,
+        "items": [
+            {
+                "id": "raw-utf16-source-url",
+                "sequence": 1,
+                "originHistoryID": "hist-1",
+                "application": "com.google.Chrome",
+                "firstCopiedAt": "2026-11-24T10:00:00Z",
+                "lastCopiedAt": "2026-11-24T10:00:00Z",
+                "numberOfCopies": 1,
+                "title": "",
+                "contents": [
+                    {"type": "public.utf16-plain-text", "base64": utf16_b64},
+                    {"type": "org.chromium.source-url", "base64": source_url_b64},
+                ],
+            },
+            {
+                "id": "raw-image-with-source-url",
+                "sequence": 2,
+                "application": "com.google.Chrome",
+                "firstCopiedAt": "2026-11-24T10:01:00Z",
+                "lastCopiedAt": "2026-11-24T10:01:00Z",
+                "numberOfCopies": 1,
+                "title": "",
+                "contents": [
+                    {"type": "public.png", "base64": "iVBORw0KGgo="},
+                    {"type": "org.chromium.source-url", "base64": source_url_b64},
+                ],
+            },
+        ],
+    }
+    chunk1 = {
+        "deviceID": "mac-dev-2",
+        "revision": 3,
+        "schemaVersion": 1,
+        "items": [
+            {
+                "id": "raw-drop-me",
+                "sequence": 3,
+                "application": "com.apple.Terminal",
+                "firstCopiedAt": "2026-11-24T10:02:00Z",
+                "lastCopiedAt": "2026-11-24T10:02:00Z",
+                "numberOfCopies": 1,
+                "title": "ephemeral",
+                "contents": [{"type": "public.utf8-plain-text", "text": "ephemeral snippet"}],
+            }
+        ],
+    }
+    (chunks_dir / "00000000.json").write_text(json.dumps(chunk0), encoding="utf-8")
+    (chunks_dir / "00000001.json").write_text(json.dumps(chunk1), encoding="utf-8")
+    manifest_path = raw_dir / "manifest.json"
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "schemaVersion": 2,
+                "deviceID": "mac-dev-2",
+                "archiveID": "arch-1",
+                "revision": 3,
+                "itemCount": 3,
+                "chunks": [
+                    {"file": "chunks/00000000.json", "sha256": "sha-0", "itemCount": 2},
+                    {"file": "chunks/00000001.json", "sha256": "sha-1", "itemCount": 1},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    col = ClipContextCollector(
+        snapshot_path=tmp_path / "missing.json",
+        raw_manifest_path=manifest_path,
+    )
+    r1 = run_collector(col, sink, checkpoints)
+    assert r1.status == "ok"
+    assert r1.created == 3
+
+    rows = {
+        r["provenance"]["source_id"]: r
+        for r in store.list_raw(sources=["clipboard"], limit=20)
+    }
+    utf16_row = rows["mac-dev-2:raw-utf16-source-url"]
+    assert utf16_row["body_text"] == utf16_text
+    assert utf16_row["content"]["clip_type"] == "text"
+    assert utf16_row["content"]["source_url"] == source_url
+    assert utf16_row["context"]["source_url"] == source_url
+    assert utf16_row["context"]["origin_history_id"] == "hist-1"
+    assert "url:https://github.com/BENZEMA216/ClipContext/issues/42" in utf16_row["anchors"]
+    assert "domain:github.com" in utf16_row["anchors"]
+    assert "repo:benzema216/clipcontext" in utf16_row["anchors"]
+
+    img_row = rows["mac-dev-2:raw-image-with-source-url"]
+    assert img_row["content"]["clip_type"] == "image_meta"
+    assert img_row["content"]["has_image"] is True
+    assert img_row["content"]["source_url"] == source_url
+    assert "url:https://github.com/BENZEMA216/ClipContext/issues/42" in img_row["anchors"]
+
+    # Re-chunk: move raw-image-with-source-url into chunk0-repacked, drop chunk1 (raw-drop-me)
+    repacked = {
+        "deviceID": "mac-dev-2",
+        "revision": 4,
+        "schemaVersion": 1,
+        "items": [chunk0["items"][1]],
+    }
+    chunk0_trimmed = {
+        "deviceID": "mac-dev-2",
+        "revision": 4,
+        "schemaVersion": 1,
+        "items": [chunk0["items"][0]],
+    }
+    (chunks_dir / "00000000.json").write_text(json.dumps(chunk0_trimmed), encoding="utf-8")
+    (chunks_dir / "00000002.json").write_text(json.dumps(repacked), encoding="utf-8")
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "schemaVersion": 2,
+                "deviceID": "mac-dev-2",
+                "archiveID": "arch-1",
+                "revision": 4,
+                "itemCount": 2,
+                "chunks": [
+                    {"file": "chunks/00000000.json", "sha256": "sha-0-v2", "itemCount": 1},
+                    {"file": "chunks/00000002.json", "sha256": "sha-2", "itemCount": 1},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    r2 = run_collector(col, sink, checkpoints)
+    assert r2.status == "ok"
+    # Only raw-drop-me is revoked; moved item raw-image-with-source-url stays alive!
+    assert r2.revoked == 1
+    remaining = {
+        r["provenance"]["source_id"]
+        for r in store.list_raw(sources=["clipboard"], limit=20)
+    }
+    assert remaining == {"mac-dev-2:raw-utf16-source-url", "mac-dev-2:raw-image-with-source-url"}
 
 
 def test_http_sink_offline_spool_and_recovery(tmp_path: Path) -> None:
