@@ -1,72 +1,109 @@
 <p align="center">
-  <img src="assets/eva-context-banner.png" alt="CONTEXT 补全计划 · The Context Instrumentality Project" width="100%" />
+  <img src="assets/eva-context-banner.png" alt="Raw Memory · Context 补全计划" width="100%" />
 </p>
 
-# Raw Memory · Context 补全计划
+# Raw Memory · Personal Raw Data & Evidence-Gated Memory Engine
 
-**Local-first 个人原始数据与证据门控记忆引擎（`Raw Memory`）**：把你在 **AI 对话、剪贴板（`Clip for Agent`）、录音（`Record for Agent`）、浏览器（`Read for Agent`）、聊天（`Chat for Agent`）、窗口焦点（`Focus for Agent`）与私密资料库（`Vault for Agent`）** 中散落的真实数字生活沉淀为不可变 `L0` 原档、`L1` 毫秒级全文索引与跨源链接、`L2` 人机共读 Markdown 档案与 `L3` 双时序决策台账，通过 **Agent-as-Curator** 整理闭环与 **Meta Memory Benchmark** 可观测评测体系，确保原始数据真实可靠、记忆产出可观测可界定。
+**Local-first 个人原始数据与证据门控记忆引擎（[`rawmemory.app`](https://rawmemory.app) · [`github.com/rawmemory`](https://github.com/rawmemory)）**：把你在 **AI 会话、剪贴板（`Clip for Agent`）、录音（`Record for Agent`）、浏览器（`Read for Agent`）、聊天（`Chat for Agent`）、窗口焦点（`Focus for Agent`）与加密私密库（`Vault for Agent`）** 中散落的真实数字生活沉淀为不可变 `L0` 原档、`L1` 毫秒级混合 BM25 索引与跨源链接、`L2` 人机共读 Markdown 档案、`Project Profiles` 项目静态档案与 `L3` 双时序决策台账。
 
-> **核心理念**：`Raw Memory` 引擎本身不内置昂贵的外部模型密钥，也不靠脆弱正则伪装记忆——先守住真实可靠的 Raw Data 底座与严格可消费性，再通过 MCP & Skill 复用你已有的 Agent 算力完成证据门控整理，并用基于原始数据的 Meta Benchmark 量化观测记忆质量。
+通过 **Agent-as-Curator** 整理闭环、**公开 Benchmark（LongMemEval / LoCoMo）**、**Reflexive Meta Benchmark（RFC-0003）** 与 **Human-in-the-Loop 本地调试台（`raw-memory-eval workbench`）**，确保**原始数据真实可靠、记忆产出零脑补抗噪音、全程可观测可回溯**。
+
+> **核心原则**：
+> 1. **零内置云端密钥**：引擎不捆绑付费模型 API，通过 MCP + Skill 复用你已有的 Agent 算力（Antigravity / Codex / Claude Code / WorkBuddy）执行离线整理。
+> 2. **存“真相指针”，不存“瞬时外部状态”**：项目静态身份、仓库与实时状态查询入口归入 `Project Profile`，瞬时 Build/PR 快照绝不污染长期个人记忆。
+> 3. **一问一答强溯源**：每条决策与记忆都绑定真实 `evidence_ids`，Agent 对话证据自动带出 `±1` 轮问答上下文窗口，并经过 Claim-to-Evidence 忠实度与 Anti-Noise 门禁校验。
 
 ---
 
-## 核心架构一览
+## 架构一览
 
-详细设计见 **[RFC-0002：Raw Memory 架构与 Agent-as-Curator](docs/rfc/0002-hub-v2-agent-curator.md)**、**[RFC-0003：Reflexive Meta Memory Benchmark](docs/rfc/0003-meta-memory-benchmark.md)** 与 **[RFC-0001：跨渠道整合草案](docs/rfc/0001-context-integration.md)**。
+详细设计见 **[RFC-0002：Raw Memory & Agent-as-Curator](docs/rfc/0002-hub-v2-agent-curator.md)** 与 **[RFC-0003：Reflexive Meta Memory Benchmark](docs/rfc/0003-meta-memory-benchmark.md)**。
 
 ```text
-端侧采集矩阵 (AI Sessions / Clip for Agent / Record for Agent / Read for Agent / Chat for Agent / Focus for Agent)
-   │
-   ▼
-Raw Memory 引擎: L0 raw/ (不可变原档) ──► L1 hub.sqlite (FTS5 中文检索 + 5 级跨源链接)
-                                              │
-                                              ▼
-                 L2 Episodes + markdown/ ◄──► Agent-as-Curator (Antigravity / Codex / Claude Code)
-                                              │
-                                              ▼
-                 L3 Bi-Temporal Decisions ──► L4 MCP Server (`raw-memory mcp`) + Meta Benchmark (`raw-memory-eval`)
-                                              ▲
-Vault for Agent (隔离逐条加密库) ──────────────┘ (仅同步脱敏回执)
+X for Agent 采集矩阵
+  ├─ AI Sessions (11 端, No-Echo 防回环)     ├─ Record for Agent (iOS/Watch + SenseVoice 本地转写)
+  ├─ Clip for Agent (macOS 剪贴板, PNG 无损)  ├─ Read for Agent (Chrome/Arc/Safari + MV3 扩展)
+  ├─ Focus for Agent (macOS 焦点 / AW 桥接)   ├─ Chat for Agent (WeFlow / WeChat / Telegram 合规导入)
+  └─ Vault for Agent (AES-256-GCM 隔离加密库 → 仅同步脱敏指针回执)
+                       │
+                       ▼
+Raw Memory 引擎: L0 raw/ (不可变原档) + L0.5 blobs/
+              ──► L1 hub.sqlite3 (SQLite WAL + CJK/EN Hybrid BM25 + Episode↔Turn RRF + 跨源链接)
+              ──► Project Profiles (项目静态档案 & Live Status Pointers)
+              ──► L2 Episodes + markdown/ (MEMORY.md / projects / daily)
+              ──► L3 Bi-Temporal Decisions & Personal Memories (支持 supersede / retract / Q&A 证据窗)
+              ──► L4 MCP Server (`raw-memory mcp`) + Meta Eval & Debug Workbench (`raw-memory-eval`)
 ```
 
 ---
 
-## `for Agent` 产品家族与 `Raw Memory` 引擎命名规范
+## `X for Agent` 产品家族与模块状态
 
-对外端侧采集工具统一采用 **`X for Agent`** 家族命名公式，后端统一记忆引擎命名为 **`Raw Memory`**（CLI：`raw-memory` / `raw-memory-eval`，向下兼容 `context-hub` / `context-eval`）：
-
-| 渠道 | 统一产品名 | 平台 / 形态 | 底层兼容标识 | 状态 |
-| :--- | :--- | :--- | :--- | :---: |
-| 🎙️ 录音 | **[`Record for Agent`](https://apps.apple.com/us/app/record-for-agent/id6831018336)** | iOS / watchOS App Store | `record-for-agent` | ✅ 已上架 |
-| 📋 剪贴板 | **`Clip for Agent`** | macOS 菜单栏 App | `com.benzema.ClipContext` / `clipcontext` | ✅ 已落地 |
-| 🌐 浏览器 | **`Read for Agent`** | Chrome MV3 扩展 | `extensions/browser/` | ✅ 骨架已落地 |
-| 💬 聊天 | **`Chat for Agent`** | macOS 采集器（微信 / IM） | `packages/collectors/` | 🚧 Phase 3 |
-| 🖥️ 窗口与轨迹 | **`Focus for Agent`** | macOS 窗口焦点 & 位置 | `packages/collectors/` | ⏳ Phase 5 |
-| 🔐 私密库 | **`Vault for Agent`** | 逐条加密库 + 授权代办 | `packages/vault/` | ⏳ Phase 4 |
-| 🧠 后端引擎 | **`Raw Memory`** | Local-first L0–L4 引擎 + MCP + Eval | `raw-memory`（兼容 `context-hub`） | ✅ 运行中 |
+| 渠道 / 模块 | 产品名 | 形态 / 路径 | 状态 | 核心能力 |
+| :--- | :--- | :--- | :---: | :--- |
+| 🧠 后端引擎 | **`Raw Memory`** | [`packages/hub/`](packages/hub/README.md) · `raw-memory` | ✅ 运行中 | L0–L4 存储、混合 BM25+RRF 检索、`Project Profiles`、一问一答证据窗、双时序决策、MCP Server |
+| 📊 评测与调试 | **`Raw Memory Eval`** | [`packages/eval/`](benchmarks/README.md) · `raw-memory-eval` | ✅ 运行中 | **LoCoMo / LongMemEval-S / Oracle** 公开基准 + RFC-0003 反身性基准 + Claim 忠实度/Anti-Noise 门禁 + **本地人工裁决调试台** |
+| 🤖 AI 会话 | **`ai_chat` Collector** | [`packages/collectors/.../ai_chat/`](packages/collectors/src/context_collectors/ai_chat/) | ✅ 已落地 | 11 端增量断点续传（Antigravity / Codex / Claude / Cursor / OpenCode 等）+ No-Echo 剥离 + 信号预标注 |
+| 🎙️ 录音 | **[`Record for Agent`](https://github.com/rawmemory/record-for-agent)** | iOS / watchOS + [`audio/`](packages/collectors/src/context_collectors/audio/) | ✅ 已落地 | Watch/iPhone 录音 + 本地 `SenseVoice-Small` / `Silero-VAD` 离线转写 + [`record-for-agent-skill`](https://github.com/rawmemory/record-for-agent-skill) |
+| 📋 剪贴板 | **[`Clip for Agent`](https://github.com/rawmemory/ClipContext)** | macOS App + [`clipcontext.py`](packages/collectors/src/context_collectors/clipcontext.py) | ✅ 已落地 | 无损 PNG 压缩防 TIFF 膨胀 + 正式开发签名 + `org.chromium.source-url` 锚点 + 撤销同步 |
+| 🌐 浏览器 | **`Read for Agent`** | [`browser.py`](packages/collectors/src/context_collectors/browser.py) + [`extensions/browser/`](extensions/browser/README.md) | ✅ 已落地 | Chrome/Arc/Brave/Edge/Safari 无锁增量历史采集 + 敏感域隐私隔离 + MV3 三层停留/Defuddle 扩展 |
+| 🖥️ 窗口焦点 | **`Focus for Agent`** | [`window.py`](packages/collectors/src/context_collectors/window.py) | ✅ 已落地 | 原生 macOS 零依赖前台窗口采集 + ActivityWatch 桥接 + 停留聚类 + 密码管理器/无痕窗口拦截 |
+| 💬 聊天 | **`Chat for Agent`** | [`chat.py`](packages/collectors/src/context_collectors/chat.py) | ✅ 核心已落地 | WeFlow / WeChat / Telegram / CSV 合规导入 + **默认 `local_only` 隐私隔离** + 白名单项目群放行 |
+| 🔐 私密库 | **`Vault for Agent`** | [`packages/vault/`](packages/vault/README.md) · `raw-vault` | ✅ 核心已落地 | 逐条 **AES-256-GCM** 加密 SQLite 孤岛 + `raw-vault run` 零暴露环境变量注入与输出脱敏 + 脱敏回执同步 |
 
 ---
 
-## 模块状态
+## 公开 Memory Benchmark 实测（纯本地 SQLite FTS5，零 Embedding API、零 GPU）
 
-| 模块 | 路径 | 当前状态 | 说明 |
-| :--- | :--- | :---: | :--- |
-| **Context Hub v2** | [`packages/hub/`](packages/hub/README.md) | ✅ Phase 1-2 已落地 | L0 原档 + L0.5 内容寻址 Blob 仓 + L1 多块 FTS5 & 跨源链接 + L2 `MEMORY.md`/分域记忆/Episode + L3 双时序决策 + `get_context_pack` MCP |
-| **Agent 插件包** | [`plugins/context-hub/`](plugins/context-hub/README.md) | ✅ Phase 2 已落地 | 根植于 Agent 的 MCP + `context-recall` / `context-curator` Skill + 对话直达深链打开本地 Workbench 网页视图 |
-| **Context Workbench UI** | `web/` | ✅ Phase 1-2 已落地 | React + TS 统一工作台（支持 `#/episodes/...`、`#/projects/...`、`#/artifacts/MEMORY.md` 深度直达路由） |
-| **AI 对话历史采集器** | [`packages/collectors/`](packages/collectors/src/context_collectors/ai_chat/) | ✅ Phase 2 已落地 | 11 端增量断点续传（含 **Antigravity** / Codex / Claude Code / Cursor / OpenCode / WorkBuddy / QClaw / DeepSeek / ChatGPT / Claude Web / Gemini）+ 反回环/回显剥离（No-Echo）+ `user_correction`/`user_decision`/`verified_outcome`/`is_subagent` 信号预标注 + 离线 Spool |
-| **元记忆基准（Meta Memory Benchmark）** | [`packages/eval/`](docs/rfc/0003-meta-memory-benchmark.md) | ✅ RFC-0003 已落地 | 因果时间旅行回放（$H_{<t}$ 隔离）+ 4 维指标（冷启动续接 / 纠偏预防 / 双时序防过时 / N 轮反身性防回声压测）+ 4 组 A/B 基线对照（`context-eval run`）+ 本地真会话隐私安全挖掘器（`context-eval mine`） |
-| **剪贴板（Clip for Agent）** | [`packages/collectors/`](packages/collectors/src/context_collectors/clipcontext.py) | ✅ Phase 2 已落地 | 兼容 `Agent/clipboard.json` 与 `Raw/manifest.json` 双格式 + `org.chromium.source-url` 锚点 + 防版本回滚 + 撤销同步 + 密码管理器/隐匿 UTI 拦截 |
-| **浏览器扩展（Read for Agent）** | [`extensions/browser/`](extensions/browser/README.md) | ✅ Phase 2 已落地 | 三层有效停留 + Defuddle/Readability 转 Markdown + 无弹窗划词提权 + 离线补传队列 + Promnesia 上下文侧边栏 |
-| **聊天渠道（Chat for Agent）** | `packages/collectors/` · `native/macos/` | 🚧 Phase 3 | WeFlow 合规历史导入 + macOS AX 优先 / 自适应 OCR 多会话监听 |
-| **录音（Record for Agent）** | `packages/collectors/` | 🚧 Phase 3 | Mac/iCloud 自动增量接入 + `sherpa-onnx` + `SenseVoice-Small` 离线高精度转写 |
-| **私密库（Vault for Agent）** | `packages/vault/` | ⏳ Phase 4 | 逐条加密私密库 + Touch ID 解锁 + HPKE 手机扫描 + 实用型白名单代理与 CLI 注入 |
+详细方法论、按维度拆解与复现命令见 **[`benchmarks/README.md`](benchmarks/README.md)**：
+
+| Benchmark 套件 | 规模 | `v0.2.0` 旧引擎 | **`v0.3.0` Hybrid BM25 + RRF** | p50 延迟 |
+| :--- | :--- | ---: | ---: | ---: |
+| **[LongMemEval-S](benchmarks/results/longmemeval_s.md)** (ICLR 2025) | 500 题 × ~48 会话 (246,750 轮) | Sess R@5 `3.2%` / Turn R@5 `0.0%` | **Sess R@5 `96.6%` · R@10 `98.5%` · Turn R@5 `77.0%`** | `1.93 ms` |
+| **[LongMemEval-Oracle](benchmarks/results/longmemeval_oracle.md)** (ICLR 2025) | 500 题（证据会话精确定位） | Sess R@5 `3.2%` / Turn R@5 `0.0%` | **Sess R@1 `100.0%` · Turn R@5 `84.3%` · R@10 `93.0%`** | `0.64 ms` |
+| **[LoCoMo Curated](benchmarks/results/locomo10_curated.md)** (ACL 2024) | 10 场长对话 (1,986 QA) | R@5 `0.1%` / R@10 `0.1%` | **R@5 `61.3%` · R@10 `72.5%` · All-R@10 `61.5%`** | `2.04 ms` |
+| **[Reflexive Meta](benchmarks/results/reflexive_meta.md)** (RFC-0003) | 18 因果隔离案例 + 5 代防回声 | — | **Recall `100.0%` · Stale `0.0%` · 5-Gen Anti-Echo PASS** | `3.45 ms` |
+
+---
+
+## 快速开始（Quickstart）
+
+```bash
+# 1. 安装依赖（Python 3.12 + uv）
+uv sync --extra dev
+
+# 2. 检查本机 6 大采集通道可用性（只读，不修改任何数据）
+uv run raw-collectors doctor --collector all --since-days 7
+
+# 3. 增量同步指定通道（例如 AI 对话 / 剪贴板 / 浏览器 / 窗口焦点）
+uv run raw-collectors sync --collector ai_chat --since-days 30
+uv run raw-collectors sync --collector clipcontext
+uv run raw-collectors sync --collector browser --since-days 7
+
+# 4. 校验 Raw Data 就绪度、Memory 质量与压缩忠实度
+uv run raw-memory-eval audit-raw
+uv run raw-memory-eval audit-memory
+uv run raw-memory-eval inspect-fidelity
+
+# 5. 启动 Human-in-the-Loop 本地调试台（压缩人工裁决 + 项目档案 + 实时检索调试 + 错题本）
+uv run raw-memory-eval workbench --port 8765
+
+# 6. 运行公开 Benchmark（LoCoMo / LongMemEval-S）
+uv run raw-memory-eval bench download --suite all
+uv run raw-memory-eval bench run --suite longmemeval-s
+
+# 7. 初始化 Vault for Agent 加密私密库并安全注入密钥执行命令
+uv run raw-vault init
+uv run raw-vault set --kind api_key --label "Example Key" --allow-cmd curl
+uv run raw-vault sync-receipts
+```
 
 ---
 
 ## 导航索引
 
-- **架构与协议**：[RFC-0002 (Hub v2 & Agent-as-Curator)](docs/rfc/0002-hub-v2-agent-curator.md) · [RFC-0003 (Reflexive Meta Memory Benchmark)](docs/rfc/0003-meta-memory-benchmark.md) · [RFC-0001](docs/rfc/0001-context-integration.md) · [事件 Schema](schema/context-event.schema.json) · [Roadmap](ROADMAP.md)
-- **研究工作台（L1 / L2 / L3 全景调研）**：[研究总索引](docs/research/README.md) · [Google Sheet 在线筛选表](https://docs.google.com/spreadsheets/d/1ggWJjSIKsgY5Wro-GPciEo9AhJOD4gEi-DQv5uCHRbg/edit) · [开源项目精读 (28)](docs/research/projects-digest.md) · [论文与博客精读 (22)](docs/research/papers-blogs-digest.md) · [Persom 0.1.200 剖析](docs/research/persom-0.1.200.md)
-- **专题调研**：[采集渠道对比](docs/research/channels.md) · [整合方法与架构](docs/research/integration-methods.md) · [启发与格式设计](docs/research/design-reflections.md) · [音频通道](docs/research/channel-audio.md) · [剪贴板通道](docs/research/channel-clipboard.md)
-- **协作与归档**：[AGENTS.md](AGENTS.md) · [CONTRIBUTING.md](CONTRIBUTING.md) · [Codex 阶段归档索引](docs/archive/codex-2026-11/README.md)
+- **架构与协议**：[RFC-0002 (Raw Memory & Agent-as-Curator)](docs/rfc/0002-hub-v2-agent-curator.md) · [RFC-0003 (Reflexive Meta Memory Benchmark)](docs/rfc/0003-meta-memory-benchmark.md) · [RFC-0001](docs/rfc/0001-context-integration.md) · [事件 Schema](schema/context-event.schema.json) · [Roadmap](ROADMAP.md)
+- **评测与基准**：[Benchmark 总览与复现](benchmarks/README.md) · [Curator v2.1 整理规范](skills/context-curator/SKILL.md)
+- **子包与扩展**：[Raw Memory Hub](packages/hub/README.md) · [Vault for Agent](packages/vault/README.md) · [Read for Agent MV3 扩展](extensions/browser/README.md) · [Agent 插件包](plugins/context-hub/README.md) · [通道目录](channels/README.md)
+- **研究工作台**：[研究总索引](docs/research/README.md) · [开源项目精读 (28)](docs/research/projects-digest.md) · [论文与博客精读 (22)](docs/research/papers-blogs-digest.md)
+- **协作与归档**：[AGENTS.md](AGENTS.md) · [CONTRIBUTING.md](CONTRIBUTING.md)

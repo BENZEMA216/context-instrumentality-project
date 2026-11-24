@@ -1,10 +1,11 @@
-# Roadmap · Context 补全计划 v2
+# Roadmap · Raw Memory & `X for Agent`
 
 | 阶段 | 核心交付 | 状态 |
 | :--- | :--- | :---: |
 | **Phase 0 · 仓库重整与规范** | 归档旧 PR/分支、统一 Monorepo 骨架、RFC-0002 与 CI 规范 | ✅ 已完成 |
-| **Phase 1 · Context Hub v2 核心** | L0 不可变原档 + L1 SQLite FTS5 & 跨源链接 + L2 Episode & Markdown + L3 双时序决策 + **Agent-as-Curator**（Skill + MCP 双闭环）+ 统一 Workbench UI | ✅ 已完成 |
-| **Phase 2 · 统一存储、Memory 中间产物与首批通道** | L0.5 内容寻址 Blob 仓 + `MEMORY.md` 分域记忆产物 + `get_context_pack` 预算包 + 高可靠 Checkpoint/Spool 采集框架 + AI 对话（11 端含 Antigravity）+ **Clip for Agent**（原 ClipContext）双格式 + **Read for Agent**（浏览器 MV3 扩展）+ Agent 插件包与深链路由 | ✅ 已完成 |
-| **Phase 3 · 聊天与录音主线闭环** | **Chat for Agent**（微信 WeFlow 合规导入 + macOS AX 优先/自适应 OCR 多会话）+ **Record for Agent**（Mac/iCloud 接入 + `sherpa-onnx`/`SenseVoice-Small` 离线转写与自动纪要） | 🚧 下一阶段 |
-| **Phase 4 · Vault for Agent 融合** | 逐条加密存储 + Touch ID 解锁 + HPKE 手机投递 + 实用型白名单 HTTP 代理（脱敏回传）& `context-vault run` CLI 注入 + Workbench 集成 | ⏳ 待启动 |
-| **Phase 5 · Focus for Agent 与真实评测** | ActivityWatch/AX 窗口焦点骨架 + Overland 位置驻留聚类 + 跨渠道召回与 STALE 决策冲突端到端评测 | ⏳ 待启动 |
+| **Phase 1 · Raw Memory 核心引擎** | L0 不可变原档 + L1 SQLite FTS5 & 跨源链接 + L2 Episode & Markdown + L3 双时序决策 + **Agent-as-Curator**（Skill + MCP 双闭环）+ Workbench UI | ✅ 已完成 |
+| **Phase 2 · 统一存储、品牌归一与核心通道** | L0.5 Blob 仓 + `MEMORY.md` + `get_context_pack` + Checkpoint/Spool 框架 + AI 对话（11 端 No-Echo）+ **Clip for Agent**（PNG 无损压缩 & 正式签名）+ **Read for Agent**（本地 Chrome/Arc/Safari 历史采集器 + MV3 扩展） | ✅ 已完成 |
+| **Phase 2.5 · 元记忆评测、公开基准与人工调试闭环** | Hybrid BM25 + Episode↔Turn RRF 升级 + **LongMemEval-S (`96.6%` Sess R@5) / LoCoMo (`72.5%` R@10)** 公开基准集成 + `Project Profiles` 实体层 + 一问一答证据窗口 + Anti-Noise 门禁 + **Human-in-the-Loop Debug Workbench** | ✅ 已完成 |
+| **Phase 3 · 录音与聊天通道闭环** | **Record for Agent**（Watch/iPhone + SenseVoice-Small 本地转写）+ **Chat for Agent**（WeFlow / WeChat / Telegram / CSV 合规导入 + 默认 `local_only` + 白名单项目群放行）；后续补齐实时 IM 增量监听 | ✅ 核心已落地（持续打磨） |
+| **Phase 4 · Vault for Agent 融合** | 逐条 **AES-256-GCM** 加密孤岛 + Scrypt KDF + `raw-vault run` 零暴露环境变量注入与输出脱敏 + 脱敏指针回执同步；后续补齐 Touch ID 生物解锁与受控 HTTP 白名单代理 | ✅ 核心已落地（持续打磨） |
+| **Phase 5 · Focus for Agent 与语义重排演进** | **Focus for Agent**（原生 macOS 前台窗口采样 + ActivityWatch 桥接 + 停留聚类 + 密码/无痕过滤）已落地；下一步补齐本地轻量语义重排（突破零字面重合偏好召回天花板）、记忆生命周期衰减与程序性规则（Procedural Memory）晋升 | 🚧 进行中 |

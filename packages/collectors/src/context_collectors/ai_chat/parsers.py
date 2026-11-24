@@ -51,6 +51,7 @@ _REFLEXIVE_PAIRED_TAG_RES: tuple[re.Pattern[str], ...] = (
     _SYSTEM_MESSAGE_BLOCK_RE,
     re.compile(r"<CONTEXT_SUMMARY\b[^>]*>.*?</CONTEXT_SUMMARY>", re.IGNORECASE | re.DOTALL),
     re.compile(r"<ADDITIONAL_METADATA\b[^>]*>.*?</ADDITIONAL_METADATA>", re.IGNORECASE | re.DOTALL),
+    re.compile(r"<USER_SETTINGS_CHANGE\b[^>]*>.*?</USER_SETTINGS_CHANGE>", re.IGNORECASE | re.DOTALL),
     re.compile(r"<context_hub_memory\b[^>]*>.*?</context_hub_memory>", re.IGNORECASE | re.DOTALL),
     re.compile(r"<context_pack\b[^>]*>.*?</context_pack>", re.IGNORECASE | re.DOTALL),
     re.compile(r"<memory_index\b[^>]*>.*?</memory_index>", re.IGNORECASE | re.DOTALL),

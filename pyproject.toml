@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "context-instrumentality"
-version = "0.2.0"
-description = "Local-first personal context OS: L0-L4 Hub, Agent-as-Curator MCP, multi-channel collectors, and Context Vault"
+version = "0.3.0"
+description = "Raw Memory — Local-first personal raw data & evidence-gated AI agent memory engine (L0-L4, MCP, Agent-as-Curator, multi-channel collectors, Vault for Agent, and Meta Benchmarks)"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -32,9 +32,12 @@ audio = [
 [project.scripts]
 raw-memory = "context_hub.cli:main"
 raw-memory-eval = "context_eval.cli:main"
+raw-collectors = "context_collectors.cli:main"
+raw-vault = "context_vault.cli:main"
 context-hub = "context_hub.cli:main"
 context-collectors = "context_collectors.cli:main"
 context-eval = "context_eval.cli:main"
+context-vault = "context_vault.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = [

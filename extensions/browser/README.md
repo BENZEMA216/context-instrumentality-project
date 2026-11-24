@@ -1,6 +1,8 @@
-# Context Hub · Browser MV3 Extension (`extensions/browser`)
+# Read for Agent · Browser MV3 Extension (`extensions/browser`)
 
-Local-first Manifest V3 extension for Chrome / Arc / Edge:
+Local-first Manifest V3 extension for Chrome / Arc / Edge (part of the **`X for Agent`** family powering **[Raw Memory](../../README.md)**):
+
+> Tip: Even before loading this extension, you can pull local Chrome / Arc / Brave / Edge / Safari reading history via `uv run context-collectors sync --collector browser`. Loading this MV3 extension adds full-page Defuddle Markdown extraction, 3-layer active dwell gating, implicit highlight capture, and the Promnesia contextual sidebar.
 
 - **3-Layer Effective Dwell Gate** (`visibilityState` ∩ `chrome.windows.onFocusChanged` ∩ `chrome.idle` 60s): only captures genuinely read pages (default ≥ 30s active dwell).
 - **Defuddle + Readability Markdown Extraction**: preserves headings, lists, links, and code fences while stripping chrome/nav clutter and redacting inline secrets.

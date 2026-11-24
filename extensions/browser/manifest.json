@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Context Hub · Browser Signal & Contextual Sidebar",
-  "version": "0.2.0",
-  "description": "Local-first 3-layer dwell reader, Defuddle Markdown extractor, implicit highlight capture, and Promnesia contextual sidebar for Context Hub v2.",
+  "name": "Read for Agent · Raw Memory Browser Extension",
+  "version": "0.3.0",
+  "description": "Local-first 3-layer dwell reader, Defuddle Markdown extractor, implicit highlight capture, and Promnesia contextual sidebar for Raw Memory.",
   "permissions": [
     "tabs",
     "storage",
@@ -18,7 +18,7 @@
     "type": "module"
   },
   "action": {
-    "default_title": "Context Hub",
+    "default_title": "Read for Agent (Raw Memory)",
     "default_popup": "popup.html"
   },
   "content_scripts": [

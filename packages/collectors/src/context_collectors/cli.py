@@ -21,6 +21,8 @@ from .audio import (
     ensure_sensevoice_models,
     probe_cloud_endpoints,
 )
+from .browser import BrowserHistoryCollector
+from .chat import ChatInboxCollector, load_chat_allowlist, parse_chat_export_file
 from .clipcontext import ClipContextCollector
 from .runtime import (
     CheckpointBackend,
@@ -33,6 +35,9 @@ from .runtime import (
     run_collector,
     watch_collectors,
 )
+from .window import WindowFocusCollector
+
+ALL_COLLECTOR_CHOICES = ("all", "ai_chat", "clipcontext", "audio", "browser", "window", "chat")
 
 
 def _build_collectors(
@@ -41,6 +46,7 @@ def _build_collectors(
     asr_mode: str = "auto",
     since_days: float | None = None,
     max_files_per_provider: int | None = None,
+    data_dir: Path | None = None,
 ) -> list[Collector]:
     mapping: dict[str, Collector] = {
         "ai_chat": AIChatCollector(
@@ -49,6 +55,9 @@ def _build_collectors(
         ),
         "clipcontext": ClipContextCollector(),
         "audio": AudioCollector(asr_mode=asr_mode),
+        "browser": BrowserHistoryCollector(since_days=since_days if since_days is not None else 14.0),
+        "window": WindowFocusCollector(),
+        "chat": ChatInboxCollector(data_dir=data_dir),
     }
     if selected == "all":
         return list(mapping.values())
@@ -96,12 +105,12 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="command", required=True)
 
     doc_p = sub.add_parser("doctor", help="Inspect local channel availability & health without mutating state")
-    doc_p.add_argument("--collector", default="all", choices=("all", "ai_chat", "clipcontext", "audio"))
+    doc_p.add_argument("--collector", default="all", choices=ALL_COLLECTOR_CHOICES)
     doc_p.add_argument(
         "--since-days",
         type=float,
         default=None,
-        help="Only count/select AI chat files modified within the last N days",
+        help="Only count/select AI chat or browser records modified within the last N days",
     )
     doc_p.add_argument(
         "--max-files",
@@ -111,13 +120,13 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     sync_p = sub.add_parser("sync", help="Run one incremental checkpointed sync pass")
-    sync_p.add_argument("--collector", default="all", choices=("all", "ai_chat", "clipcontext", "audio"))
+    sync_p.add_argument("--collector", default="all", choices=ALL_COLLECTOR_CHOICES)
     sync_p.add_argument("--asr-mode", default="auto", choices=("auto", "sensevoice", "existing_only"))
     sync_p.add_argument(
         "--since-days",
         type=float,
         default=None,
-        help="Only sync AI chat files modified within the last N days",
+        help="Only sync AI chat or browser records modified within the last N days",
     )
     sync_p.add_argument(
         "--max-files",
@@ -127,7 +136,7 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     watch_p = sub.add_parser("watch", help="Run resilient continuous background collector loop")
-    watch_p.add_argument("--collector", default="all", choices=("all", "ai_chat", "clipcontext", "audio"))
+    watch_p.add_argument("--collector", default="all", choices=ALL_COLLECTOR_CHOICES)
     watch_p.add_argument("--asr-mode", default="auto", choices=("auto", "sensevoice", "existing_only"))
     watch_p.add_argument("--interval", type=float, default=30.0, help="Polling interval in seconds")
     watch_p.add_argument("--max-ticks", type=int, default=None, help="Optional tick limit for testing")
@@ -186,6 +195,19 @@ def main(argv: list[str] | None = None) -> int:
     imp_p.add_argument("--project", help="Explicit canonical project slug override")
     imp_p.add_argument("files", nargs="+", type=Path)
 
+    im_p = sub.add_parser(
+        "import-im",
+        help="Import WeFlow / WeChat / Telegram / CSV IM exports (privacy defaults to local_only unless allowlisted)",
+    )
+    im_p.add_argument(
+        "--platform",
+        default="auto",
+        choices=("auto", "wechat", "telegram", "slack", "lark"),
+    )
+    im_p.add_argument("--allowlist", type=Path, default=None, help="Optional chat_allowlist.json path")
+    im_p.add_argument("--project", default=None, help="Optional explicit project slug")
+    im_p.add_argument("files", nargs="+", type=Path)
+
     args = parser.parse_args(argv)
 
     if args.command == "download-asr-models":
@@ -210,6 +232,7 @@ def main(argv: list[str] | None = None) -> int:
             args.collector,
             since_days=args.since_days,
             max_files_per_provider=args.max_files,
+            data_dir=Path(args.data_dir) if args.data_dir else None,
         )
         out = {"collectors": [c.doctor() for c in cols]}
         print(json.dumps(out, ensure_ascii=False, indent=2))
@@ -244,6 +267,7 @@ def main(argv: list[str] | None = None) -> int:
             asr_mode=args.asr_mode,
             since_days=args.since_days,
             max_files_per_provider=args.max_files,
+            data_dir=Path(args.data_dir) if args.data_dir else None,
         )
         reports = [run_collector(c, sink, checkpoints).to_dict() for c in cols]
         print(json.dumps({"reports": reports}, ensure_ascii=False, indent=2))
@@ -255,6 +279,7 @@ def main(argv: list[str] | None = None) -> int:
             asr_mode=args.asr_mode,
             since_days=args.since_days,
             max_files_per_provider=args.max_files,
+            data_dir=Path(args.data_dir) if args.data_dir else None,
         )
 
         def _on_tick(tick_reports: list[Any]) -> None:
@@ -288,6 +313,29 @@ def main(argv: list[str] | None = None) -> int:
             except (OSError, ValueError) as exc:
                 totals["errors"] += 1
                 print(f"[import-chat] skipped {path}: {exc}", file=sys.stderr)
+        print(json.dumps(totals, ensure_ascii=False, indent=2))
+        return 1 if totals["errors"] else 0
+
+    if args.command == "import-im":
+        allowlist = load_chat_allowlist(args.allowlist)
+        totals = {"files": 0, "events": 0, "created": 0, "existing": 0, "spooled": 0, "errors": 0}
+        for path in args.files:
+            try:
+                events = parse_chat_export_file(
+                    path,
+                    platform_hint=args.platform,
+                    allowlist=allowlist,
+                    project=args.project,
+                )
+                res = sink.emit_batch("import-im", events)
+                totals["files"] += 1
+                totals["events"] += len(events)
+                totals["created"] += res.get("created", 0)
+                totals["existing"] += res.get("existing", 0)
+                totals["spooled"] += res.get("spooled", 0)
+            except (OSError, ValueError, KeyError) as exc:
+                totals["errors"] += 1
+                print(f"[import-im] skipped {path}: {exc}", file=sys.stderr)
         print(json.dumps(totals, ensure_ascii=False, indent=2))
         return 1 if totals["errors"] else 0
 
