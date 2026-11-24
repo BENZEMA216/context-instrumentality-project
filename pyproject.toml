@@ -32,12 +32,14 @@ audio = [
 [project.scripts]
 context-hub = "context_hub.cli:main"
 context-collectors = "context_collectors.cli:main"
+context-eval = "context_eval.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = [
     "packages/hub/src/context_hub",
     "packages/collectors/src/context_collectors",
     "packages/vault/src/context_vault",
+    "packages/eval/src/context_eval",
 ]
 
 [tool.pytest.ini_options]
@@ -60,4 +62,4 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 ignore = ["E501"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["context_hub", "context_collectors", "context_vault"]
+known-first-party = ["context_hub", "context_collectors", "context_vault", "context_eval"]

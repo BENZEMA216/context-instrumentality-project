@@ -1,0 +1,1917 @@
+{
+  "name": "synthetic_reflexive_v1",
+  "version": "1.0.0",
+  "description": "100% synthetic bilingual (Chinese + English) multi-Agent benchmark suite for Context Hub v2 evaluating cold-start continuation, correction avoidance, and bi-temporal supersession under strict H_<t causal isolation.",
+  "synthetic_only": true,
+  "cases": [
+    {
+      "case_id": "cs_01_codex_to_antigravity_handoff",
+      "dimension": "cold_start_continuation",
+      "title": "Codex -> Antigravity 检索模块重构交接",
+      "description": "Codex finished WAL checkpoint work and defined next step for FTS5 bigram tokenizer + chunked indexing; 2 hours later Antigravity cold-starts with a short continuation prompt.",
+      "cutoff_ms": 1761012000000,
+      "project": "nebula-cli",
+      "query": "接着刚才中断的地方继续推进检索模块重构",
+      "window_minutes": 240,
+      "max_tokens": 2000,
+      "events": [
+        {
+          "id": "ev_cs01_1",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1761000000000,
+          "t_end": 1761000060000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "nebula-cli",
+          "episode_id": "ep_cs01_1",
+          "content": {
+            "role": "user",
+            "title": "[codex] 优化长文档检索与索引切分",
+            "text": "先把 SQLite WAL checkpoint 调稳，下一步我们要把 FTS5 bigram tokenizer 和 chunk_size=12000 分片索引接上去。"
+          },
+          "context": {"provider": "codex", "session_id": "sess_cs01_codex", "role": "user"},
+          "provenance": {"connector": "chat-history/codex", "source_id": "sess_cs01_codex:1"}
+        },
+        {
+          "id": "ev_cs01_2",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1761001200000,
+          "t_end": 1761001260000,
+          "actor": "codex",
+          "device_id": "eval-mac-01",
+          "project": "nebula-cli",
+          "episode_id": "ep_cs01_1",
+          "content": {
+            "role": "assistant",
+            "title": "[codex] 已完成 WAL checkpoint，待接续 bigram tokenizer",
+            "text": "WAL checkpoint 压力验证已通过。下次会话请直接从 tokenizer.py 入手：1) 补齐 FTS5 bigram tokenizer 英文连字符拆词；2) 按 chunk_size=12000 分片写入 raw_fts。"
+          },
+          "context": {"provider": "codex", "session_id": "sess_cs01_codex", "role": "assistant"},
+          "provenance": {"connector": "chat-history/codex", "source_id": "sess_cs01_codex:2"}
+        },
+        {
+          "id": "ev_cs01_future",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1761015600000,
+          "t_end": 1761015660000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "nebula-cli",
+          "episode_id": "ep_cs01_future",
+          "content": {
+            "role": "user",
+            "title": "[antigravity] 未来会话不应泄露",
+            "text": "未来结论 CANARY_FUTURE_CS01_NO_LEAK 绝不应出现在 cutoff_ms 之前的重放中。"
+          },
+          "context": {"provider": "antigravity", "session_id": "sess_cs01_future", "role": "user"},
+          "provenance": {"connector": "chat-history/antigravity", "source_id": "sess_cs01_future:1"}
+        }
+      ],
+      "curations": [
+        {
+          "curator_agent": "synthetic-curator",
+          "committed_at_ms": 1761002000000,
+          "episodes": [
+            {
+              "episode_id": "ep_cs01_1",
+              "title": "nebula-cli WAL checkpoint 完成与检索分片交接",
+              "summary": "Codex 会话已完成 WAL checkpoint 验证，下一步待接续两项：完善 FTS5 bigram tokenizer 拆词，并按 chunk_size=12000 实现 raw_fts 分片写入。",
+              "project": "nebula-cli",
+              "entities": ["WAL checkpoint", "FTS5 bigram tokenizer", "chunk_size=12000"],
+              "evidence_ids": ["ev_cs01_1", "ev_cs01_2"]
+            }
+          ],
+          "memories": [
+            {
+              "title": "nebula-cli 检索重构待办交接",
+              "body": "WAL checkpoint 已稳态通过；下一会话优先实现 FTS5 bigram tokenizer 连字符拆词，并以 chunk_size=12000 分片写入 raw_fts。",
+              "kind": "commitment",
+              "project": "nebula-cli",
+              "tags": ["handoff", "fts5", "tokenizer"],
+              "evidence_ids": ["ev_cs01_1", "ev_cs01_2"]
+            }
+          ]
+        }
+      ],
+      "required_facts": [
+        {"fact_id": "wal_done", "description": "WAL checkpoint completed", "any_of": ["wal checkpoint"]},
+        {"fact_id": "bigram_tok", "description": "FTS5 bigram tokenizer next step", "any_of": ["bigram tokenizer"]},
+        {"fact_id": "chunk_12000", "description": "chunk_size=12000 sharding", "any_of": ["chunk_size=12000", "12000"]}
+      ],
+      "forbidden_stale_facts": [],
+      "future_canary_tokens": ["CANARY_FUTURE_CS01_NO_LEAK"]
+    },
+    {
+      "case_id": "cs_02_claude_to_codex_bugfix",
+      "dimension": "cold_start_continuation",
+      "title": "Claude Code -> Codex 跨日并发锁修复交接",
+      "description": "Claude Code diagnosed SQLITE_BUSY and fixed with BEGIN IMMEDIATE + 20s timeout; next morning Codex resumes to write regression test.",
+      "cutoff_ms": 1761090000000,
+      "project": "aurora-sync",
+      "query": "继续把昨晚没写完的并发锁问题和单测补齐",
+      "window_minutes": 240,
+      "max_tokens": 2000,
+      "events": [
+        {
+          "id": "ev_cs02_1",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1761040000000,
+          "t_end": 1761040120000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "aurora-sync",
+          "episode_id": "ep_cs02_1",
+          "content": {
+            "role": "user",
+            "title": "[claude] 排查同步写盘偶发 SQLITE_BUSY",
+            "text": "多 collector 并发写盘时偶发 SQLITE_BUSY，帮我定位事务升级死锁。"
+          },
+          "context": {"provider": "claude", "session_id": "sess_cs02_claude", "role": "user"},
+          "provenance": {"connector": "chat-history/claude", "source_id": "sess_cs02_claude:1"}
+        },
+        {
+          "id": "ev_cs02_2",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1761040500000,
+          "t_end": 1761040600000,
+          "actor": "claude",
+          "device_id": "eval-mac-01",
+          "project": "aurora-sync",
+          "episode_id": "ep_cs02_1",
+          "content": {
+            "role": "assistant",
+            "title": "[claude] 根因定位与待补测试",
+            "text": "已改为 BEGIN IMMEDIATE 配合 busy_timeout=20000 消除写事务升级死锁。还剩回归用例 test_concurrent_sync_lock 未补完，明早继续。"
+          },
+          "context": {"provider": "claude", "session_id": "sess_cs02_claude", "role": "assistant"},
+          "provenance": {"connector": "chat-history/claude", "source_id": "sess_cs02_claude:2"}
+        },
+        {
+          "id": "ev_cs02_future",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1761091000000,
+          "t_end": 1761091060000,
+          "actor": "codex",
+          "device_id": "eval-mac-01",
+          "project": "aurora-sync",
+          "episode_id": "ep_cs02_future",
+          "content": {
+            "role": "assistant",
+            "title": "[codex] 未来结果",
+            "text": "CANARY_FUTURE_CS02_DO_NOT_LEAK 测试已运行完毕。"
+          },
+          "context": {"provider": "codex", "session_id": "sess_cs02_future", "role": "assistant"},
+          "provenance": {"connector": "chat-history/codex", "source_id": "sess_cs02_future:1"}
+        }
+      ],
+      "curations": [
+        {
+          "curator_agent": "synthetic-curator",
+          "committed_at_ms": 1761041000000,
+          "episodes": [
+            {
+              "episode_id": "ep_cs02_1",
+              "title": "aurora-sync SQLITE_BUSY 根因修复与测试待办",
+              "summary": "Claude Code 已通过 BEGIN IMMEDIATE 与 busy_timeout=20000 解决写事务升级死锁；下一步需补写 test_concurrent_sync_lock 回归测试。",
+              "project": "aurora-sync",
+              "entities": ["SQLITE_BUSY", "BEGIN IMMEDIATE", "test_concurrent_sync_lock"],
+              "evidence_ids": ["ev_cs02_1", "ev_cs02_2"]
+            }
+          ],
+          "memories": [
+            {
+              "title": "aurora-sync 并发锁待补回归用例",
+              "body": "写事务已统一使用 BEGIN IMMEDIATE + busy_timeout=20000；待补齐 test_concurrent_sync_lock 并发压测用例。",
+              "kind": "commitment",
+              "project": "aurora-sync",
+              "tags": ["sqlite", "concurrency", "testing"],
+              "evidence_ids": ["ev_cs02_1", "ev_cs02_2"]
+            }
+          ]
+        }
+      ],
+      "required_facts": [
+        {"fact_id": "begin_immediate", "description": "BEGIN IMMEDIATE fix", "any_of": ["begin immediate"]},
+        {"fact_id": "busy_timeout", "description": "busy_timeout=20000", "any_of": ["busy_timeout=20000", "20000"]},
+        {"fact_id": "regression_test", "description": "test_concurrent_sync_lock pending", "any_of": ["test_concurrent_sync_lock"]}
+      ],
+      "forbidden_stale_facts": [],
+      "future_canary_tokens": ["CANARY_FUTURE_CS02_DO_NOT_LEAK"]
+    },
+    {
+      "case_id": "cs_03_cross_channel_clipboard_url",
+      "dimension": "cold_start_continuation",
+      "title": "Browser PR + Clipboard 参数 -> Antigravity 跨渠道续接",
+      "description": "User browsed a rate-limiter PR and copied key numeric parameters into clipboard, then asked Antigravity to continue implementation.",
+      "cutoff_ms": 1761120000000,
+      "project": "polaris-gateway",
+      "query": "结合我刚才看的那篇限流 PR 继续实现网关限流器",
+      "anchor_urls": ["https://github.com/acme-labs/polaris-gateway/pull/412"],
+      "window_minutes": 240,
+      "max_tokens": 2000,
+      "events": [
+        {
+          "id": "ev_cs03_browser",
+          "source": "browser",
+          "kind": "page_read",
+          "t_start": 1761114000000,
+          "t_end": 1761114300000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "polaris-gateway",
+          "episode_id": "ep_cs03_1",
+          "content": {
+            "title": "PR #412: Adaptive Token Bucket Rate Limiter",
+            "url": "https://github.com/acme-labs/polaris-gateway/pull/412?utm_source=digest",
+            "text": "Benchmark results for PR #412 recommend token_bucket_burst=120 with sliding_window_ms=60000 for local gateway endpoints."
+          },
+          "provenance": {"connector": "browser-ext", "source_id": "br_cs03_412"}
+        },
+        {
+          "id": "ev_cs03_clip",
+          "source": "clipboard",
+          "kind": "copy",
+          "t_start": 1761114180000,
+          "t_end": 1761114180000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "polaris-gateway",
+          "episode_id": "ep_cs03_1",
+          "content": {
+            "title": "Copied rate limiter params",
+            "text": "token_bucket_burst=120 with sliding_window_ms=60000"
+          },
+          "provenance": {"connector": "clipcontext", "source_id": "clip_cs03_1"}
+        },
+        {
+          "id": "ev_cs03_future",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1761125000000,
+          "t_end": 1761125060000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "polaris-gateway",
+          "episode_id": "ep_cs03_future",
+          "content": {
+            "role": "user",
+            "title": "未来事件",
+            "text": "CANARY_FUTURE_CS03_SECRET_TOKEN"
+          },
+          "context": {"provider": "antigravity", "session_id": "sess_cs03_future", "role": "user"},
+          "provenance": {"connector": "chat-history/antigravity", "source_id": "sess_cs03_future:1"}
+        }
+      ],
+      "curations": [
+        {
+          "curator_agent": "synthetic-curator",
+          "committed_at_ms": 1761115000000,
+          "episodes": [
+            {
+              "episode_id": "ep_cs03_1",
+              "title": "polaris-gateway PR #412 限流参数调研",
+              "summary": "查阅 PR #412 并摘录网关限流推荐配置：token_bucket_burst=120、sliding_window_ms=60000。",
+              "project": "polaris-gateway",
+              "entities": ["pull/412", "token_bucket_burst=120", "sliding_window_ms=60000"],
+              "evidence_ids": ["ev_cs03_browser", "ev_cs03_clip"]
+            }
+          ]
+        }
+      ],
+      "required_facts": [
+        {"fact_id": "burst_120", "description": "token_bucket_burst=120", "any_of": ["token_bucket_burst=120"]},
+        {"fact_id": "window_60000", "description": "sliding_window_ms=60000", "any_of": ["sliding_window_ms=60000"]},
+        {"fact_id": "pr_412", "description": "PR #412 reference", "any_of": ["pull/412", "pr #412"]}
+      ],
+      "forbidden_stale_facts": [],
+      "future_canary_tokens": ["CANARY_FUTURE_CS03_SECRET_TOKEN"]
+    },
+    {
+      "case_id": "cs_04_multiday_audio_pipeline",
+      "dimension": "cold_start_continuation",
+      "title": "跨 3 天 Voice + Cursor -> Antigravity 音频分片续接",
+      "description": "3 days ago (far outside 240m window) voice + Cursor converged on silero-v5 VAD, silence_ms=850, 16000Hz mono PCM.",
+      "cutoff_ms": 1761400000000,
+      "project": "meridian-audio",
+      "query": "Continue tuning the voice segmentation pipeline on meridian-audio",
+      "window_minutes": 240,
+      "max_tokens": 2000,
+      "events": [
+        {
+          "id": "ev_cs04_voice",
+          "source": "voice",
+          "kind": "transcript",
+          "t_start": 1761140000000,
+          "t_end": 1761140240000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "meridian-audio",
+          "episode_id": "ep_cs04_1",
+          "content": {
+            "title": "录音备忘：本地 VAD 切分参数",
+            "text": "会议静音切分先试 silero-v5 模型，静音阈值设成 silence_ms=850，采样率固定 16000Hz 单声道 PCM。"
+          },
+          "provenance": {"connector": "audio-collector", "source_id": "aud_cs04_1"}
+        },
+        {
+          "id": "ev_cs04_cursor",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1761141000000,
+          "t_end": 1761141120000,
+          "actor": "cursor",
+          "device_id": "eval-mac-01",
+          "project": "meridian-audio",
+          "episode_id": "ep_cs04_1",
+          "content": {
+            "role": "assistant",
+            "title": "[cursor] VAD 配置原型已记录",
+            "text": "已在 config.yaml 写入 vad_model: silero-v5, silence_ms: 850, sample_rate: 16000。"
+          },
+          "context": {"provider": "cursor", "session_id": "sess_cs04_cursor", "role": "assistant"},
+          "provenance": {"connector": "chat-history/cursor", "source_id": "sess_cs04_cursor:1"}
+        },
+        {
+          "id": "ev_cs04_future",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1761400500000,
+          "t_end": 1761400560000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "meridian-audio",
+          "episode_id": "ep_cs04_future",
+          "content": {
+            "role": "user",
+            "title": "未来音频调优",
+            "text": "CANARY_FUTURE_CS04_LEAK_GUARD"
+          },
+          "context": {"provider": "antigravity", "session_id": "sess_cs04_future", "role": "user"},
+          "provenance": {"connector": "chat-history/antigravity", "source_id": "sess_cs04_future:1"}
+        }
+      ],
+      "curations": [
+        {
+          "curator_agent": "synthetic-curator",
+          "committed_at_ms": 1761142000000,
+          "episodes": [
+            {
+              "episode_id": "ep_cs04_1",
+              "title": "meridian-audio 本地 VAD 参数初版配置",
+              "summary": "结合语音备忘与 Cursor 会话，确定音频切分基线：silero-v5 模型、silence_ms=850、sample_rate=16000 单声道 PCM。",
+              "project": "meridian-audio",
+              "entities": ["silero-v5", "silence_ms=850", "16000"],
+              "evidence_ids": ["ev_cs04_voice", "ev_cs04_cursor"]
+            }
+          ],
+          "decisions": [
+            {
+              "ref_id": "dec_cs04_vad",
+              "project": "meridian-audio",
+              "topic": "vad_baseline_params",
+              "statement": "音频静音切分默认采用 silero-v5，silence_ms=850，输入采样率固定 16000Hz 单声道 PCM。",
+              "authority": "user_confirmed",
+              "valid_at": 1761141000000,
+              "evidence_ids": ["ev_cs04_voice", "ev_cs04_cursor"]
+            }
+          ]
+        }
+      ],
+      "required_facts": [
+        {"fact_id": "silero_v5", "description": "silero-v5 VAD model", "any_of": ["silero-v5"]},
+        {"fact_id": "silence_850", "description": "silence_ms=850", "any_of": ["silence_ms=850", "silence_ms: 850"]},
+        {"fact_id": "sr_16000", "description": "16000Hz sample rate", "any_of": ["16000"]}
+      ],
+      "forbidden_stale_facts": [],
+      "future_canary_tokens": ["CANARY_FUTURE_CS04_LEAK_GUARD"]
+    },
+    {
+      "case_id": "cs_05_antigravity_to_claude_release",
+      "dimension": "cold_start_continuation",
+      "title": "Antigravity -> Claude Code 发版前检查清单交接",
+      "description": "Antigravity left two pending release blockers for cobalt-ui; 90 minutes later Claude Code takes over.",
+      "cutoff_ms": 1761500000000,
+      "project": "cobalt-ui",
+      "query": "继续完成发版前的剩余阻塞项检查",
+      "window_minutes": 240,
+      "max_tokens": 2000,
+      "events": [
+        {
+          "id": "ev_cs05_1",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1761493000000,
+          "t_end": 1761493120000,
+          "actor": "antigravity",
+          "device_id": "eval-mac-01",
+          "project": "cobalt-ui",
+          "episode_id": "ep_cs05_1",
+          "content": {
+            "role": "assistant",
+            "title": "[antigravity] 发版前剩余两项阻塞检查",
+            "text": "图标与快捷键测试已通过，发版前还剩两项阻塞项：1) 将 manifest_version 升级至 2.4.0；2) 校验暗黑模式正文对比度达到 WCAG >= 4.5:1。"
+          },
+          "context": {"provider": "antigravity", "session_id": "sess_cs05_ag", "role": "assistant"},
+          "provenance": {"connector": "chat-history/antigravity", "source_id": "sess_cs05_ag:1"}
+        },
+        {
+          "id": "ev_cs05_future",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1761501000000,
+          "t_end": 1761501060000,
+          "actor": "claude",
+          "device_id": "eval-mac-01",
+          "project": "cobalt-ui",
+          "episode_id": "ep_cs05_future",
+          "content": {
+            "role": "assistant",
+            "title": "未来发版日志",
+            "text": "CANARY_FUTURE_CS05_RELEASE_TAG"
+          },
+          "context": {"provider": "claude", "session_id": "sess_cs05_future", "role": "assistant"},
+          "provenance": {"connector": "chat-history/claude", "source_id": "sess_cs05_future:1"}
+        }
+      ],
+      "curations": [
+        {
+          "curator_agent": "synthetic-curator",
+          "committed_at_ms": 1761494000000,
+          "episodes": [
+            {
+              "episode_id": "ep_cs05_1",
+              "title": "cobalt-ui 2.4.0 发版前检查进度",
+              "summary": "剩余两项发版阻塞待办：升级 manifest_version 至 2.4.0，并核验暗黑模式文字对比度 >= 4.5:1。",
+              "project": "cobalt-ui",
+              "entities": ["manifest_version", "2.4.0", "4.5:1"],
+              "evidence_ids": ["ev_cs05_1"]
+            }
+          ],
+          "memories": [
+            {
+              "title": "cobalt-ui 发版前待办清单",
+              "body": "发版前必须完成：1) manifest_version 升至 2.4.0；2) 暗黑模式对比度校验 >= 4.5:1。",
+              "kind": "commitment",
+              "project": "cobalt-ui",
+              "tags": ["release", "accessibility"],
+              "evidence_ids": ["ev_cs05_1"]
+            }
+          ]
+        }
+      ],
+      "required_facts": [
+        {"fact_id": "ver_240", "description": "manifest version 2.4.0", "any_of": ["2.4.0"]},
+        {"fact_id": "contrast_45", "description": "WCAG contrast >= 4.5:1", "any_of": ["4.5:1"]}
+      ],
+      "forbidden_stale_facts": [],
+      "future_canary_tokens": ["CANARY_FUTURE_CS05_RELEASE_TAG"]
+    },
+    {
+      "case_id": "cs_06_multi_agent_research_synthesis",
+      "dimension": "cold_start_continuation",
+      "title": "Browser + Codex -> Antigravity 混合排序实验交接",
+      "description": "Browser benchmark reading and Codex session agreed to run hybrid BM25 + BGE-M3 int8 with rrf_k=60 next day.",
+      "cutoff_ms": 1761600000000,
+      "project": "veritas-kb",
+      "query": "继续推进昨天的混合排序实验方案",
+      "window_minutes": 240,
+      "max_tokens": 2000,
+      "events": [
+        {
+          "id": "ev_cs06_browser",
+          "source": "browser",
+          "kind": "page_read",
+          "t_start": 1761520000000,
+          "t_end": 1761520400000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "veritas-kb",
+          "episode_id": "ep_cs06_1",
+          "content": {
+            "title": "Hybrid Retrieval Notes: RRF with Quantized Encoders",
+            "url": "https://docs.acme-labs.example/hybrid-rrf",
+            "text": "Reciprocal Rank Fusion with rrf_k=60 combining BM25 and BGE-M3 int8 achieves strong bilingual recall on laptop CPU."
+          },
+          "provenance": {"connector": "browser-ext", "source_id": "br_cs06_1"}
+        },
+        {
+          "id": "ev_cs06_codex",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1761521000000,
+          "t_end": 1761521100000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "veritas-kb",
+          "episode_id": "ep_cs06_1",
+          "content": {
+            "role": "user",
+            "title": "[codex] 敲定明日混合排序实验对照组",
+            "text": "明天实验先跑 BM25 + BGE-M3 int8 混合召回，融合参数固定 rrf_k=60，先测本地 CPU 延迟。"
+          },
+          "context": {"provider": "codex", "session_id": "sess_cs06_codex", "role": "user"},
+          "provenance": {"connector": "chat-history/codex", "source_id": "sess_cs06_codex:1"}
+        },
+        {
+          "id": "ev_cs06_future",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1761602000000,
+          "t_end": 1761602060000,
+          "actor": "antigravity",
+          "device_id": "eval-mac-01",
+          "project": "veritas-kb",
+          "episode_id": "ep_cs06_future",
+          "content": {
+            "role": "assistant",
+            "title": "未来实验报告",
+            "text": "CANARY_FUTURE_CS06_BENCH_RESULT"
+          },
+          "context": {"provider": "antigravity", "session_id": "sess_cs06_future", "role": "assistant"},
+          "provenance": {"connector": "chat-history/antigravity", "source_id": "sess_cs06_future:1"}
+        }
+      ],
+      "curations": [
+        {
+          "curator_agent": "synthetic-curator",
+          "committed_at_ms": 1761522000000,
+          "episodes": [
+            {
+              "episode_id": "ep_cs06_1",
+              "title": "veritas-kb 混合排序实验方案确定",
+              "summary": "参考混合检索笔记后，敲定下轮本地 CPU 实验对比 BM25 + BGE-M3 int8 混合召回，RRF 融合常数设为 rrf_k=60。",
+              "project": "veritas-kb",
+              "entities": ["BM25", "BGE-M3 int8", "rrf_k=60"],
+              "evidence_ids": ["ev_cs06_browser", "ev_cs06_codex"]
+            }
+          ],
+          "memories": [
+            {
+              "title": "veritas-kb 混合检索实验参数",
+              "body": "下轮实验固定使用 BM25 + BGE-M3 int8 组合，RRF 参数 rrf_k=60，在本地 CPU 上测量延迟与召回。",
+              "kind": "commitment",
+              "project": "veritas-kb",
+              "tags": ["retrieval", "experiment"],
+              "evidence_ids": ["ev_cs06_browser", "ev_cs06_codex"]
+            }
+          ]
+        }
+      ],
+      "required_facts": [
+        {"fact_id": "bge_m3", "description": "BGE-M3 int8 encoder", "any_of": ["bge-m3"]},
+        {"fact_id": "rrf_k60", "description": "rrf_k=60 fusion constant", "any_of": ["rrf_k=60"]}
+      ],
+      "forbidden_stale_facts": [],
+      "future_canary_tokens": ["CANARY_FUTURE_CS06_BENCH_RESULT"]
+    },
+    {
+      "case_id": "ca_01_macos_signing_cert",
+      "dimension": "correction_avoidance",
+      "title": "macOS 正式签名证书约束（禁止 ad-hoc）",
+      "description": "User previously corrected an agent to never use ad-hoc signing and always sign with Developer ID Application + notarytool; later asks to package a macOS release without repeating the constraint.",
+      "cutoff_ms": 1762010000000,
+      "project": "nebula-cli",
+      "query": "帮我把 macOS 安装包打个正式发布版",
+      "correction_trigger": "Agent might default to ad-hoc codesign (-) instead of Developer ID Application + notarytool",
+      "window_minutes": 240,
+      "max_tokens": 2000,
+      "events": [
+        {
+          "id": "ev_ca01_noise",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1761950000000,
+          "t_end": 1761950060000,
+          "actor": "codex",
+          "device_id": "eval-mac-01",
+          "project": "nebula-cli",
+          "episode_id": "ep_ca01_0",
+          "content": {
+            "role": "assistant",
+            "title": "[codex] 构建产物路径检查",
+            "text": "dist/macos 目录下已经生成 universal2 二进制与 dmg 打包脚本，准备好即可输出安装包。"
+          },
+          "context": {"provider": "codex", "session_id": "sess_ca01_0", "role": "assistant"},
+          "provenance": {"connector": "chat-history/codex", "source_id": "sess_ca01_0:1"}
+        },
+        {
+          "id": "ev_ca01_corr",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1761960000000,
+          "t_end": 1761960060000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "nebula-cli",
+          "episode_id": "ep_ca01_1",
+          "content": {
+            "role": "user",
+            "title": "[codex] 纠正：严禁 ad-hoc 签名",
+            "text": "不要用 ad-hoc 签名！macOS 正式分发必须使用 Developer ID Application 证书签名并跑 notarytool 公证，否则 Gatekeeper 会拦掉。"
+          },
+          "context": {
+            "provider": "codex",
+            "session_id": "sess_ca01_1",
+            "role": "user",
+            "signal_hints": ["user_correction"]
+          },
+          "provenance": {"connector": "chat-history/codex", "source_id": "sess_ca01_1:1"}
+        },
+        {
+          "id": "ev_ca01_future",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1762015000000,
+          "t_end": 1762015060000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "nebula-cli",
+          "episode_id": "ep_ca01_future",
+          "content": {
+            "role": "user",
+            "title": "未来公证回执",
+            "text": "CANARY_FUTURE_CA01_NOTARY_ID"
+          },
+          "context": {"provider": "antigravity", "session_id": "sess_ca01_future", "role": "user"},
+          "provenance": {"connector": "chat-history/antigravity", "source_id": "sess_ca01_future:1"}
+        }
+      ],
+      "curations": [
+        {
+          "curator_agent": "synthetic-curator",
+          "committed_at_ms": 1761961000000,
+          "decisions": [
+            {
+              "ref_id": "dec_ca01_sign",
+              "project": "nebula-cli",
+              "topic": "macos_release_signing",
+              "statement": "macOS 正式分发包必须使用 Developer ID Application 证书签名并执行 notarytool 公证，严禁 ad-hoc 签名。",
+              "authority": "user_confirmed",
+              "valid_at": 1761960000000,
+              "evidence_ids": ["ev_ca01_corr"]
+            }
+          ]
+        }
+      ],
+      "required_facts": [
+        {"fact_id": "dev_id_cert", "description": "Developer ID Application certificate required", "any_of": ["developer id application"]},
+        {"fact_id": "notarytool", "description": "notarytool notarization required", "any_of": ["notarytool"]}
+      ],
+      "forbidden_stale_facts": [],
+      "future_canary_tokens": ["CANARY_FUTURE_CA01_NOTARY_ID"]
+    },
+    {
+      "case_id": "ca_02_forbidden_directory",
+      "dimension": "correction_avoidance",
+      "title": "禁止修改 legacy/v1_protocol 目录约束",
+      "description": "User previously forbade editing legacy/v1_protocol/ and mandated putting shims in adapters/compat/; later asks for a backward-compatibility field.",
+      "cutoff_ms": 1762110000000,
+      "project": "aurora-sync",
+      "query": "给旧同步报文补一个时区偏移字段兼容",
+      "correction_trigger": "Agent might edit legacy/v1_protocol/ directly instead of adapters/compat/",
+      "window_minutes": 240,
+      "max_tokens": 2000,
+      "events": [
+        {
+          "id": "ev_ca02_noise",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1762050000000,
+          "t_end": 1762050060000,
+          "actor": "claude",
+          "device_id": "eval-mac-01",
+          "project": "aurora-sync",
+          "episode_id": "ep_ca02_0",
+          "content": {
+            "role": "assistant",
+            "title": "[claude] 同步报文结构说明",
+            "text": "同步报文包含设备标识与时间戳字段，解析器位于 sync/envelope.py。"
+          },
+          "context": {"provider": "claude", "session_id": "sess_ca02_0", "role": "assistant"},
+          "provenance": {"connector": "chat-history/claude", "source_id": "sess_ca02_0:1"}
+        },
+        {
+          "id": "ev_ca02_corr",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1762060000000,
+          "t_end": 1762060060000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "aurora-sync",
+          "episode_id": "ep_ca02_1",
+          "content": {
+            "role": "user",
+            "title": "[claude] 纠正：严禁改动 legacy/v1_protocol/",
+            "text": "严禁直接修改 legacy/v1_protocol/ 目录下的任何源码！那是冻结归档目录，所有兼容适配层必须写在 adapters/compat/ 里。"
+          },
+          "context": {
+            "provider": "claude",
+            "session_id": "sess_ca02_1",
+            "role": "user",
+            "signal_hints": ["user_correction"]
+          },
+          "provenance": {"connector": "chat-history/claude", "source_id": "sess_ca02_1:1"}
+        },
+        {
+          "id": "ev_ca02_future",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1762115000000,
+          "t_end": 1762115060000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "aurora-sync",
+          "episode_id": "ep_ca02_future",
+          "content": {
+            "role": "user",
+            "title": "未来兼容变更",
+            "text": "CANARY_FUTURE_CA02_SHIM"
+          },
+          "context": {"provider": "codex", "session_id": "sess_ca02_future", "role": "user"},
+          "provenance": {"connector": "chat-history/codex", "source_id": "sess_ca02_future:1"}
+        }
+      ],
+      "curations": [
+        {
+          "curator_agent": "synthetic-curator",
+          "committed_at_ms": 1762061000000,
+          "decisions": [
+            {
+              "ref_id": "dec_ca02_dir",
+              "project": "aurora-sync",
+              "topic": "legacy_directory_freeze",
+              "statement": "严禁直接修改冻结目录 legacy/v1_protocol/；所有协议向后兼容逻辑必须写在 adapters/compat/ 中。",
+              "authority": "user_confirmed",
+              "valid_at": 1762060000000,
+              "evidence_ids": ["ev_ca02_corr"]
+            }
+          ]
+        }
+      ],
+      "required_facts": [
+        {"fact_id": "forbid_legacy", "description": "legacy/v1_protocol is frozen", "any_of": ["legacy/v1_protocol"]},
+        {"fact_id": "use_compat", "description": "adapters/compat target dir", "any_of": ["adapters/compat"]}
+      ],
+      "forbidden_stale_facts": [],
+      "future_canary_tokens": ["CANARY_FUTURE_CA02_SHIM"]
+    },
+    {
+      "case_id": "ca_03_ui_minimalism",
+      "dimension": "correction_avoidance",
+      "title": "极简白底双栏 UI 视觉红线",
+      "description": "User previously corrected visual polish to stay minimalist white two-pane 14px typography without neon gradients or popups.",
+      "cutoff_ms": 1762210000000,
+      "project": "cobalt-ui",
+      "query": "润色一下编辑器的视觉呈现",
+      "correction_trigger": "Agent might introduce flashy neon gradients or floating banners violating minimalism",
+      "window_minutes": 240,
+      "max_tokens": 2000,
+      "events": [
+        {
+          "id": "ev_ca03_noise",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1762150000000,
+          "t_end": 1762150060000,
+          "actor": "cursor",
+          "device_id": "eval-mac-01",
+          "project": "cobalt-ui",
+          "episode_id": "ep_ca03_0",
+          "content": {
+            "role": "assistant",
+            "title": "[cursor] 编辑器样式表结构",
+            "text": "主样式文件位于 web/styles/editor.css，支持亮色与暗色 CSS 变量切换。"
+          },
+          "context": {"provider": "cursor", "session_id": "sess_ca03_0", "role": "assistant"},
+          "provenance": {"connector": "chat-history/cursor", "source_id": "sess_ca03_0:1"}
+        },
+        {
+          "id": "ev_ca03_corr",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1762160000000,
+          "t_end": 1762160060000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "cobalt-ui",
+          "episode_id": "ep_ca03_1",
+          "content": {
+            "role": "user",
+            "title": "[cursor] 纠正：保持极简双栏 14px",
+            "text": "不要加霓虹渐变发光或悬浮营销弹窗！坚持纯白极简双栏编辑布局，正文固定 14px 字体。"
+          },
+          "context": {
+            "provider": "cursor",
+            "session_id": "sess_ca03_1",
+            "role": "user",
+            "signal_hints": ["user_correction"]
+          },
+          "provenance": {"connector": "chat-history/cursor", "source_id": "sess_ca03_1:1"}
+        },
+        {
+          "id": "ev_ca03_future",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1762215000000,
+          "t_end": 1762215060000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "cobalt-ui",
+          "episode_id": "ep_ca03_future",
+          "content": {
+            "role": "user",
+            "title": "未来样式评审",
+            "text": "CANARY_FUTURE_CA03_DESIGN"
+          },
+          "context": {"provider": "antigravity", "session_id": "sess_ca03_future", "role": "user"},
+          "provenance": {"connector": "chat-history/antigravity", "source_id": "sess_ca03_future:1"}
+        }
+      ],
+      "curations": [
+        {
+          "curator_agent": "synthetic-curator",
+          "committed_at_ms": 1762161000000,
+          "decisions": [
+            {
+              "ref_id": "dec_ca03_ui",
+              "project": "cobalt-ui",
+              "topic": "ui_minimalism_guideline",
+              "statement": "主界面坚持纯白极简双栏布局与 14px 正文规范，严禁添加霓虹渐变特效或悬浮营销弹窗。",
+              "authority": "user_confirmed",
+              "valid_at": 1762160000000,
+              "evidence_ids": ["ev_ca03_corr"]
+            }
+          ]
+        }
+      ],
+      "required_facts": [
+        {"fact_id": "two_pane_minimal", "description": "Minimalist two-pane layout", "any_of": ["极简双栏"]},
+        {"fact_id": "font_14px", "description": "14px body typography", "any_of": ["14px"]}
+      ],
+      "forbidden_stale_facts": [],
+      "future_canary_tokens": ["CANARY_FUTURE_CA03_DESIGN"]
+    },
+    {
+      "case_id": "ca_04_privacy_firewall",
+      "dimension": "correction_avoidance",
+      "title": "隐私防火墙：凭证严禁落盘明文，必须走 Vault + local_only",
+      "description": "User previously mandated Vault AES-256-GCM encryption + local_only tagging for all OAuth tokens; later asks to implement local credential saving for calendar integration.",
+      "cutoff_ms": 1762310000000,
+      "project": "veritas-kb",
+      "query": "实现第三方日历接入的本地凭证保存模块",
+      "correction_trigger": "Agent might store OAuth tokens in plaintext JSON/SQLite instead of Vault + local_only",
+      "window_minutes": 240,
+      "max_tokens": 2000,
+      "events": [
+        {
+          "id": "ev_ca04_noise",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1762250000000,
+          "t_end": 1762250060000,
+          "actor": "antigravity",
+          "device_id": "eval-mac-01",
+          "project": "veritas-kb",
+          "episode_id": "ep_ca04_0",
+          "content": {
+            "role": "assistant",
+            "title": "[antigravity] 第三方日历接口字段梳理",
+            "text": "日历接入采用标准 OAuth2 授权码流程，会返回短期 access 字段和长期续期字段。"
+          },
+          "context": {"provider": "antigravity", "session_id": "sess_ca04_0", "role": "assistant"},
+          "provenance": {"connector": "chat-history/antigravity", "source_id": "sess_ca04_0:1"}
+        },
+        {
+          "id": "ev_ca04_corr",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1762260000000,
+          "t_end": 1762260060000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "veritas-kb",
+          "episode_id": "ep_ca04_1",
+          "content": {
+            "role": "user",
+            "title": "[antigravity] 纠正：严禁明文保存凭证",
+            "text": "严禁把 OAuth 续期凭据写入明文 SQLite 或 Markdown！必须交给 Vault AES-256-GCM 加密库隔离保存，操作回执一律标为 local_only。"
+          },
+          "context": {
+            "provider": "antigravity",
+            "session_id": "sess_ca04_1",
+            "role": "user",
+            "signal_hints": ["user_correction"]
+          },
+          "provenance": {"connector": "chat-history/antigravity", "source_id": "sess_ca04_1:1"}
+        },
+        {
+          "id": "ev_ca04_future",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1762315000000,
+          "t_end": 1762315060000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "veritas-kb",
+          "episode_id": "ep_ca04_future",
+          "content": {
+            "role": "user",
+            "title": "未来安全审计",
+            "text": "CANARY_FUTURE_CA04_AUDIT"
+          },
+          "context": {"provider": "codex", "session_id": "sess_ca04_future", "role": "user"},
+          "provenance": {"connector": "chat-history/codex", "source_id": "sess_ca04_future:1"}
+        }
+      ],
+      "curations": [
+        {
+          "curator_agent": "synthetic-curator",
+          "committed_at_ms": 1762261000000,
+          "decisions": [
+            {
+              "ref_id": "dec_ca04_priv",
+              "project": "veritas-kb",
+              "topic": "credential_storage_firewall",
+              "statement": "所有第三方授权凭据严禁写入明文 SQLite/Markdown，必须交由 Vault AES-256-GCM 加密隔离存储且默认标记 local_only。",
+              "authority": "user_confirmed",
+              "valid_at": 1762260000000,
+              "evidence_ids": ["ev_ca04_corr"]
+            }
+          ]
+        }
+      ],
+      "required_facts": [
+        {"fact_id": "vault_aes", "description": "Vault AES-256-GCM storage", "any_of": ["vault", "aes-256-gcm"]},
+        {"fact_id": "local_only", "description": "local_only privacy tier", "any_of": ["local_only"]}
+      ],
+      "forbidden_stale_facts": [],
+      "future_canary_tokens": ["CANARY_FUTURE_CA04_AUDIT"]
+    },
+    {
+      "case_id": "ca_05_test_runner_command",
+      "dimension": "correction_avoidance",
+      "title": "指定虚拟环境单测命令与断网标记约束",
+      "description": "User corrected agent to always invoke .venv/bin/pytest -m 'not live_network' instead of global pytest.",
+      "cutoff_ms": 1762410000000,
+      "project": "polaris-gateway",
+      "query": "改完代码后跑一遍测试套件确认全绿",
+      "correction_trigger": "Agent might invoke system pytest hitting live network quota tests",
+      "window_minutes": 240,
+      "max_tokens": 2000,
+      "events": [
+        {
+          "id": "ev_ca05_noise",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1762350000000,
+          "t_end": 1762350060000,
+          "actor": "codex",
+          "device_id": "eval-mac-01",
+          "project": "polaris-gateway",
+          "episode_id": "ep_ca05_0",
+          "content": {
+            "role": "assistant",
+            "title": "[codex] 代码改动已落盘",
+            "text": "限流中间件重构完毕，共修改 3 个文件。"
+          },
+          "context": {"provider": "codex", "session_id": "sess_ca05_0", "role": "assistant"},
+          "provenance": {"connector": "chat-history/codex", "source_id": "sess_ca05_0:1"}
+        },
+        {
+          "id": "ev_ca05_corr",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1762360000000,
+          "t_end": 1762360060000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "polaris-gateway",
+          "episode_id": "ep_ca05_1",
+          "content": {
+            "role": "user",
+            "title": "[codex] 纠正：必须用 .venv/bin/pytest 跳过联网用例",
+            "text": "不要直接跑系统全局 pytest！统一执行 .venv/bin/pytest -m 'not live_network'，否则会误触外部沙盒配额。"
+          },
+          "context": {
+            "provider": "codex",
+            "session_id": "sess_ca05_1",
+            "role": "user",
+            "signal_hints": ["user_correction"]
+          },
+          "provenance": {"connector": "chat-history/codex", "source_id": "sess_ca05_1:1"}
+        },
+        {
+          "id": "ev_ca05_future",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1762415000000,
+          "t_end": 1762415060000,
+          "actor": "codex",
+          "device_id": "eval-mac-01",
+          "project": "polaris-gateway",
+          "episode_id": "ep_ca05_future",
+          "content": {
+            "role": "assistant",
+            "title": "未来测试日志",
+            "text": "CANARY_FUTURE_CA05_PYTEST"
+          },
+          "context": {"provider": "codex", "session_id": "sess_ca05_future", "role": "assistant"},
+          "provenance": {"connector": "chat-history/codex", "source_id": "sess_ca05_future:1"}
+        }
+      ],
+      "curations": [
+        {
+          "curator_agent": "synthetic-curator",
+          "committed_at_ms": 1762361000000,
+          "memories": [
+            {
+              "title": "polaris-gateway 必用单测执行命令",
+              "body": "禁止运行系统全局 pytest；验证必须使用 `.venv/bin/pytest -m 'not live_network'` 避免消耗外部配额。",
+              "kind": "preference",
+              "project": "polaris-gateway",
+              "tags": ["testing", "pytest"],
+              "evidence_ids": ["ev_ca05_corr"]
+            }
+          ]
+        }
+      ],
+      "required_facts": [
+        {"fact_id": "venv_pytest", "description": ".venv/bin/pytest binary", "any_of": [".venv/bin/pytest"]},
+        {"fact_id": "not_live_net", "description": "not live_network marker", "any_of": ["not live_network"]}
+      ],
+      "forbidden_stale_facts": [],
+      "future_canary_tokens": ["CANARY_FUTURE_CA05_PYTEST"]
+    },
+    {
+      "case_id": "ca_06_naming_convention",
+      "dimension": "correction_avoidance",
+      "title": "API 字段 snake_case 与事件前缀 aud_ 命名约定",
+      "description": "User previously corrected API schema naming to strictly use snake_case and aud_ ID prefix; later asks for a new transcription chunk response schema.",
+      "cutoff_ms": 1762510000000,
+      "project": "meridian-audio",
+      "query": "给新的转写分片接口补一下返回数据结构",
+      "correction_trigger": "Agent might emit camelCase fields or generic evt_ IDs",
+      "window_minutes": 240,
+      "max_tokens": 2000,
+      "events": [
+        {
+          "id": "ev_ca06_noise",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1762450000000,
+          "t_end": 1762450060000,
+          "actor": "claude",
+          "device_id": "eval-mac-01",
+          "project": "meridian-audio",
+          "episode_id": "ep_ca06_0",
+          "content": {
+            "role": "assistant",
+            "title": "[claude] 分片接口路由注册",
+            "text": "已在 FastAPI 路由器中添加 POST /v1/chunks 接口，下一步补响应模型。"
+          },
+          "context": {"provider": "claude", "session_id": "sess_ca06_0", "role": "assistant"},
+          "provenance": {"connector": "chat-history/claude", "source_id": "sess_ca06_0:1"}
+        },
+        {
+          "id": "ev_ca06_corr",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1762460000000,
+          "t_end": 1762460060000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "meridian-audio",
+          "episode_id": "ep_ca06_1",
+          "content": {
+            "role": "user",
+            "title": "[claude] 纠正：统一 snake_case 与 aud_ 前缀",
+            "text": "不要在对外 JSON schema 里混用 camelCase！字段名一律使用 snake_case，所有音频事件主键前缀固定为 aud_。"
+          },
+          "context": {
+            "provider": "claude",
+            "session_id": "sess_ca06_1",
+            "role": "user",
+            "signal_hints": ["user_correction"]
+          },
+          "provenance": {"connector": "chat-history/claude", "source_id": "sess_ca06_1:1"}
+        },
+        {
+          "id": "ev_ca06_future",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1762515000000,
+          "t_end": 1762515060000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "meridian-audio",
+          "episode_id": "ep_ca06_future",
+          "content": {
+            "role": "user",
+            "title": "未来接口变更",
+            "text": "CANARY_FUTURE_CA06_SCHEMA"
+          },
+          "context": {"provider": "antigravity", "session_id": "sess_ca06_future", "role": "user"},
+          "provenance": {"connector": "chat-history/antigravity", "source_id": "sess_ca06_future:1"}
+        }
+      ],
+      "curations": [
+        {
+          "curator_agent": "synthetic-curator",
+          "committed_at_ms": 1762461000000,
+          "decisions": [
+            {
+              "ref_id": "dec_ca06_naming",
+              "project": "meridian-audio",
+              "topic": "api_schema_naming_convention",
+              "statement": "所有对外 JSON API 字段严格采用 snake_case（禁用 camelCase），音频事件 ID 前缀统一固定为 aud_。",
+              "authority": "user_confirmed",
+              "valid_at": 1762460000000,
+              "evidence_ids": ["ev_ca06_corr"]
+            }
+          ]
+        }
+      ],
+      "required_facts": [
+        {"fact_id": "snake_case", "description": "snake_case field naming", "any_of": ["snake_case"]},
+        {"fact_id": "aud_prefix", "description": "aud_ ID prefix", "any_of": ["aud_"]}
+      ],
+      "forbidden_stale_facts": [],
+      "future_canary_tokens": ["CANARY_FUTURE_CA06_SCHEMA"]
+    },
+    {
+      "case_id": "bt_01_brand_rename_after",
+      "dimension": "bitemporal_supersession",
+      "title": "产品品牌更名后查询（KiteNote -> LoomPad）",
+      "description": "Brand name evolved from KiteNote (v1) to LoomPad (v2); post-rename query must return LoomPad without leaking KiteNote.",
+      "cutoff_ms": 1763030000000,
+      "project": "cobalt-ui",
+      "query": "当前项目对外发布的正式产品品牌名是什么？",
+      "window_minutes": 240,
+      "max_tokens": 2000,
+      "events": [
+        {
+          "id": "ev_bt01_v1",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1763000000000,
+          "t_end": 1763000060000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "cobalt-ui",
+          "episode_id": "ep_bt01_v1",
+          "content": {
+            "role": "user",
+            "title": "[antigravity] 产品品牌命名初版讨论",
+            "text": "品牌名先定为 KiteNote，先写进第一版项目文档。"
+          },
+          "context": {"provider": "antigravity", "session_id": "sess_bt01_v1", "role": "user"},
+          "provenance": {"connector": "chat-history/antigravity", "source_id": "sess_bt01_v1:1"}
+        },
+        {
+          "id": "ev_bt01_v2",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1763020000000,
+          "t_end": 1763020060000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "cobalt-ui",
+          "episode_id": "ep_bt01_v2",
+          "content": {
+            "role": "user",
+            "title": "[codex] 产品品牌正式更名定案",
+            "text": "原品牌名与商标冲突，正式改名为 LoomPad，所有对外标题和安装包统一使用 LoomPad。"
+          },
+          "context": {"provider": "codex", "session_id": "sess_bt01_v2", "role": "user"},
+          "provenance": {"connector": "chat-history/codex", "source_id": "sess_bt01_v2:1"}
+        },
+        {
+          "id": "ev_bt01_future",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1763040000000,
+          "t_end": 1763040060000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "cobalt-ui",
+          "episode_id": "ep_bt01_future",
+          "content": {
+            "role": "user",
+            "title": "未来域名采购",
+            "text": "CANARY_FUTURE_BT01_DOMAIN"
+          },
+          "context": {"provider": "codex", "session_id": "sess_bt01_future", "role": "user"},
+          "provenance": {"connector": "chat-history/codex", "source_id": "sess_bt01_future:1"}
+        }
+      ],
+      "curations": [
+        {
+          "curator_agent": "synthetic-curator",
+          "committed_at_ms": 1763001000000,
+          "episodes": [
+            {
+              "episode_id": "ep_bt01_v1",
+              "title": "cobalt-ui 初版命名头脑风暴",
+              "summary": "完成了首轮产品命名讨论并记录了初始品牌决策，待商标检索复核。",
+              "project": "cobalt-ui",
+              "evidence_ids": ["ev_bt01_v1"]
+            }
+          ],
+          "decisions": [
+            {
+              "ref_id": "dec_brand_v1",
+              "project": "cobalt-ui",
+              "topic": "product_brand_name",
+              "statement": "项目正式产品品牌名称定为 KiteNote。",
+              "authority": "user_confirmed",
+              "valid_at": 1763000000000,
+              "evidence_ids": ["ev_bt01_v1"]
+            }
+          ]
+        },
+        {
+          "curator_agent": "synthetic-curator",
+          "committed_at_ms": 1763021000000,
+          "episodes": [
+            {
+              "episode_id": "ep_bt01_v2",
+              "title": "cobalt-ui 品牌商标核验与最终定案",
+              "summary": "完成商标冲突核查并更新了项目正式品牌定案为 LoomPad。",
+              "project": "cobalt-ui",
+              "evidence_ids": ["ev_bt01_v2"]
+            }
+          ],
+          "decisions": [
+            {
+              "ref_id": "dec_brand_v2",
+              "project": "cobalt-ui",
+              "topic": "product_brand_name",
+              "statement": "项目正式产品品牌名称定案为 LoomPad，所有对外文档、CLI 标题与安装包元数据统一使用 LoomPad。",
+              "authority": "user_confirmed",
+              "valid_at": 1763020000000,
+              "supersedes_ref": "dec_brand_v1",
+              "evidence_ids": ["ev_bt01_v2"]
+            }
+          ]
+        }
+      ],
+      "required_facts": [
+        {"fact_id": "brand_loompad", "description": "Active brand is LoomPad", "any_of": ["loompad"]}
+      ],
+      "forbidden_stale_facts": [
+        {"fact_id": "stale_kitenote", "description": "Superseded brand KiteNote must not leak", "any_of": ["kitenote"]}
+      ],
+      "future_canary_tokens": ["CANARY_FUTURE_BT01_DOMAIN"]
+    },
+    {
+      "case_id": "bt_02_brand_rename_time_travel_before",
+      "dimension": "bitemporal_supersession",
+      "title": "时间旅行回溯：品牌更名之前的真相（KiteNote 有效，LoomPad 尚未发生）",
+      "description": "Same event timeline as bt_01, but evaluated at cutoff_ms BEFORE the rename; causal isolation must exclude v2 and return KiteNote.",
+      "cutoff_ms": 1763010000000,
+      "project": "cobalt-ui",
+      "query": "当前项目对外发布的正式产品品牌名是什么？",
+      "window_minutes": 240,
+      "max_tokens": 2000,
+      "events": [
+        {
+          "id": "ev_bt02_v1",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1763000000000,
+          "t_end": 1763000060000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "cobalt-ui",
+          "episode_id": "ep_bt02_v1",
+          "content": {
+            "role": "user",
+            "title": "[antigravity] 产品品牌命名初版讨论",
+            "text": "产品品牌名正式定为 KiteNote，先写入项目文档。"
+          },
+          "context": {"provider": "antigravity", "session_id": "sess_bt02_v1", "role": "user"},
+          "provenance": {"connector": "chat-history/antigravity", "source_id": "sess_bt02_v1:1"}
+        },
+        {
+          "id": "ev_bt02_v2",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1763020000000,
+          "t_end": 1763020060000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "cobalt-ui",
+          "episode_id": "ep_bt02_v2",
+          "content": {
+            "role": "user",
+            "title": "[codex] 未来更名事件（不应穿越到 t_mid）",
+            "text": "正式更名为 LoomPad，取代之前的品牌命名。"
+          },
+          "context": {"provider": "codex", "session_id": "sess_bt02_v2", "role": "user"},
+          "provenance": {"connector": "chat-history/codex", "source_id": "sess_bt02_v2:1"}
+        }
+      ],
+      "curations": [
+        {
+          "curator_agent": "synthetic-curator",
+          "committed_at_ms": 1763001000000,
+          "episodes": [
+            {
+              "episode_id": "ep_bt02_v1",
+              "title": "cobalt-ui 品牌命名首版定案",
+              "summary": "确定首版正式产品品牌名为 KiteNote。",
+              "project": "cobalt-ui",
+              "evidence_ids": ["ev_bt02_v1"]
+            }
+          ],
+          "decisions": [
+            {
+              "ref_id": "dec_brand_v1",
+              "project": "cobalt-ui",
+              "topic": "product_brand_name",
+              "statement": "项目正式产品品牌名称定为 KiteNote。",
+              "authority": "user_confirmed",
+              "valid_at": 1763000000000,
+              "evidence_ids": ["ev_bt02_v1"]
+            }
+          ]
+        },
+        {
+          "curator_agent": "synthetic-curator",
+          "committed_at_ms": 1763021000000,
+          "decisions": [
+            {
+              "ref_id": "dec_brand_v2",
+              "project": "cobalt-ui",
+              "topic": "product_brand_name",
+              "statement": "项目正式产品品牌名称定案为 LoomPad。",
+              "authority": "user_confirmed",
+              "valid_at": 1763020000000,
+              "supersedes_ref": "dec_brand_v1",
+              "evidence_ids": ["ev_bt02_v2"]
+            }
+          ]
+        }
+      ],
+      "required_facts": [
+        {"fact_id": "brand_kitenote_at_tmid", "description": "KiteNote is active at t_mid", "any_of": ["kitenote"]}
+      ],
+      "forbidden_stale_facts": [
+        {"fact_id": "future_loompad", "description": "Future brand LoomPad must not leak into t_mid", "any_of": ["loompad"]}
+      ],
+      "future_canary_tokens": ["LoomPad"]
+    },
+    {
+      "case_id": "bt_03_sync_architecture_migration",
+      "dimension": "bitemporal_supersession",
+      "title": "跨设备同步架构迁移（自建 MinIO -> 端到端加密 iCloud Drive）",
+      "description": "Storage sync decision superseded from self-hosted MinIO to E2EE iCloud Drive container.",
+      "cutoff_ms": 1763130000000,
+      "project": "aurora-sync",
+      "query": "aurora-sync 的跨设备同步存储方案现行定案是什么？",
+      "window_minutes": 240,
+      "max_tokens": 2000,
+      "events": [
+        {
+          "id": "ev_bt03_v1",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1763100000000,
+          "t_end": 1763100060000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "aurora-sync",
+          "episode_id": "ep_bt03_v1",
+          "content": {
+            "role": "user",
+            "title": "[codex] 同步存储初版选型",
+            "text": "跨设备同步存储先用自建 MinIO 私有对象存储桶。"
+          },
+          "context": {"provider": "codex", "session_id": "sess_bt03_v1", "role": "user"},
+          "provenance": {"connector": "chat-history/codex", "source_id": "sess_bt03_v1:1"}
+        },
+        {
+          "id": "ev_bt03_v2",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1763120000000,
+          "t_end": 1763120060000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "aurora-sync",
+          "episode_id": "ep_bt03_v2",
+          "content": {
+            "role": "user",
+            "title": "[antigravity] 同步存储方案切换定案",
+            "text": "运维成本太高，跨设备同步存储正式切换为端到端加密 iCloud Drive 容器同步，零自建服务器。"
+          },
+          "context": {"provider": "antigravity", "session_id": "sess_bt03_v2", "role": "user"},
+          "provenance": {"connector": "chat-history/antigravity", "source_id": "sess_bt03_v2:1"}
+        },
+        {
+          "id": "ev_bt03_future",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1763140000000,
+          "t_end": 1763140060000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "aurora-sync",
+          "episode_id": "ep_bt03_future",
+          "content": {
+            "role": "user",
+            "title": "未来同步压测",
+            "text": "CANARY_FUTURE_BT03_SYNC"
+          },
+          "context": {"provider": "antigravity", "session_id": "sess_bt03_future", "role": "user"},
+          "provenance": {"connector": "chat-history/antigravity", "source_id": "sess_bt03_future:1"}
+        }
+      ],
+      "curations": [
+        {
+          "curator_agent": "synthetic-curator",
+          "committed_at_ms": 1763101000000,
+          "episodes": [
+            {
+              "episode_id": "ep_bt03_v1",
+              "title": "aurora-sync 初版同步存储选型讨论",
+              "summary": "记录了第一版跨设备同步存储方案草案。",
+              "project": "aurora-sync",
+              "evidence_ids": ["ev_bt03_v1"]
+            }
+          ],
+          "decisions": [
+            {
+              "ref_id": "dec_sync_v1",
+              "project": "aurora-sync",
+              "topic": "cross_device_sync_storage",
+              "statement": "跨设备同步采用自建 MinIO 私有对象存储方案。",
+              "authority": "user_confirmed",
+              "valid_at": 1763100000000,
+              "evidence_ids": ["ev_bt03_v1"]
+            }
+          ]
+        },
+        {
+          "curator_agent": "synthetic-curator",
+          "committed_at_ms": 1763121000000,
+          "episodes": [
+            {
+              "episode_id": "ep_bt03_v2",
+              "title": "aurora-sync 零运维同步存储定案",
+              "summary": "正式敲定端到端加密 iCloud Drive 容器作为跨设备同步方案。",
+              "project": "aurora-sync",
+              "evidence_ids": ["ev_bt03_v2"]
+            }
+          ],
+          "decisions": [
+            {
+              "ref_id": "dec_sync_v2",
+              "project": "aurora-sync",
+              "topic": "cross_device_sync_storage",
+              "statement": "跨设备同步存储正式采用端到端加密 iCloud Drive 容器方案，实现零自建服务器运维。",
+              "authority": "user_confirmed",
+              "valid_at": 1763120000000,
+              "supersedes_ref": "dec_sync_v1",
+              "evidence_ids": ["ev_bt03_v2"]
+            }
+          ]
+        }
+      ],
+      "required_facts": [
+        {"fact_id": "icloud_e2ee", "description": "iCloud Drive E2EE sync", "any_of": ["icloud drive"]}
+      ],
+      "forbidden_stale_facts": [
+        {"fact_id": "stale_minio", "description": "Superseded MinIO must not leak", "any_of": ["minio"]}
+      ],
+      "future_canary_tokens": ["CANARY_FUTURE_BT03_SYNC"]
+    },
+    {
+      "case_id": "bt_04_multihop_v1_v2_v3",
+      "dimension": "bitemporal_supersession",
+      "title": "三代协议链式演进（gRPC -> GraphQL Federation -> JSON-RPC over UDS）",
+      "description": "3-hop supersession chain; query after v3 must surface JSON-RPC over Unix Domain Socket while suppressing both v1 and v2.",
+      "cutoff_ms": 1763250000000,
+      "project": "polaris-gateway",
+      "query": "polaris-gateway 本地插件通信协议最终定案是什么？",
+      "window_minutes": 240,
+      "max_tokens": 2000,
+      "events": [
+        {
+          "id": "ev_bt04_v1",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1763200000000,
+          "t_end": 1763200060000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "polaris-gateway",
+          "episode_id": "ep_bt04_v1",
+          "content": {
+            "role": "user",
+            "title": "[codex] 插件通信 v1 选型",
+            "text": "本地插件通信协议初版先定 gRPC + Protobuf。"
+          },
+          "context": {"provider": "codex", "session_id": "sess_bt04_v1", "role": "user"},
+          "provenance": {"connector": "chat-history/codex", "source_id": "sess_bt04_v1:1"}
+        },
+        {
+          "id": "ev_bt04_v2",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1763220000000,
+          "t_end": 1763220060000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "polaris-gateway",
+          "episode_id": "ep_bt04_v2",
+          "content": {
+            "role": "user",
+            "title": "[claude] 插件通信 v2 切换",
+            "text": "改成 GraphQL Federation 作为本地插件通信协议。"
+          },
+          "context": {"provider": "claude", "session_id": "sess_bt04_v2", "role": "user"},
+          "provenance": {"connector": "chat-history/claude", "source_id": "sess_bt04_v2:1"}
+        },
+        {
+          "id": "ev_bt04_v3",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1763240000000,
+          "t_end": 1763240060000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "polaris-gateway",
+          "episode_id": "ep_bt04_v3",
+          "content": {
+            "role": "user",
+            "title": "[antigravity] 插件通信 v3 终版定案",
+            "text": "回归极简，本地插件通信协议最终定案为 JSON-RPC over Unix Domain Socket。"
+          },
+          "context": {"provider": "antigravity", "session_id": "sess_bt04_v3", "role": "user"},
+          "provenance": {"connector": "chat-history/antigravity", "source_id": "sess_bt04_v3:1"}
+        },
+        {
+          "id": "ev_bt04_future",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1763260000000,
+          "t_end": 1763260060000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "polaris-gateway",
+          "episode_id": "ep_bt04_future",
+          "content": {
+            "role": "user",
+            "title": "未来插件基准",
+            "text": "CANARY_FUTURE_BT04_IPC"
+          },
+          "context": {"provider": "antigravity", "session_id": "sess_bt04_future", "role": "user"},
+          "provenance": {"connector": "chat-history/antigravity", "source_id": "sess_bt04_future:1"}
+        }
+      ],
+      "curations": [
+        {
+          "curator_agent": "synthetic-curator",
+          "committed_at_ms": 1763201000000,
+          "episodes": [
+            {
+              "episode_id": "ep_bt04_v1",
+              "title": "polaris-gateway 插件协议第一轮评审",
+              "summary": "记录了插件本地通信协议的初始选型。",
+              "project": "polaris-gateway",
+              "evidence_ids": ["ev_bt04_v1"]
+            }
+          ],
+          "decisions": [
+            {
+              "ref_id": "dec_ipc_v1",
+              "project": "polaris-gateway",
+              "topic": "plugin_ipc_protocol",
+              "statement": "本地插件通信协议采用 gRPC + Protobuf。",
+              "authority": "user_confirmed",
+              "valid_at": 1763200000000,
+              "evidence_ids": ["ev_bt04_v1"]
+            }
+          ]
+        },
+        {
+          "curator_agent": "synthetic-curator",
+          "committed_at_ms": 1763221000000,
+          "episodes": [
+            {
+              "episode_id": "ep_bt04_v2",
+              "title": "polaris-gateway 插件协议第二轮调整",
+              "summary": "调整了插件通信协议中间演进方案。",
+              "project": "polaris-gateway",
+              "evidence_ids": ["ev_bt04_v2"]
+            }
+          ],
+          "decisions": [
+            {
+              "ref_id": "dec_ipc_v2",
+              "project": "polaris-gateway",
+              "topic": "plugin_ipc_protocol",
+              "statement": "本地插件通信协议切换为 GraphQL Federation。",
+              "authority": "user_confirmed",
+              "valid_at": 1763220000000,
+              "supersedes_ref": "dec_ipc_v1",
+              "evidence_ids": ["ev_bt04_v2"]
+            }
+          ]
+        },
+        {
+          "curator_agent": "synthetic-curator",
+          "committed_at_ms": 1763241000000,
+          "episodes": [
+            {
+              "episode_id": "ep_bt04_v3",
+              "title": "polaris-gateway 插件协议终版定案",
+              "summary": "最终敲定 JSON-RPC over Unix Domain Socket 作为极简本地通信协议。",
+              "project": "polaris-gateway",
+              "evidence_ids": ["ev_bt04_v3"]
+            }
+          ],
+          "decisions": [
+            {
+              "ref_id": "dec_ipc_v3",
+              "project": "polaris-gateway",
+              "topic": "plugin_ipc_protocol",
+              "statement": "本地插件通信协议最终定案为 JSON-RPC over Unix Domain Socket。",
+              "authority": "user_confirmed",
+              "valid_at": 1763240000000,
+              "supersedes_ref": "dec_ipc_v2",
+              "evidence_ids": ["ev_bt04_v3"]
+            }
+          ]
+        }
+      ],
+      "required_facts": [
+        {"fact_id": "ipc_jsonrpc", "description": "JSON-RPC protocol", "any_of": ["json-rpc"]},
+        {"fact_id": "ipc_uds", "description": "Unix Domain Socket transport", "any_of": ["unix domain socket"]}
+      ],
+      "forbidden_stale_facts": [
+        {"fact_id": "stale_grpc", "description": "Superseded v1 gRPC", "any_of": ["grpc"]},
+        {"fact_id": "stale_graphql", "description": "Superseded v2 GraphQL Federation", "any_of": ["graphql federation"]}
+      ],
+      "future_canary_tokens": ["CANARY_FUTURE_BT04_IPC"]
+    },
+    {
+      "case_id": "bt_05_schedule_cadence_change",
+      "dimension": "bitemporal_supersession",
+      "title": "转写触发策略演进（每 60 分钟整点批量 -> 5 秒内事件驱动即时转写）",
+      "description": "Transcription trigger schedule superseded from hourly cron batch to 5-second event-driven execution.",
+      "cutoff_ms": 1763330000000,
+      "project": "meridian-audio",
+      "query": "音频转写任务的触发调度策略现在是怎么定的？",
+      "window_minutes": 240,
+      "max_tokens": 2000,
+      "events": [
+        {
+          "id": "ev_bt05_v1",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1763300000000,
+          "t_end": 1763300060000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "meridian-audio",
+          "episode_id": "ep_bt05_v1",
+          "content": {
+            "role": "user",
+            "title": "[cursor] 转写调度初版策略",
+            "text": "音频转写任务先按每 60 分钟整点批量转写执行。"
+          },
+          "context": {"provider": "cursor", "session_id": "sess_bt05_v1", "role": "user"},
+          "provenance": {"connector": "chat-history/cursor", "source_id": "sess_bt05_v1:1"}
+        },
+        {
+          "id": "ev_bt05_v2",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1763320000000,
+          "t_end": 1763320060000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "meridian-audio",
+          "episode_id": "ep_bt05_v2",
+          "content": {
+            "role": "user",
+            "title": "[antigravity] 转写调度策略变更",
+            "text": "整点等待太慢了，转写触发策略改为录制结束后 5 秒内事件驱动即时转写。"
+          },
+          "context": {"provider": "antigravity", "session_id": "sess_bt05_v2", "role": "user"},
+          "provenance": {"connector": "chat-history/antigravity", "source_id": "sess_bt05_v2:1"}
+        },
+        {
+          "id": "ev_bt05_future",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1763340000000,
+          "t_end": 1763340060000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "meridian-audio",
+          "episode_id": "ep_bt05_future",
+          "content": {
+            "role": "user",
+            "title": "未来调度监控",
+            "text": "CANARY_FUTURE_BT05_SCHED"
+          },
+          "context": {"provider": "antigravity", "session_id": "sess_bt05_future", "role": "user"},
+          "provenance": {"connector": "chat-history/antigravity", "source_id": "sess_bt05_future:1"}
+        }
+      ],
+      "curations": [
+        {
+          "curator_agent": "synthetic-curator",
+          "committed_at_ms": 1763301000000,
+          "episodes": [
+            {
+              "episode_id": "ep_bt05_v1",
+              "title": "meridian-audio 初始转写调度讨论",
+              "summary": "配置了首版后台转写触发策略。",
+              "project": "meridian-audio",
+              "evidence_ids": ["ev_bt05_v1"]
+            }
+          ],
+          "decisions": [
+            {
+              "ref_id": "dec_sched_v1",
+              "project": "meridian-audio",
+              "topic": "transcription_trigger_schedule",
+              "statement": "音频转写采用每 60 分钟整点批量转写调度。",
+              "authority": "user_confirmed",
+              "valid_at": 1763300000000,
+              "evidence_ids": ["ev_bt05_v1"]
+            }
+          ]
+        },
+        {
+          "curator_agent": "synthetic-curator",
+          "committed_at_ms": 1763321000000,
+          "episodes": [
+            {
+              "episode_id": "ep_bt05_v2",
+              "title": "meridian-audio 即时事件驱动转写定案",
+              "summary": "已将转写触发机制升级为录制结束后 5 秒内事件驱动即时转写。",
+              "project": "meridian-audio",
+              "evidence_ids": ["ev_bt05_v2"]
+            }
+          ],
+          "decisions": [
+            {
+              "ref_id": "dec_sched_v2",
+              "project": "meridian-audio",
+              "topic": "transcription_trigger_schedule",
+              "statement": "音频转写触发策略定案为录制结束后 5 秒内事件驱动即时转写。",
+              "authority": "user_confirmed",
+              "valid_at": 1763320000000,
+              "supersedes_ref": "dec_sched_v1",
+              "evidence_ids": ["ev_bt05_v2"]
+            }
+          ]
+        }
+      ],
+      "required_facts": [
+        {"fact_id": "event_driven_5s", "description": "5-second event-driven transcription", "any_of": ["5 秒内事件驱动即时转写", "5秒内事件驱动"]}
+      ],
+      "forbidden_stale_facts": [
+        {"fact_id": "stale_60m", "description": "Superseded 60-minute hourly batch", "any_of": ["60 分钟整点", "60分钟整点"]}
+      ],
+      "future_canary_tokens": ["CANARY_FUTURE_BT05_SCHED"]
+    },
+    {
+      "case_id": "bt_06_revoked_cache_policy",
+      "dimension": "bitemporal_supersession",
+      "title": "查询缓存策略撤销更替（Redis 分布式二级缓存 -> 进程内 LRU 缓存）",
+      "description": "User revoked Redis L2 distributed cache in favor of zero-dependency in-process LRU cache.",
+      "cutoff_ms": 1763430000000,
+      "project": "veritas-kb",
+      "query": "veritas-kb 检索查询缓存架构的现行定案是什么？",
+      "window_minutes": 240,
+      "max_tokens": 2000,
+      "events": [
+        {
+          "id": "ev_bt06_v1",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1763400000000,
+          "t_end": 1763400060000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "veritas-kb",
+          "episode_id": "ep_bt06_v1",
+          "content": {
+            "role": "user",
+            "title": "[codex] 检索缓存初版设计",
+            "text": "检索查询缓存先接入 Redis 分布式二级缓存。"
+          },
+          "context": {"provider": "codex", "session_id": "sess_bt06_v1", "role": "user"},
+          "provenance": {"connector": "chat-history/codex", "source_id": "sess_bt06_v1:1"}
+        },
+        {
+          "id": "ev_bt06_v2",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1763420000000,
+          "t_end": 1763420060000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "veritas-kb",
+          "episode_id": "ep_bt06_v2",
+          "content": {
+            "role": "user",
+            "title": "[claude] 撤销外部缓存改用进程内 LRU",
+            "text": "本地单机应用没必要引入外部常驻服务，查询缓存正式改为仅保留进程内 LRU 缓存，实现零外部缓存依赖。"
+          },
+          "context": {"provider": "claude", "session_id": "sess_bt06_v2", "role": "user"},
+          "provenance": {"connector": "chat-history/claude", "source_id": "sess_bt06_v2:1"}
+        },
+        {
+          "id": "ev_bt06_future",
+          "source": "ai_chat",
+          "kind": "chat_turn",
+          "t_start": 1763440000000,
+          "t_end": 1763440060000,
+          "actor": "self",
+          "device_id": "eval-mac-01",
+          "project": "veritas-kb",
+          "episode_id": "ep_bt06_future",
+          "content": {
+            "role": "user",
+            "title": "未来缓存命中率统计",
+            "text": "CANARY_FUTURE_BT06_CACHE"
+          },
+          "context": {"provider": "claude", "session_id": "sess_bt06_future", "role": "user"},
+          "provenance": {"connector": "chat-history/claude", "source_id": "sess_bt06_future:1"}
+        }
+      ],
+      "curations": [
+        {
+          "curator_agent": "synthetic-curator",
+          "committed_at_ms": 1763401000000,
+          "episodes": [
+            {
+              "episode_id": "ep_bt06_v1",
+              "title": "veritas-kb 缓存架构初版评审",
+              "summary": "完成第一轮查询缓存组件选型记录。",
+              "project": "veritas-kb",
+              "evidence_ids": ["ev_bt06_v1"]
+            }
+          ],
+          "decisions": [
+            {
+              "ref_id": "dec_cache_v1",
+              "project": "veritas-kb",
+              "topic": "query_cache_architecture",
+              "statement": "检索查询缓存接入 Redis 分布式二级缓存。",
+              "authority": "user_confirmed",
+              "valid_at": 1763400000000,
+              "evidence_ids": ["ev_bt06_v1"]
+            }
+          ]
+        },
+        {
+          "curator_agent": "synthetic-curator",
+          "committed_at_ms": 1763421000000,
+          "episodes": [
+            {
+              "episode_id": "ep_bt06_v2",
+              "title": "veritas-kb 零外部依赖缓存定案",
+              "summary": "敲定仅保留进程内 LRU 缓存，消除外部服务部署负担。",
+              "project": "veritas-kb",
+              "evidence_ids": ["ev_bt06_v2"]
+            }
+          ],
+          "decisions": [
+            {
+              "ref_id": "dec_cache_v2",
+              "project": "veritas-kb",
+              "topic": "query_cache_architecture",
+              "statement": "查询缓存架构定案为仅保留进程内 LRU 缓存，零外部缓存服务依赖。",
+              "authority": "user_confirmed",
+              "valid_at": 1763420000000,
+              "supersedes_ref": "dec_cache_v1",
+              "evidence_ids": ["ev_bt06_v2"]
+            }
+          ]
+        }
+      ],
+      "required_facts": [
+        {"fact_id": "in_process_lru", "description": "In-process LRU cache", "any_of": ["进程内 lru 缓存", "lru 缓存"]}
+      ],
+      "forbidden_stale_facts": [
+        {"fact_id": "stale_redis_l2", "description": "Revoked Redis L2 cache must not leak", "any_of": ["redis 分布式二级缓存", "redis"]}
+      ],
+      "future_canary_tokens": ["CANARY_FUTURE_BT06_CACHE"]
+    }
+  ]
+}

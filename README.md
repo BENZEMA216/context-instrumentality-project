@@ -54,7 +54,8 @@ Vault for Agent (隔离逐条加密库 · 实用型授权代办) ─────
 | **Context Hub v2** | [`packages/hub/`](packages/hub/README.md) | ✅ Phase 1-2 已落地 | L0 原档 + L0.5 内容寻址 Blob 仓 + L1 多块 FTS5 & 跨源链接 + L2 `MEMORY.md`/分域记忆/Episode + L3 双时序决策 + `get_context_pack` MCP |
 | **Agent 插件包** | [`plugins/context-hub/`](plugins/context-hub/README.md) | ✅ Phase 2 已落地 | 根植于 Agent 的 MCP + `context-recall` / `context-curator` Skill + 对话直达深链打开本地 Workbench 网页视图 |
 | **Context Workbench UI** | `web/` | ✅ Phase 1-2 已落地 | React + TS 统一工作台（支持 `#/episodes/...`、`#/projects/...`、`#/artifacts/MEMORY.md` 深度直达路由） |
-| **AI 对话历史采集器** | [`packages/collectors/`](packages/collectors/src/context_collectors/ai_chat/) | ✅ Phase 2 已落地 | 11 端增量断点续传（含 **Antigravity** / Codex / Claude Code / Cursor / OpenCode / WorkBuddy / QClaw / DeepSeek / ChatGPT / Claude Web / Gemini）+ 离线 Spool |
+| **AI 对话历史采集器** | [`packages/collectors/`](packages/collectors/src/context_collectors/ai_chat/) | ✅ Phase 2 已落地 | 11 端增量断点续传（含 **Antigravity** / Codex / Claude Code / Cursor / OpenCode / WorkBuddy / QClaw / DeepSeek / ChatGPT / Claude Web / Gemini）+ 反回环/回显剥离（No-Echo）+ `user_correction`/`user_decision`/`verified_outcome`/`is_subagent` 信号预标注 + 离线 Spool |
+| **元记忆基准（Meta Memory Benchmark）** | [`packages/eval/`](docs/rfc/0003-meta-memory-benchmark.md) | ✅ RFC-0003 已落地 | 因果时间旅行回放（$H_{<t}$ 隔离）+ 4 维指标（冷启动续接 / 纠偏预防 / 双时序防过时 / N 轮反身性防回声压测）+ 4 组 A/B 基线对照（`context-eval run`）+ 本地真会话隐私安全挖掘器（`context-eval mine`） |
 | **剪贴板（Clip for Agent）** | [`packages/collectors/`](packages/collectors/src/context_collectors/clipcontext.py) | ✅ Phase 2 已落地 | 兼容 `Agent/clipboard.json` 与 `Raw/manifest.json` 双格式 + `org.chromium.source-url` 锚点 + 防版本回滚 + 撤销同步 + 密码管理器/隐匿 UTI 拦截 |
 | **浏览器扩展（Read for Agent）** | [`extensions/browser/`](extensions/browser/README.md) | ✅ Phase 2 已落地 | 三层有效停留 + Defuddle/Readability 转 Markdown + 无弹窗划词提权 + 离线补传队列 + Promnesia 上下文侧边栏 |
 | **聊天渠道（Chat for Agent）** | `packages/collectors/` · `native/macos/` | 🚧 Phase 3 | WeFlow 合规历史导入 + macOS AX 优先 / 自适应 OCR 多会话监听 |
@@ -65,7 +66,7 @@ Vault for Agent (隔离逐条加密库 · 实用型授权代办) ─────
 
 ## 导航索引
 
-- **架构与协议**：[RFC-0002 (Hub v2 & Agent-as-Curator)](docs/rfc/0002-hub-v2-agent-curator.md) · [RFC-0001](docs/rfc/0001-context-integration.md) · [事件 Schema](schema/context-event.schema.json) · [Roadmap](ROADMAP.md)
+- **架构与协议**：[RFC-0002 (Hub v2 & Agent-as-Curator)](docs/rfc/0002-hub-v2-agent-curator.md) · [RFC-0003 (Reflexive Meta Memory Benchmark)](docs/rfc/0003-meta-memory-benchmark.md) · [RFC-0001](docs/rfc/0001-context-integration.md) · [事件 Schema](schema/context-event.schema.json) · [Roadmap](ROADMAP.md)
 - **研究工作台（L1 / L2 / L3 全景调研）**：[研究总索引](docs/research/README.md) · [Google Sheet 在线筛选表](https://docs.google.com/spreadsheets/d/1ggWJjSIKsgY5Wro-GPciEo9AhJOD4gEi-DQv5uCHRbg/edit) · [开源项目精读 (28)](docs/research/projects-digest.md) · [论文与博客精读 (22)](docs/research/papers-blogs-digest.md) · [Persom 0.1.200 剖析](docs/research/persom-0.1.200.md)
 - **专题调研**：[采集渠道对比](docs/research/channels.md) · [整合方法与架构](docs/research/integration-methods.md) · [启发与格式设计](docs/research/design-reflections.md) · [音频通道](docs/research/channel-audio.md) · [剪贴板通道](docs/research/channel-clipboard.md)
 - **协作与归档**：[AGENTS.md](AGENTS.md) · [CONTRIBUTING.md](CONTRIBUTING.md) · [Codex 阶段归档索引](docs/archive/codex-2026-11/README.md)

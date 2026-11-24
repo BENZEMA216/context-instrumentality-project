@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import os
+import time
+from contextlib import suppress
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -90,82 +92,161 @@ class AIChatCollector:
         self,
         paths: AIChatPaths | None = None,
         *,
-        max_files_per_provider: int = 400,
+        max_files_per_provider: int | None = None,
+        since_days: float | None = None,
     ):
+        if max_files_per_provider is not None and max_files_per_provider < 0:
+            raise ValueError("max_files_per_provider must be >= 0 or None")
+        if since_days is not None and since_days < 0:
+            raise ValueError("since_days must be >= 0 or None")
         self.paths = paths or discover_default_paths()
         self.max_files_per_provider = max_files_per_provider
+        self.since_days = since_days
 
-    def _list_antigravity_files(self) -> list[tuple[str, Path]]:
+    def _cutoff_ns(self) -> int | None:
+        if self.since_days is None:
+            return None
+        return time.time_ns() - int(self.since_days * 86_400 * 1_000_000_000)
+
+    def _db_within_since_days(self, db_path: Path) -> bool:
+        cutoff_ns = self._cutoff_ns()
+        if cutoff_ns is None:
+            return True
+        try:
+            mtime_ns = db_path.stat().st_mtime_ns
+        except OSError:
+            return False
+        wal_path = Path(f"{db_path}-wal")
+        if wal_path.is_file():
+            with suppress(OSError):
+                mtime_ns = max(mtime_ns, wal_path.stat().st_mtime_ns)
+        return mtime_ns >= cutoff_ns
+
+    def _discover_antigravity_files(self) -> tuple[list[tuple[str, Path]], int]:
         root = self.paths.antigravity_brain
         if not root or not root.is_dir():
-            return []
-        found: list[tuple[str, Path]] = []
+            return [], 0
+        entries: list[tuple[int, str, Path]] = []
         for p in root.glob("*/.system_generated/logs/transcript.jsonl"):
             if p.is_file() and not p.is_symlink():
+                try:
+                    mtime_ns = p.stat().st_mtime_ns
+                except OSError:
+                    continue
                 conv_id = p.parent.parent.parent.name
-                found.append((conv_id, p))
-        found.sort(key=lambda pair: pair[1].stat().st_mtime_ns, reverse=True)
-        return found[: self.max_files_per_provider]
+                entries.append((mtime_ns, conv_id, p))
+        total = len(entries)
+        entries.sort(key=lambda item: item[0], reverse=True)
+        cutoff_ns = self._cutoff_ns()
+        if cutoff_ns is not None:
+            entries = [item for item in entries if item[0] >= cutoff_ns]
+        if self.max_files_per_provider is not None:
+            entries = entries[: self.max_files_per_provider]
+        return [(conv_id, p) for _, conv_id, p in entries], total
 
-    def _list_glob_files(self, root: Path | None, patterns: tuple[str, ...]) -> list[Path]:
+    def _list_antigravity_files(self) -> list[tuple[str, Path]]:
+        files, _ = self._discover_antigravity_files()
+        return files
+
+    def _discover_glob_files(
+        self, root: Path | None, patterns: tuple[str, ...]
+    ) -> tuple[list[Path], int]:
         if not root or not root.is_dir():
-            return []
-        files: list[Path] = []
+            return [], 0
+        seen: set[Path] = set()
+        entries: list[tuple[int, Path]] = []
         for pat in patterns:
             for p in root.glob(pat):
-                if p.is_file() and not p.is_symlink():
-                    files.append(p)
-        files.sort(key=lambda p: p.stat().st_mtime_ns, reverse=True)
-        return files[: self.max_files_per_provider]
+                if p in seen or not p.is_file() or p.is_symlink():
+                    continue
+                seen.add(p)
+                try:
+                    mtime_ns = p.stat().st_mtime_ns
+                except OSError:
+                    continue
+                entries.append((mtime_ns, p))
+        total = len(entries)
+        entries.sort(key=lambda item: item[0], reverse=True)
+        cutoff_ns = self._cutoff_ns()
+        if cutoff_ns is not None:
+            entries = [item for item in entries if item[0] >= cutoff_ns]
+        if self.max_files_per_provider is not None:
+            entries = entries[: self.max_files_per_provider]
+        return [p for _, p in entries], total
+
+    def _list_glob_files(self, root: Path | None, patterns: tuple[str, ...]) -> list[Path]:
+        files, _ = self._discover_glob_files(root, patterns)
+        return files
 
     def doctor(self) -> dict[str, Any]:
         checks: dict[str, Any] = {}
         p = self.paths
-        ag = self._list_antigravity_files()
+        ag, ag_total = self._discover_antigravity_files()
         checks["antigravity"] = {
             "path": str(p.antigravity_brain) if p.antigravity_brain else None,
-            "available": bool(ag),
+            "available": ag_total > 0,
             "files": len(ag),
+            "total_files": ag_total,
         }
-        codex = self._list_glob_files(p.codex_sessions, ("**/*.jsonl", "**/*.jsonl.zst", "**/*.jsonl.zstd"))
+        codex, codex_total = self._discover_glob_files(
+            p.codex_sessions, ("**/*.jsonl", "**/*.jsonl.zst", "**/*.jsonl.zstd")
+        )
         checks["codex"] = {
             "path": str(p.codex_sessions) if p.codex_sessions else None,
-            "available": bool(codex),
+            "available": codex_total > 0,
             "files": len(codex),
+            "total_files": codex_total,
         }
-        claude = self._list_glob_files(p.claude_projects, ("**/*.jsonl",))
+        claude, claude_total = self._discover_glob_files(p.claude_projects, ("**/*.jsonl",))
         checks["claude"] = {
             "path": str(p.claude_projects) if p.claude_projects else None,
-            "available": bool(claude),
+            "available": claude_total > 0,
             "files": len(claude),
+            "total_files": claude_total,
         }
+        cursor_avail = bool(p.cursor_global_db and p.cursor_global_db.is_file())
         checks["cursor"] = {
             "path": str(p.cursor_global_db) if p.cursor_global_db else None,
-            "available": bool(p.cursor_global_db and p.cursor_global_db.is_file()),
+            "available": cursor_avail,
         }
+        if cursor_avail and self.since_days is not None and p.cursor_global_db is not None:
+            checks["cursor"]["within_since_days"] = self._db_within_since_days(p.cursor_global_db)
+        opencode_avail = bool(p.opencode_db and p.opencode_db.is_file())
         checks["opencode"] = {
             "path": str(p.opencode_db) if p.opencode_db else None,
-            "available": bool(p.opencode_db and p.opencode_db.is_file()),
+            "available": opencode_avail,
         }
-        wb = self._list_glob_files(p.workbuddy_dir, ("**/*.jsonl", "*.jsonl"))
+        if opencode_avail and self.since_days is not None and p.opencode_db is not None:
+            checks["opencode"]["within_since_days"] = self._db_within_since_days(p.opencode_db)
+        wb, wb_total = self._discover_glob_files(p.workbuddy_dir, ("**/*.jsonl",))
         checks["workbuddy"] = {
             "path": str(p.workbuddy_dir) if p.workbuddy_dir else None,
-            "available": bool(wb),
+            "available": wb_total > 0,
             "files": len(wb),
+            "total_files": wb_total,
         }
-        qc = self._list_glob_files(p.qclaw_dir, ("*.jsonl", "**/*.jsonl"))
+        qc, qc_total = self._discover_glob_files(p.qclaw_dir, ("**/*.jsonl",))
         checks["qclaw"] = {
             "path": str(p.qclaw_dir) if p.qclaw_dir else None,
-            "available": bool(qc),
+            "available": qc_total > 0,
             "files": len(qc),
+            "total_files": qc_total,
         }
-        ds = self._list_glob_files(p.deepseek_dir, ("*.jsonl", "**/*.jsonl"))
+        ds, ds_total = self._discover_glob_files(p.deepseek_dir, ("**/*.jsonl",))
         checks["deepseek"] = {
             "path": str(p.deepseek_dir) if p.deepseek_dir else None,
-            "available": bool(ds),
+            "available": ds_total > 0,
             "files": len(ds),
+            "total_files": ds_total,
         }
-        return {"collector": self.name, "providers": checks}
+        return {
+            "collector": self.name,
+            "filters": {
+                "since_days": self.since_days,
+                "max_files_per_provider": self.max_files_per_provider,
+            },
+            "providers": checks,
+        }
 
     def _emit(self, sink: HubSink, events: list[RawEventIn], report: SyncReport) -> bool:
         if not events:
@@ -178,6 +259,53 @@ class AIChatCollector:
         # Only advance checkpoint if events were accepted or safely spooled
         return True
 
+    def _sync_incremental_jsonl(
+        self,
+        *,
+        provider: str,
+        path: Path,
+        source_key: str,
+        error_label: str,
+        parse_fn: Any,
+        sink: HubSink,
+        checkpoints: CheckpointBackend,
+        report: SyncReport,
+        provider_counts: dict[str, int],
+    ) -> None:
+        report.sources_scanned += 1
+        cp = checkpoints.get(self.name, source_key)
+        try:
+            while True:
+                prev_offset = int((cp or {}).get("byte_offset") or 0)
+                batch = read_incremental_jsonl(path, cp)
+                report.skipped_errors += batch.skipped_errors
+                if batch.unchanged:
+                    report.sources_unchanged += 1
+                    return
+                prev_state = {} if batch.rotated else ((cp or {}).get("cursor") or {}).get("state") or {}
+                events, next_state = parse_fn(batch.records, prev_state)
+                self._emit(sink, events, report)
+                provider_counts[provider] = provider_counts.get(provider, 0) + len(events)
+                cp = checkpoints.put(
+                    self.name,
+                    source_key,
+                    inode=batch.inode,
+                    file_size=batch.file_size,
+                    mtime_ns=batch.mtime_ns,
+                    byte_offset=batch.next_offset,
+                    cursor={"line_no": batch.next_line_no, "state": next_state},
+                )
+                # Continue draining within this pass if the file exceeded the per-batch line cap
+                if (
+                    len(batch.records) < 5000
+                    or batch.next_offset >= batch.file_size
+                    or batch.next_offset <= prev_offset
+                ):
+                    return
+        except (OSError, ValueError) as exc:
+            report.skipped_errors += 1
+            report.errors.append(f"{error_label}: {exc}")
+
     def sync(self, sink: HubSink, checkpoints: CheckpointBackend) -> SyncReport:
         report = SyncReport(collector=self.name, source=self.source)
         enabled = self.paths.enabled_providers
@@ -186,33 +314,19 @@ class AIChatCollector:
         # 1. Antigravity (true incremental JSONL tailing)
         if "antigravity" in enabled:
             for conv_id, path in self._list_antigravity_files():
-                report.sources_scanned += 1
-                source_key = f"antigravity:{path}"
-                cp = checkpoints.get(self.name, source_key)
-                try:
-                    batch = read_incremental_jsonl(path, cp)
-                    report.skipped_errors += batch.skipped_errors
-                    if batch.unchanged:
-                        report.sources_unchanged += 1
-                        continue
-                    prev_state = {} if batch.rotated else ((cp or {}).get("cursor") or {}).get("state") or {}
-                    events, next_state = parse_antigravity_records(
-                        batch.records, conversation_id=conv_id, path=path, state=prev_state
-                    )
-                    self._emit(sink, events, report)
-                    provider_counts["antigravity"] = provider_counts.get("antigravity", 0) + len(events)
-                    checkpoints.put(
-                        self.name,
-                        source_key,
-                        inode=batch.inode,
-                        file_size=batch.file_size,
-                        mtime_ns=batch.mtime_ns,
-                        byte_offset=batch.next_offset,
-                        cursor={"line_no": batch.next_line_no, "state": next_state},
-                    )
-                except (OSError, ValueError) as exc:
-                    report.skipped_errors += 1
-                    report.errors.append(f"antigravity:{conv_id}: {exc}")
+                self._sync_incremental_jsonl(
+                    provider="antigravity",
+                    path=path,
+                    source_key=f"antigravity:{path}",
+                    error_label=f"antigravity:{conv_id}",
+                    parse_fn=lambda recs, st, cid=conv_id, p=path: parse_antigravity_records(
+                        recs, conversation_id=cid, path=p, state=st
+                    ),
+                    sink=sink,
+                    checkpoints=checkpoints,
+                    report=report,
+                    provider_counts=provider_counts,
+                )
 
         # 2. Codex (stat-gated rollout parser with native/legacy wire dedup)
         if "codex" in enabled:
@@ -250,33 +364,19 @@ class AIChatCollector:
         # 3. Claude Code (true incremental JSONL tailing)
         if "claude" in enabled:
             for path in self._list_glob_files(self.paths.claude_projects, ("**/*.jsonl",)):
-                report.sources_scanned += 1
-                source_key = f"claude:{path}"
-                cp = checkpoints.get(self.name, source_key)
-                try:
-                    batch = read_incremental_jsonl(path, cp)
-                    report.skipped_errors += batch.skipped_errors
-                    if batch.unchanged:
-                        report.sources_unchanged += 1
-                        continue
-                    prev_state = {} if batch.rotated else ((cp or {}).get("cursor") or {}).get("state") or {}
-                    events, next_state = parse_claude_code_records(
-                        batch.records, path=path, state=prev_state
-                    )
-                    self._emit(sink, events, report)
-                    provider_counts["claude"] = provider_counts.get("claude", 0) + len(events)
-                    checkpoints.put(
-                        self.name,
-                        source_key,
-                        inode=batch.inode,
-                        file_size=batch.file_size,
-                        mtime_ns=batch.mtime_ns,
-                        byte_offset=batch.next_offset,
-                        cursor={"line_no": batch.next_line_no, "state": next_state},
-                    )
-                except (OSError, ValueError) as exc:
-                    report.skipped_errors += 1
-                    report.errors.append(f"claude:{path.name}: {exc}")
+                self._sync_incremental_jsonl(
+                    provider="claude",
+                    path=path,
+                    source_key=f"claude:{path}",
+                    error_label=f"claude:{path.name}",
+                    parse_fn=lambda recs, st, p=path: parse_claude_code_records(
+                        recs, path=p, state=st
+                    ),
+                    sink=sink,
+                    checkpoints=checkpoints,
+                    report=report,
+                    provider_counts=provider_counts,
+                )
 
         # 4. WorkBuddy & QClaw (true incremental JSONL tailing)
         for prov, root in (
@@ -285,68 +385,45 @@ class AIChatCollector:
         ):
             if prov not in enabled:
                 continue
-            for path in self._list_glob_files(root, ("**/*.jsonl", "*.jsonl")):
-                report.sources_scanned += 1
-                source_key = f"{prov}:{path}"
-                cp = checkpoints.get(self.name, source_key)
-                try:
-                    batch = read_incremental_jsonl(path, cp)
-                    report.skipped_errors += batch.skipped_errors
-                    if batch.unchanged:
-                        report.sources_unchanged += 1
-                        continue
-                    prev_state = {} if batch.rotated else ((cp or {}).get("cursor") or {}).get("state") or {}
-                    events, next_state = parse_workbuddy_or_qclaw_records(
-                        prov, batch.records, path=path, state=prev_state
-                    )
-                    self._emit(sink, events, report)
-                    provider_counts[prov] = provider_counts.get(prov, 0) + len(events)
-                    checkpoints.put(
-                        self.name,
-                        source_key,
-                        inode=batch.inode,
-                        file_size=batch.file_size,
-                        mtime_ns=batch.mtime_ns,
-                        byte_offset=batch.next_offset,
-                        cursor={"line_no": batch.next_line_no, "state": next_state},
-                    )
-                except (OSError, ValueError) as exc:
-                    report.skipped_errors += 1
-                    report.errors.append(f"{prov}:{path.name}: {exc}")
+            for path in self._list_glob_files(root, ("**/*.jsonl",)):
+                self._sync_incremental_jsonl(
+                    provider=prov,
+                    path=path,
+                    source_key=f"{prov}:{path}",
+                    error_label=f"{prov}:{path.name}",
+                    parse_fn=lambda recs, st, pr=prov, p=path: parse_workbuddy_or_qclaw_records(
+                        pr, recs, path=p, state=st
+                    ),
+                    sink=sink,
+                    checkpoints=checkpoints,
+                    report=report,
+                    provider_counts=provider_counts,
+                )
 
         # 5. DeepSeek Harness (true incremental JSONL tailing)
         if "deepseek" in enabled:
-            for path in self._list_glob_files(self.paths.deepseek_dir, ("**/*.jsonl", "*.jsonl")):
-                report.sources_scanned += 1
-                source_key = f"deepseek:{path}"
-                cp = checkpoints.get(self.name, source_key)
-                try:
-                    batch = read_incremental_jsonl(path, cp)
-                    report.skipped_errors += batch.skipped_errors
-                    if batch.unchanged:
-                        report.sources_unchanged += 1
-                        continue
-                    prev_state = {} if batch.rotated else ((cp or {}).get("cursor") or {}).get("state") or {}
-                    events, next_state = parse_deepseek_records(
-                        batch.records, path=path, state=prev_state
-                    )
-                    self._emit(sink, events, report)
-                    provider_counts["deepseek"] = provider_counts.get("deepseek", 0) + len(events)
-                    checkpoints.put(
-                        self.name,
-                        source_key,
-                        inode=batch.inode,
-                        file_size=batch.file_size,
-                        mtime_ns=batch.mtime_ns,
-                        byte_offset=batch.next_offset,
-                        cursor={"line_no": batch.next_line_no, "state": next_state},
-                    )
-                except (OSError, ValueError) as exc:
-                    report.skipped_errors += 1
-                    report.errors.append(f"deepseek:{path.name}: {exc}")
+            for path in self._list_glob_files(self.paths.deepseek_dir, ("**/*.jsonl",)):
+                self._sync_incremental_jsonl(
+                    provider="deepseek",
+                    path=path,
+                    source_key=f"deepseek:{path}",
+                    error_label=f"deepseek:{path.name}",
+                    parse_fn=lambda recs, st, p=path: parse_deepseek_records(
+                        recs, path=p, state=st
+                    ),
+                    sink=sink,
+                    checkpoints=checkpoints,
+                    report=report,
+                    provider_counts=provider_counts,
+                )
 
         # 6. Cursor global state.vscdb (read-only incremental composer cursor)
-        if "cursor" in enabled and self.paths.cursor_global_db and self.paths.cursor_global_db.is_file():
+        if (
+            "cursor" in enabled
+            and self.paths.cursor_global_db
+            and self.paths.cursor_global_db.is_file()
+            and self._db_within_since_days(self.paths.cursor_global_db)
+        ):
             db_path = self.paths.cursor_global_db
             report.sources_scanned += 1
             source_key = f"cursor:{db_path}"
@@ -382,7 +459,12 @@ class AIChatCollector:
                 report.errors.append(f"cursor: {exc}")
 
         # 7. OpenCode SQLite DB (read-only incremental time_created cursor)
-        if "opencode" in enabled and self.paths.opencode_db and self.paths.opencode_db.is_file():
+        if (
+            "opencode" in enabled
+            and self.paths.opencode_db
+            and self.paths.opencode_db.is_file()
+            and self._db_within_since_days(self.paths.opencode_db)
+        ):
             db_path = self.paths.opencode_db
             report.sources_scanned += 1
             source_key = f"opencode:{db_path}"

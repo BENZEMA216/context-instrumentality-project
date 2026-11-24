@@ -35,9 +35,18 @@ from .runtime import (
 )
 
 
-def _build_collectors(selected: str, *, asr_mode: str = "auto") -> list[Collector]:
+def _build_collectors(
+    selected: str,
+    *,
+    asr_mode: str = "auto",
+    since_days: float | None = None,
+    max_files_per_provider: int | None = None,
+) -> list[Collector]:
     mapping: dict[str, Collector] = {
-        "ai_chat": AIChatCollector(),
+        "ai_chat": AIChatCollector(
+            max_files_per_provider=max_files_per_provider,
+            since_days=since_days,
+        ),
         "clipcontext": ClipContextCollector(),
         "audio": AudioCollector(asr_mode=asr_mode),
     }
@@ -88,16 +97,52 @@ def main(argv: list[str] | None = None) -> int:
 
     doc_p = sub.add_parser("doctor", help="Inspect local channel availability & health without mutating state")
     doc_p.add_argument("--collector", default="all", choices=("all", "ai_chat", "clipcontext", "audio"))
+    doc_p.add_argument(
+        "--since-days",
+        type=float,
+        default=None,
+        help="Only count/select AI chat files modified within the last N days",
+    )
+    doc_p.add_argument(
+        "--max-files",
+        type=int,
+        default=None,
+        help="Optional per-provider file cap for AI chat discovery (default: unlimited)",
+    )
 
     sync_p = sub.add_parser("sync", help="Run one incremental checkpointed sync pass")
     sync_p.add_argument("--collector", default="all", choices=("all", "ai_chat", "clipcontext", "audio"))
     sync_p.add_argument("--asr-mode", default="auto", choices=("auto", "sensevoice", "existing_only"))
+    sync_p.add_argument(
+        "--since-days",
+        type=float,
+        default=None,
+        help="Only sync AI chat files modified within the last N days",
+    )
+    sync_p.add_argument(
+        "--max-files",
+        type=int,
+        default=None,
+        help="Optional per-provider file cap for AI chat sync (default: unlimited)",
+    )
 
     watch_p = sub.add_parser("watch", help="Run resilient continuous background collector loop")
     watch_p.add_argument("--collector", default="all", choices=("all", "ai_chat", "clipcontext", "audio"))
     watch_p.add_argument("--asr-mode", default="auto", choices=("auto", "sensevoice", "existing_only"))
     watch_p.add_argument("--interval", type=float, default=30.0, help="Polling interval in seconds")
     watch_p.add_argument("--max-ticks", type=int, default=None, help="Optional tick limit for testing")
+    watch_p.add_argument(
+        "--since-days",
+        type=float,
+        default=None,
+        help="Only watch AI chat files modified within the last N days",
+    )
+    watch_p.add_argument(
+        "--max-files",
+        type=int,
+        default=None,
+        help="Optional per-provider file cap for AI chat watch (default: unlimited)",
+    )
 
     sub.add_parser(
         "download-asr-models",
@@ -161,7 +206,11 @@ def main(argv: list[str] | None = None) -> int:
         return 0 if rep["healthy"] else 1
 
     if args.command == "doctor":
-        cols = _build_collectors(args.collector)
+        cols = _build_collectors(
+            args.collector,
+            since_days=args.since_days,
+            max_files_per_provider=args.max_files,
+        )
         out = {"collectors": [c.doctor() for c in cols]}
         print(json.dumps(out, ensure_ascii=False, indent=2))
         return 0
@@ -190,13 +239,23 @@ def main(argv: list[str] | None = None) -> int:
         return 1 if rep.errors else 0
 
     if args.command == "sync":
-        cols = _build_collectors(args.collector, asr_mode=args.asr_mode)
+        cols = _build_collectors(
+            args.collector,
+            asr_mode=args.asr_mode,
+            since_days=args.since_days,
+            max_files_per_provider=args.max_files,
+        )
         reports = [run_collector(c, sink, checkpoints).to_dict() for c in cols]
         print(json.dumps({"reports": reports}, ensure_ascii=False, indent=2))
         return 0
 
     if args.command == "watch":
-        cols = _build_collectors(args.collector, asr_mode=args.asr_mode)
+        cols = _build_collectors(
+            args.collector,
+            asr_mode=args.asr_mode,
+            since_days=args.since_days,
+            max_files_per_provider=args.max_files,
+        )
 
         def _on_tick(tick_reports: list[Any]) -> None:
             summary = [
