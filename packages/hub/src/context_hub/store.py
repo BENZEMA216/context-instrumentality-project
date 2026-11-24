@@ -28,7 +28,7 @@ from .models import (
 from .privacy import DEFAULT_CHANNEL_POLICIES, resolve_privacy_tier
 from .project_resolver import ProjectResolver
 from .raw_log import RawLog
-from .tokenizer import fts_match_query, index_tokens
+from .tokenizer import fts_match_query, fts_match_query_or, index_tokens
 
 
 class HubStoreError(ValueError):
@@ -294,25 +294,41 @@ def _date_utc(ms: int) -> str:
 class HubStore:
     """Unified L0-L3 storage engine for Context Hub v2."""
 
-    def __init__(self, data_dir: Path):
+    def __init__(self, data_dir: Path, *, in_memory: bool = False):
         self.data_dir = Path(data_dir)
-        self.data_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+        self.in_memory = in_memory
+        self._mem_conn: sqlite3.Connection | None = None
+        if not in_memory:
+            self.data_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.db_path = self.data_dir / "hub.sqlite3"
         self.raw_log = RawLog(self.data_dir / "raw")
         self.blobs = BlobStore(self.data_dir / "blobs")
         self.markdown = MarkdownSync(self.data_dir / "markdown")
         self.project_resolver = ProjectResolver(self.data_dir / "project_aliases.json")
-        init_conn = sqlite3.connect(str(self.db_path), timeout=20, isolation_level=None)
-        try:
-            init_conn.execute("PRAGMA journal_mode=WAL")
-            init_conn.execute("PRAGMA synchronous=NORMAL")
-            init_conn.execute("PRAGMA foreign_keys=ON")
-            init_conn.executescript(_SCHEMA_SQL)
-            self._migrate_schema(init_conn)
-        finally:
-            init_conn.close()
+        if in_memory:
+            mem = sqlite3.connect(":memory:", timeout=20, isolation_level=None)
+            mem.row_factory = sqlite3.Row
+            mem.execute("PRAGMA foreign_keys=ON")
+            mem.executescript(_SCHEMA_SQL)
+            self._migrate_schema(mem)
+            self._mem_conn = mem
+        else:
+            init_conn = sqlite3.connect(str(self.db_path), timeout=20, isolation_level=None)
+            try:
+                init_conn.execute("PRAGMA journal_mode=WAL")
+                init_conn.execute("PRAGMA synchronous=NORMAL")
+                init_conn.execute("PRAGMA foreign_keys=ON")
+                init_conn.executescript(_SCHEMA_SQL)
+                self._migrate_schema(init_conn)
+            finally:
+                init_conn.close()
         with self._tx(write=True) as conn:
             self._seed_default_privacy_rules(conn)
+
+    def close(self) -> None:
+        if self._mem_conn is not None:
+            self._mem_conn.close()
+            self._mem_conn = None
 
     @staticmethod
     def _migrate_schema(conn: sqlite3.Connection) -> None:
@@ -324,6 +340,16 @@ class HubStore:
 
     @contextmanager
     def _tx(self, write: bool = False):
+        if self._mem_conn is not None:
+            conn = self._mem_conn
+            try:
+                conn.execute("BEGIN IMMEDIATE" if write else "BEGIN")
+                yield conn
+                conn.commit()
+            except BaseException:
+                conn.rollback()
+                raise
+            return
         conn = sqlite3.connect(str(self.db_path), timeout=20, isolation_level=None)
         conn.row_factory = sqlite3.Row
         try:
@@ -630,6 +656,222 @@ class HubStore:
             if res.get("episode_id"):
                 touched_episodes.add(res["episode_id"])
         return {**counts, "episodes_touched": len(touched_episodes)}
+
+    def ingest_sessions_bulk(
+        self,
+        sessions: list[dict[str, Any]],
+        *,
+        memories: list[dict[str, Any]] | None = None,
+        project: str | None = None,
+    ) -> dict[str, int]:
+        """Single-transaction bulk ingest for structured multi-session conversations.
+
+        Populates the exact same SQLite tables (`episodes`, `episodes_fts`, `raw_events`,
+        `raw_fts`, `episode_events`, and optional `memories`/`memories_fts`/`memory_evidence`)
+        using production `index_tokens()` and `chunk_text()`, without per-turn transaction
+        overhead. Primarily used by benchmark evaluation and fast session imports.
+        """
+        now = now_ms()
+        ep_count = 0
+        raw_count = 0
+        mem_count = 0
+
+        with self._tx(True) as conn:
+            ep_rows: list[tuple[Any, ...]] = []
+            ep_fts_rows: list[tuple[str, str]] = []
+            raw_rows: list[tuple[Any, ...]] = []
+            raw_fts_rows: list[tuple[str, str]] = []
+            ep_ev_rows: list[tuple[str, str]] = []
+
+            for sess in sessions:
+                ep_id = str(sess["episode_id"])
+                ep_title = str(sess.get("title") or ep_id)[:240]
+                ep_summary = str(sess.get("summary") or "")
+                ep_overview = str(sess.get("overview") or "")
+                ep_status = str(sess.get("status") or ("curated" if ep_summary else "pending_curation"))
+                turns = sess.get("turns") or []
+                t_start = int(sess.get("t_start") or (turns[0]["t_start"] if turns else now))
+                t_end = int(sess.get("t_end") or (turns[-1]["t_start"] if turns else t_start))
+                if t_end < t_start:
+                    t_end = t_start
+                ep_rows.append(
+                    (
+                        ep_id,
+                        ep_title,
+                        ep_summary,
+                        ep_overview,
+                        project,
+                        "ai_chat",
+                        t_start,
+                        t_end,
+                        ep_status,
+                        "explicit_session",
+                        "[]",
+                        "shareable",
+                        None,
+                        "benchmark" if ep_status == "curated" else None,
+                        1,
+                        now,
+                        now,
+                    )
+                )
+                # Index episode title + summary + overview (and full session turns for uncurated sessions)
+                ep_fts_parts = [ep_title, ep_summary, ep_overview]
+                if not ep_summary and turns:
+                    joined_turns = "\n".join(str(t.get("text") or "") for t in turns)
+                    ep_fts_parts.append(joined_turns[:64_000])
+                ep_fts_rows.append((ep_id, index_tokens("\n".join(p for p in ep_fts_parts if p))))
+                ep_count += 1
+
+                for turn in turns:
+                    rid = str(turn["id"])
+                    t_ms = int(turn.get("t_start") or t_start)
+                    actor = str(turn.get("actor") or "self")
+                    turn_title = str(turn.get("title") or f"{ep_title} · {actor}")[:240]
+                    body = str(turn.get("text") or "")
+                    source_id = str(turn.get("source_id") or rid)
+                    locator = str(turn.get("locator") or f"session://{ep_id}#{source_id}")
+                    ev_json = json.dumps(
+                        {
+                            "id": rid,
+                            "source": "ai_chat",
+                            "kind": "chat_turn",
+                            "t_start": t_ms,
+                            "t_end": t_ms,
+                            "actor": actor,
+                            "project": project,
+                            "episode_id": ep_id,
+                            "content": {"title": turn_title, "text": body[:INLINE_BODY_LIMIT]},
+                            "provenance": {
+                                "connector": "benchmark-session",
+                                "source_id": source_id,
+                                "locator": locator,
+                            },
+                            "privacy": {"tier": "shareable"},
+                        },
+                        ensure_ascii=False,
+                        separators=(",", ":"),
+                    )
+                    raw_rows.append(
+                        (
+                            rid,
+                            "ai_chat",
+                            "benchmark-session",
+                            source_id,
+                            "chat_turn",
+                            t_ms,
+                            t_ms,
+                            now,
+                            "benchmark",
+                            actor,
+                            project,
+                            ep_id,
+                            "shareable",
+                            None,
+                            None,
+                            turn_title,
+                            body[:INLINE_BODY_LIMIT],
+                            None,
+                            len(body),
+                            locator,
+                            ev_json,
+                            0,
+                            1,
+                            now,
+                            now,
+                        )
+                    )
+                    ep_ev_rows.append((ep_id, rid))
+                    header = f"{turn_title}\n{actor}\n{project or ''}"
+                    chunks = chunk_text(body) if body else [""]
+                    for idx, ch in enumerate(chunks):
+                        raw_fts_rows.append(
+                            (rid, index_tokens(f"{header}\n{ch}" if idx == 0 else ch))
+                        )
+                    raw_count += 1
+
+            conn.executemany(
+                """INSERT INTO episodes
+                   (id, title, summary, overview, project, primary_source, t_start, t_end,
+                    status, boundary_reason, entities_json, privacy_tier, markdown_path,
+                    curated_by, revision, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                ep_rows,
+            )
+            conn.executemany(
+                "INSERT INTO episodes_fts(episode_id, tokens) VALUES (?, ?)",
+                ep_fts_rows,
+            )
+            conn.executemany(
+                """INSERT INTO raw_events
+                   (id, source, connector, source_id, kind, t_start, t_end, t_observed,
+                    device_id, actor, project, episode_id, privacy_tier, attention, curation_tier,
+                    title, body_text, body_blob_sha256, body_char_len, locator, event_json,
+                    deleted, revision, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                raw_rows,
+            )
+            conn.executemany(
+                "INSERT INTO raw_fts(raw_id, tokens) VALUES (?, ?)",
+                raw_fts_rows,
+            )
+            conn.executemany(
+                "INSERT OR IGNORE INTO episode_events(episode_id, raw_id) VALUES (?, ?)",
+                ep_ev_rows,
+            )
+
+            if memories:
+                mem_rows: list[tuple[Any, ...]] = []
+                mem_fts_rows: list[tuple[str, str]] = []
+                mem_ev_rows: list[tuple[str, str]] = []
+                for mem in memories:
+                    mid = str(mem.get("id") or new_ulid("mem_"))
+                    mtitle = str(mem.get("title") or "Observation")[:240]
+                    mbody = str(mem.get("body") or "")
+                    mkind = str(mem.get("kind") or "fact")
+                    tags = list(mem.get("tags") or [])
+                    ev_ids = list(mem.get("evidence_ids") or [])
+                    mem_rows.append(
+                        (
+                            mid,
+                            mtitle,
+                            mbody,
+                            mkind,
+                            project,
+                            "curated",
+                            json.dumps(tags, ensure_ascii=False),
+                            "shareable",
+                            0,
+                            0,
+                            "benchmark",
+                            1,
+                            now,
+                            now,
+                        )
+                    )
+                    mem_fts_rows.append(
+                        (mid, index_tokens(f"{mtitle}\n{mbody}\n{project or ''}\n{' '.join(tags)}"))
+                    )
+                    for eid in ev_ids:
+                        mem_ev_rows.append((mid, str(eid)))
+                    mem_count += 1
+                conn.executemany(
+                    """INSERT INTO memories
+                       (id, title, body, kind, project, origin, tags_json, privacy_tier,
+                        needs_review, deleted, curated_by, revision, created_at, updated_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    mem_rows,
+                )
+                conn.executemany(
+                    "INSERT INTO memories_fts(memory_id, tokens) VALUES (?, ?)",
+                    mem_fts_rows,
+                )
+                conn.executemany(
+                    "INSERT OR IGNORE INTO memory_evidence(memory_id, raw_id) VALUES (?, ?)",
+                    mem_ev_rows,
+                )
+
+        return {"episodes": ep_count, "raw_events": raw_count, "memories": mem_count}
 
     def _assign_episode(
         self,
@@ -1030,6 +1272,7 @@ class HubStore:
             params.append(until_ms)
 
         fts_q = fts_match_query(q)
+        fts_or = fts_match_query_or(q)
         with self._tx(False) as conn:
             if fts_q:
                 inner_where = " AND ".join(where)
@@ -1039,17 +1282,20 @@ class HubStore:
                     f"WHERE raw_fts MATCH ? AND {inner_where} "
                     "ORDER BY bm25(raw_fts), r.t_start DESC LIMIT ?"
                 )
-                raw_rows = conn.execute(sql, [fts_q, *params, fetch_cap]).fetchall()
                 deduped: list[sqlite3.Row] = []
                 seen_ids: set[str] = set()
-                for row in raw_rows:
-                    rid = row["id"]
-                    if rid in seen_ids:
+                for expr in (fts_q, fts_or):
+                    if not expr or len(deduped) >= offset + limit:
                         continue
-                    seen_ids.add(rid)
-                    deduped.append(row)
-                    if len(deduped) >= offset + limit:
-                        break
+                    raw_rows = conn.execute(sql, [expr, *params, fetch_cap]).fetchall()
+                    for row in raw_rows:
+                        rid = row["id"]
+                        if rid in seen_ids:
+                            continue
+                        seen_ids.add(rid)
+                        deduped.append(row)
+                        if len(deduped) >= offset + limit:
+                            break
                 rows = deduped[offset : offset + limit]
             else:
                 sql = (
@@ -2052,8 +2298,17 @@ class HubStore:
             episodes = searched["episodes"]
             memories = searched["memories"]
             raw_snippets = list(searched.get("raw_matches") or searched.get("raw") or [])
-            # Suppress raw evidence that exclusively backs superseded decisions so
-            # get_context_pack never leaks stale facts alongside active bi-temporal truth.
+            # Progressive disclosure: suppress raw evidence that exclusively backs superseded
+            # decisions OR is already distilled by an active decision returned for this query
+            # (the Agent can still drill down via `evidence_ids` + `read_raw_body`).
+            if raw_snippets:
+                covered_by_active = {
+                    eid for d in active_decisions for eid in (d.get("evidence_ids") or [])
+                }
+                if covered_by_active:
+                    raw_snippets = [
+                        r for r in raw_snippets if r.get("id") not in covered_by_active
+                    ]
             if raw_snippets:
                 with self._tx(False) as conn:
                     cand_ids = [r["id"] for r in raw_snippets if r.get("id")]
@@ -2304,17 +2559,39 @@ class HubStore:
         max_tokens: int = 3000,
     ) -> dict[str, Any]:
         fts_q = fts_match_query(query)
+        fts_or = fts_match_query_or(query)
         limit = max(1, min(limit, 50))
         decisions_out: list[dict[str, Any]] = []
         episodes_out: list[dict[str, Any]] = []
         memories_out: list[dict[str, Any]] = []
         raw_out: list[dict[str, Any]] = []
 
+        def _fetch_two_stage(
+            conn: sqlite3.Connection,
+            sql: str,
+            params: list[Any],
+            cap: int,
+        ) -> list[sqlite3.Row]:
+            out: list[sqlite3.Row] = []
+            seen: set[str] = set()
+            for expr in (fts_q, fts_or):
+                if not expr or len(out) >= cap:
+                    continue
+                for row in conn.execute(sql, [expr, *params, cap * 2]).fetchall():
+                    rid = str(row["id"])
+                    if rid in seen:
+                        continue
+                    seen.add(rid)
+                    out.append(row)
+                    if len(out) >= cap:
+                        break
+            return out
+
         with self._tx(False) as conn:
-            # 1. Decisions (highest signal)
+            # 1. Decisions (highest signal; two-stage AND -> BM25 OR backfill)
             if fts_q:
                 d_where = ["decisions_fts MATCH ?"]
-                d_params: list[Any] = [fts_q]
+                d_params: list[Any] = []
                 if agent:
                     d_where.append("d.privacy_tier != 'local_only'")
                 if project:
@@ -2326,18 +2603,18 @@ class HubStore:
                 if until_ms is not None:
                     d_where.append("d.valid_at <= ?")
                     d_params.append(until_ms)
-                d_rows = conn.execute(
-                    f"""SELECT d.* FROM decisions_fts f JOIN decisions d ON d.id = f.decision_id
-                        WHERE {' AND '.join(d_where)}
-                        ORDER BY (d.status != 'active'), bm25(decisions_fts), d.valid_at DESC LIMIT ?""",
-                    [*d_params, limit],
-                ).fetchall()
+                d_sql = (
+                    f"SELECT d.* FROM decisions_fts f JOIN decisions d ON d.id = f.decision_id "
+                    f"WHERE {' AND '.join(d_where)} "
+                    f"ORDER BY (d.status != 'active'), bm25(decisions_fts), d.valid_at DESC LIMIT ?"
+                )
+                d_rows = _fetch_two_stage(conn, d_sql, d_params, limit)
                 decisions_out = [self._decision_dict(conn, r) for r in d_rows]
 
-            # 2. Episodes
+            # 2. Episodes (two-stage AND -> BM25 OR backfill)
             if fts_q:
                 e_where = ["episodes_fts MATCH ?"]
-                e_params: list[Any] = [fts_q]
+                e_params: list[Any] = []
                 if agent:
                     e_where.append("e.privacy_tier != 'local_only'")
                 if project:
@@ -2353,33 +2630,33 @@ class HubStore:
                 if until_ms is not None:
                     e_where.append("e.t_start <= ?")
                     e_params.append(until_ms)
-                e_rows = conn.execute(
-                    f"""SELECT e.* FROM episodes_fts f JOIN episodes e ON e.id = f.episode_id
-                        WHERE {' AND '.join(e_where)}
-                        ORDER BY bm25(episodes_fts), e.t_end DESC LIMIT ?""",
-                    [*e_params, limit],
-                ).fetchall()
+                e_sql = (
+                    f"SELECT e.* FROM episodes_fts f JOIN episodes e ON e.id = f.episode_id "
+                    f"WHERE {' AND '.join(e_where)} "
+                    f"ORDER BY bm25(episodes_fts), e.t_end DESC LIMIT ?"
+                )
+                e_rows = _fetch_two_stage(conn, e_sql, e_params, limit)
                 episodes_out = [self._episode_dict(conn, r) for r in e_rows]
 
-            # 3. Memories
+            # 3. Memories (two-stage AND -> BM25 OR backfill)
             if fts_q:
                 m_where = ["memories_fts MATCH ?", "m.deleted = 0"]
-                m_params: list[Any] = [fts_q]
+                m_params: list[Any] = []
                 if agent:
                     m_where.append("m.privacy_tier != 'local_only'")
                     m_where.append("m.needs_review = 0")
                 if project:
                     m_where.append("m.project = ?")
                     m_params.append(project)
-                m_rows = conn.execute(
-                    f"""SELECT m.* FROM memories_fts f JOIN memories m ON m.id = f.memory_id
-                        WHERE {' AND '.join(m_where)}
-                        ORDER BY bm25(memories_fts), m.updated_at DESC LIMIT ?""",
-                    [*m_params, limit],
-                ).fetchall()
+                m_sql = (
+                    f"SELECT m.* FROM memories_fts f JOIN memories m ON m.id = f.memory_id "
+                    f"WHERE {' AND '.join(m_where)} "
+                    f"ORDER BY bm25(memories_fts), m.updated_at DESC LIMIT ?"
+                )
+                m_rows = _fetch_two_stage(conn, m_sql, m_params, limit)
                 memories_out = [self._memory_dict(conn, r) for r in m_rows]
 
-        # 4. Raw events (always searchable for verbatim evidence)
+        # 4. Raw events (always searchable for verbatim evidence; uses same two-stage BM25)
         raw_hits = self.list_raw(
             q=query,
             sources=sources,
@@ -2389,6 +2666,44 @@ class HubStore:
             limit=limit,
             agent=agent,
         )
+
+        # 5. Cross-tier Episode <-> Turn RRF fusion so multi-turn session relevance and
+        #    sharp turn-level needles mutually reinforce each other.
+        if episodes_out and raw_hits:
+            rrf_k = 20.0
+            ep_scores: dict[str, float] = {}
+            ep_by_id: dict[str, dict[str, Any]] = {}
+            for rank, ep in enumerate(episodes_out):
+                eid = ep["id"]
+                ep_by_id[eid] = ep
+                ep_scores[eid] = ep_scores.get(eid, 0.0) + 1.0 / (rrf_k + rank + 1)
+
+            raw_ep_best_rank: dict[str, int] = {}
+            for rank, rh in enumerate(raw_hits):
+                ep_id = rh.get("episode_id")
+                if ep_id:
+                    ep_scores[ep_id] = ep_scores.get(ep_id, 0.0) + 0.75 / (rrf_k + rank + 1)
+                    if ep_id not in raw_ep_best_rank:
+                        raw_ep_best_rank[ep_id] = rank
+
+            episodes_out.sort(
+                key=lambda ep: (ep_scores.get(ep["id"], 0.0), int(ep.get("t_end") or 0)),
+                reverse=True,
+            )
+            top_ep_rank = {ep["id"]: idx for idx, ep in enumerate(episodes_out[:10])}
+            raw_hits = sorted(
+                enumerate(raw_hits),
+                key=lambda pair: (
+                    1.0 / (rrf_k + pair[0] + 1)
+                    + (
+                        0.45 / (rrf_k + top_ep_rank[pair[1]["episode_id"]] + 1)
+                        if pair[1].get("episode_id") in top_ep_rank
+                        else 0.0
+                    )
+                ),
+                reverse=True,
+            )
+            raw_hits = [item for _, item in raw_hits]
 
         # Apply token budget progressively: Decisions -> Episodes -> Memories -> Raw excerpts
         used = 100

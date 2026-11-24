@@ -1,0 +1,64 @@
+[
+  {
+    "question_id": "smoke_ku_01",
+    "question_type": "knowledge-update",
+    "question": "Which coffee roaster subscription am I currently using?",
+    "answer": "Bluebird Roasters",
+    "question_date": "2023/06/01 (Thu) 10:00",
+    "haystack_dates": [
+      "2023/05/01 (Mon) 09:00",
+      "2023/05/12 (Fri) 14:20",
+      "2023/05/25 (Thu) 18:10"
+    ],
+    "haystack_session_ids": [
+      "sess_distractor_weather",
+      "sess_coffee_old",
+      "sess_coffee_new"
+    ],
+    "answer_session_ids": [
+      "sess_coffee_new"
+    ],
+    "haystack_sessions": [
+      [
+        {"role": "user", "content": "Can you give me a weekend hiking packing checklist?"},
+        {"role": "assistant", "content": "Sure: water bottle, rain shell, headlamp, trail snacks."}
+      ],
+      [
+        {"role": "user", "content": "I started a coffee roaster subscription with Sunrise Beans last month."},
+        {"role": "assistant", "content": "Nice choice! Medium or light roast?"}
+      ],
+      [
+        {"role": "user", "content": "Quick update: I cancelled Sunrise Beans and switched my coffee roaster subscription to Bluebird Roasters.", "has_answer": true},
+        {"role": "assistant", "content": "Got it, Bluebird Roasters is great for single-origin pour-overs."}
+      ]
+    ]
+  },
+  {
+    "question_id": "smoke_abs_02_abs",
+    "question_type": "single-session-user",
+    "question": "What is the name of my pet turtle?",
+    "answer": "You did not mention owning a pet turtle.",
+    "question_date": "2023/06/02 (Fri) 11:00",
+    "haystack_dates": [
+      "2023/05/03 (Wed) 08:30",
+      "2023/05/18 (Thu) 20:00"
+    ],
+    "haystack_session_ids": [
+      "sess_pet_cat",
+      "sess_distractor_books"
+    ],
+    "answer_session_ids": [
+      "sess_pet_cat"
+    ],
+    "haystack_sessions": [
+      [
+        {"role": "user", "content": "My rescue cat Mochi loves sleeping near the radiator."},
+        {"role": "assistant", "content": "Mochi sounds very cozy!"}
+      ],
+      [
+        {"role": "user", "content": "Recommend two sci-fi novels about orbital stations."},
+        {"role": "assistant", "content": "Try Rendezvous with Rama and Seveneves."}
+      ]
+    ]
+  }
+]

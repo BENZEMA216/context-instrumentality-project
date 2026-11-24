@@ -15,6 +15,15 @@ from .miner import default_eval_dir, mine_candidates
 from .raw_audit import audit_raw_data, render_raw_audit_markdown
 from .runner import default_dataset_path, evaluate_dataset, load_dataset, render_markdown_report
 from .schema import ALL_BASELINES, BaselineName
+from .standard_benchmarks import (
+    DEFAULT_BENCH_CACHE,
+    download_benchmark_datasets,
+    evaluate_locomo,
+    evaluate_longmemeval,
+    load_manifest,
+    render_benchmark_markdown,
+)
+from .workbench import create_workbench_app, summarize_adjudications
 
 
 def _parse_baselines(raw: str | None) -> list[BaselineName]:
@@ -151,6 +160,56 @@ def main(argv: list[str] | None = None) -> int:
     fid_cmd.add_argument("--include-quotes", action="store_true")
     fid_cmd.add_argument("--format", choices=("markdown", "json"), default="markdown")
 
+    bench_cmd = sub.add_parser(
+        "bench",
+        help="Download and run standard public Agent Memory Benchmarks (LoCoMo, LongMemEval-S, LongMemEval-Oracle)",
+    )
+    bench_sub = bench_cmd.add_subparsers(dest="bench_action", required=True)
+
+    bench_dl = bench_sub.add_parser("download", help="Download public benchmark datasets to local cache")
+    bench_dl.add_argument(
+        "--suite",
+        choices=("all", "locomo", "longmemeval-oracle", "longmemeval-s"),
+        default="all",
+    )
+    bench_dl.add_argument("--cache-dir", type=Path, default=DEFAULT_BENCH_CACHE)
+    bench_dl.add_argument("--force", action="store_true")
+
+    bench_run = bench_sub.add_parser("run", help="Run Raw Memory on a standard public benchmark suite")
+    bench_run.add_argument(
+        "--suite",
+        choices=("locomo", "longmemeval-oracle", "longmemeval-s"),
+        required=True,
+    )
+    bench_run.add_argument(
+        "--mode",
+        choices=("raw", "curated"),
+        default="raw",
+        help="For LoCoMo: 'raw' (L1 turns only) or 'curated' (L1 + L2 summaries + L3 observations)",
+    )
+    bench_run.add_argument("--dataset", type=Path, default=None, help="Optional explicit dataset JSON path")
+    bench_run.add_argument("--cache-dir", type=Path, default=DEFAULT_BENCH_CACHE)
+    bench_run.add_argument("--engine-label", type=str, default="raw-memory")
+    bench_run.add_argument("--limit", type=int, default=None, help="Optional limit (conversations for LoCoMo, questions for LongMemEval)")
+    bench_run.add_argument("--format", choices=("markdown", "json"), default="markdown")
+    bench_run.add_argument("--out", type=Path, default=None)
+    bench_run.add_argument("--json-out", type=Path, default=None)
+
+    wb_cmd = sub.add_parser(
+        "workbench",
+        help="Launch localhost Human-in-the-Loop Memory Testing & Debugging Workbench UI",
+    )
+    wb_cmd.add_argument("--data-dir", type=Path, default=default_data_dir())
+    wb_cmd.add_argument("--host", type=str, default="127.0.0.1")
+    wb_cmd.add_argument("--port", type=int, default=8765)
+    wb_cmd.add_argument("--results-dir", type=Path, default=None)
+
+    adj_cmd = sub.add_parser(
+        "debug-summary",
+        help="Print summary of recorded human adjudications & debug query feedback",
+    )
+    adj_cmd.add_argument("--data-dir", type=Path, default=default_data_dir())
+
     args = parser.parse_args(argv)
 
     if args.command == "run":
@@ -225,6 +284,65 @@ def main(argv: list[str] | None = None) -> int:
             else report.model_dump_json(indent=2) + "\n"
         )
         sys.stdout.write(rendered)
+        return 0
+
+    if args.command == "bench":
+        if args.bench_action == "download":
+            suites = None if args.suite == "all" else [args.suite]
+            res = download_benchmark_datasets(suites, cache_dir=args.cache_dir, force=args.force)
+            sys.stdout.write(json.dumps(res, ensure_ascii=False, indent=2) + "\n")
+            return 0
+        if args.bench_action == "run":
+            manifest = load_manifest()
+            info = manifest["suites"][args.suite]
+            ds_path = args.dataset or (Path(args.cache_dir).expanduser() / info["filename"])
+            if not ds_path.is_file():
+                sys.stderr.write(
+                    f"Dataset not found at {ds_path}. Run `raw-memory-eval bench download --suite {args.suite}` first.\n"
+                )
+                return 2
+            if args.suite == "locomo":
+                report = evaluate_locomo(
+                    ds_path,
+                    mode=args.mode,
+                    engine_label=args.engine_label,
+                    limit_convs=args.limit,
+                )
+            else:
+                report = evaluate_longmemeval(
+                    ds_path,
+                    split_name=args.suite,
+                    engine_label=args.engine_label,
+                    limit_questions=args.limit,
+                )
+            rendered = (
+                render_benchmark_markdown(report)
+                if args.format == "markdown"
+                else report.model_dump_json(indent=2) + "\n"
+            )
+            if args.out is not None:
+                args.out.expanduser().parent.mkdir(parents=True, exist_ok=True)
+                args.out.expanduser().write_text(rendered, encoding="utf-8")
+            if args.json_out is not None:
+                args.json_out.expanduser().parent.mkdir(parents=True, exist_ok=True)
+                args.json_out.expanduser().write_text(report.model_dump_json(indent=2) + "\n", encoding="utf-8")
+            sys.stdout.write(rendered)
+            return 0
+
+    if args.command == "workbench":
+        import uvicorn
+
+        app = create_workbench_app(args.data_dir, results_dir=args.results_dir)
+        sys.stdout.write(
+            f"Raw Memory Debug Workbench running at http://{args.host}:{args.port} (data={args.data_dir})\n"
+        )
+        sys.stdout.flush()
+        uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
+        return 0
+
+    if args.command == "debug-summary":
+        summary = summarize_adjudications(args.data_dir)
+        sys.stdout.write(json.dumps(summary, ensure_ascii=False, indent=2) + "\n")
         return 0
 
     return 1

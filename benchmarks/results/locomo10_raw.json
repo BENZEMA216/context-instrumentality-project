@@ -1,0 +1,707 @@
+{
+  "suite": "locomo",
+  "mode": "raw",
+  "engine_label": "raw-memory-v0.3.0-hybrid-bm25",
+  "dataset_path": "/Users/benzema/.local/share/context-hub-v2/benchmarks/locomo10.json",
+  "evaluated_at_ms": 1795541018982,
+  "total_questions": 1986,
+  "scored_questions": 1982,
+  "abstention_questions": 0,
+  "overall": {
+    "mrr": 0.4755,
+    "r@1": 0.3698,
+    "all_r@1": 0.3123,
+    "ndcg@1": 0.3698,
+    "r@5": 0.6171,
+    "all_r@5": 0.5267,
+    "ndcg@5": 0.4733,
+    "r@10": 0.6958,
+    "all_r@10": 0.5999,
+    "ndcg@10": 0.4997,
+    "ans_cov@5": 0.4667,
+    "ans_cov@10": 0.5429
+  },
+  "by_category": {
+    "adversarial": {
+      "count": 446,
+      "mrr": 0.4895,
+      "r@1": 0.3744,
+      "all_r@1": 0.3632,
+      "ndcg@1": 0.3744,
+      "r@5": 0.639,
+      "all_r@5": 0.6278,
+      "ndcg@5": 0.5141,
+      "r@10": 0.7309,
+      "all_r@10": 0.7197,
+      "ndcg@10": 0.5439,
+      "ans_cov@5": 0.639,
+      "ans_cov@10": 0.7309
+    },
+    "multi_hop": {
+      "count": 841,
+      "mrr": 0.5015,
+      "r@1": 0.3888,
+      "all_r@1": 0.3639,
+      "ndcg@1": 0.3888,
+      "r@5": 0.6552,
+      "all_r@5": 0.6278,
+      "ndcg@5": 0.5238,
+      "r@10": 0.7229,
+      "all_r@10": 0.698,
+      "ndcg@10": 0.5467,
+      "ans_cov@5": 0.5517,
+      "ans_cov@10": 0.6207
+    },
+    "open_domain": {
+      "count": 92,
+      "mrr": 0.2589,
+      "r@1": 0.1739,
+      "all_r@1": 0.0978,
+      "ndcg@1": 0.1739,
+      "r@5": 0.3478,
+      "all_r@5": 0.163,
+      "ndcg@5": 0.2189,
+      "r@10": 0.413,
+      "all_r@10": 0.2065,
+      "ndcg@10": 0.2359,
+      "ans_cov@5": 0.0217,
+      "ans_cov@10": 0.0543
+    },
+    "single_hop": {
+      "count": 282,
+      "mrr": 0.3422,
+      "r@1": 0.2411,
+      "all_r@1": 0.0035,
+      "ndcg@1": 0.2411,
+      "r@5": 0.4716,
+      "all_r@5": 0.0709,
+      "ndcg@5": 0.2275,
+      "r@10": 0.6064,
+      "all_r@10": 0.1667,
+      "ndcg@10": 0.2741,
+      "ans_cov@5": 0.1348,
+      "ans_cov@10": 0.2234
+    },
+    "temporal": {
+      "count": 321,
+      "mrr": 0.5671,
+      "r@1": 0.4829,
+      "all_r@1": 0.4393,
+      "ndcg@1": 0.4829,
+      "r@5": 0.6916,
+      "all_r@5": 0.6262,
+      "ndcg@5": 0.5728,
+      "r@10": 0.7352,
+      "all_r@10": 0.6698,
+      "ndcg@10": 0.5891,
+      "ans_cov@5": 0.4237,
+      "ans_cov@10": 0.4984
+    }
+  },
+  "abstention_metrics": {},
+  "latency_p50_ms": 0.963,
+  "latency_p95_ms": 1.448,
+  "total_elapsed_s": 2.33,
+  "sample_failures": [
+    {
+      "suite": "locomo",
+      "item_id": "conv-26#q1",
+      "category": "temporal",
+      "question": "When did Melanie paint a sunrise?",
+      "expected_answer": "2022",
+      "gold_ids": [
+        "D1:12"
+      ],
+      "retrieved_top_ids": [
+        "D1:14",
+        "D14:30",
+        "D11:8",
+        "D17:14",
+        "D14:7"
+      ],
+      "retrieved_top_snippets": [
+        "[1:56 pm on 8 May, 2023] Melanie: Yeah, I painted that lake sunrise last year! It's special to me.",
+        "[1:33 pm on 25 August, 2023] Melanie: Painting landscapes and still life is my favorite! Nature's amazing, here's a painting I did recently. (image: a photo of a painting of a sunflower on a canvas)",
+        "[2:24 pm on 14 August, 2023] Caroline: That pic is cool! Representing inclusivity and diversity in my art is important to me. I also use it to speak up for the LGBTQ+ community and push for acceptance. Here's a recent painting! (image: a photo of a painting wi"
+      ],
+      "reason": "miss_at_5"
+    },
+    {
+      "suite": "locomo",
+      "item_id": "conv-26#q2",
+      "category": "open_domain",
+      "question": "What fields would Caroline be likely to pursue in her educaton?",
+      "expected_answer": "Psychology, counseling certification",
+      "gold_ids": [
+        "D1:11",
+        "D1:9"
+      ],
+      "retrieved_top_ids": [
+        "D13:7",
+        "D4:14",
+        "D8:8",
+        "D7:8",
+        "D19:13"
+      ],
+      "retrieved_top_snippets": [
+        "[3:31 pm on 23 August, 2023] Caroline: That's so funny! I used to go horseback riding with my dad when I was a kid, we'd go through the fields, feeling the wind. It was so special. I've always had a love for horses!",
+        "[10:37 am on 27 June, 2023] Melanie: Woah, Caroline, it sounds like you're doing some impressive work. It's inspiring to see your dedication to helping others. What motivated you to pursue counseling?",
+        "[1:51 pm on 15 July, 2023] Melanie: Thanks, Caroline! We both helped with the painting - it was great bonding over it and chatting about nature. We found these lovely flowers. Appreciating the small things in life, too. (image: a photo of a field of purple flo"
+      ],
+      "reason": "miss_at_5"
+    },
+    {
+      "suite": "locomo",
+      "item_id": "conv-26#q4",
+      "category": "single_hop",
+      "question": "What is Caroline's identity?",
+      "expected_answer": "Transgender woman",
+      "gold_ids": [
+        "D1:5"
+      ],
+      "retrieved_top_ids": [
+        "D13:13",
+        "D11:12",
+        "D17:19",
+        "D16:9",
+        "D3:3"
+      ],
+      "retrieved_top_snippets": [
+        "[3:31 pm on 23 August, 2023] Caroline: Thanks, Mel! I felt liberated and empowered doing it. Painting helps me explore my identity and be true to myself. It's definitely therapeutic.",
+        "[2:24 pm on 14 August, 2023] Caroline: Thanks, Melanie. Here's one- 'Embracing Identity' is all about finding comfort and love in being yourself. The woman in the painting stands for the journey of acceptance. My aim was to show warmth, love and self-acceptanc",
+        "[10:31 am on 13 October, 2023] Caroline: It was a transgender poetry reading where transgender people shared their stories through poetry. It was extra special 'cause it was a safe place for self-expression and it was really empowering to hear others share and"
+      ],
+      "reason": "miss_at_5"
+    },
+    {
+      "suite": "locomo",
+      "item_id": "conv-26#q7",
+      "category": "single_hop",
+      "question": "What is Caroline's relationship status?",
+      "expected_answer": "Single",
+      "gold_ids": [
+        "D2:14",
+        "D3:13"
+      ],
+      "retrieved_top_ids": [
+        "D16:14",
+        "D16:15",
+        "D19:13",
+        "D15:27",
+        "D15:13"
+      ],
+      "retrieved_top_snippets": [
+        "[12:09 am on 13 September, 2023] Melanie: Wow, Caro, that painting is amazing! You've made so much progress. I'm super proud of you for being your true self. What effect has the journey had on your relationships?",
+        "[12:09 am on 13 September, 2023] Caroline: Thanks, Melanie. It's definitely changed them. Some close friends kept supporting me, but a few weren't able to handle it. It wasn't easy, but I'm much happier being around those who accept and love me. Now my relatio",
+        "[9:55 am on 22 October, 2023] Caroline: Glad you agree, Caroline. Appreciate the support of those close to me. Their encouragement made me who I am."
+      ],
+      "reason": "miss_at_5"
+    },
+    {
+      "suite": "locomo",
+      "item_id": "conv-26#q10",
+      "category": "temporal",
+      "question": "How long has Caroline had her current group of friends for?",
+      "expected_answer": "4 years",
+      "gold_ids": [
+        "D3:13"
+      ],
+      "retrieved_top_ids": [
+        "D6:11",
+        "D12:15",
+        "D6:12",
+        "D8:24",
+        "D16:15"
+      ],
+      "retrieved_top_snippets": [
+        "[8:18 pm on 6 July, 2023] Caroline: Wow, that's great! It sure shows how important friendship and compassion are. It's made me appreciate how lucky I am to have my friends and family helping with my transition. They make all the difference. We even had a picni",
+        "[1:50 pm on 17 August, 2023] Caroline: I'm always here for you, Mel! We had a blast last year at the Pride fest. Those supportive friends definitely make everything worth it! (image: a photo of a group of people walking down a street with balloons)",
+        "[8:18 pm on 6 July, 2023] Melanie: That's a gorgeous photo, Caroline! Wow, the love around you is awesome. How have your friends and fam been helping you out with your transition?"
+      ],
+      "reason": "miss_at_5"
+    },
+    {
+      "suite": "locomo",
+      "item_id": "conv-26#q13",
+      "category": "single_hop",
+      "question": "What career path has Caroline decided to persue?",
+      "expected_answer": "counseling or mental health for Transgender people",
+      "gold_ids": [
+        "D1:11",
+        "D4:13"
+      ],
+      "retrieved_top_ids": [
+        "D4:12",
+        "D15:23",
+        "D1:9",
+        "D14:12",
+        "D3:7"
+      ],
+      "retrieved_top_snippets": [
+        "[10:37 am on 27 June, 2023] Melanie: Sounds great! What kind of counseling and mental health services do you want to persue?",
+        "[3:19 pm on 28 August, 2023] Caroline: Yeah totally! \"Brave\" by Sara Bareilles has a lot of significance for me. It's about being courageous and fighting for what's right. Whenever I hear this jam, I think about the paths I've taken and the progress I've made.",
+        "[1:56 pm on 8 May, 2023] Caroline: Gonna continue my edu and check out career options, which is pretty exciting!"
+      ],
+      "reason": "miss_at_5"
+    },
+    {
+      "suite": "locomo",
+      "item_id": "conv-26#q19",
+      "category": "single_hop",
+      "question": "What do Melanie's kids like?",
+      "expected_answer": "dinosaurs, nature",
+      "gold_ids": [
+        "D4:8",
+        "D6:6"
+      ],
+      "retrieved_top_ids": [
+        "D19:4",
+        "D19:6",
+        "D1:2",
+        "D18:7",
+        "D1:18"
+      ],
+      "retrieved_top_snippets": [
+        "[9:55 am on 22 October, 2023] Melanie: Wow, Caroline, that's awesome. Giving a home to needy kids is such a loving way to build a family. Those kids will be so supported and happy in their new home.",
+        "[9:55 am on 22 October, 2023] Melanie: I totally agree, Caroline. Everyone deserves that. It's awesome to see how passionate you are about helping these kids.",
+        "[1:56 pm on 8 May, 2023] Melanie: Hey Caroline! Good to see you! I'm swamped with the kids & work. What's up with you? Anything new?"
+      ],
+      "reason": "miss_at_5"
+    },
+    {
+      "suite": "locomo",
+      "item_id": "conv-26#q24",
+      "category": "single_hop",
+      "question": "What does Melanie do to destress?",
+      "expected_answer": "Running, pottery",
+      "gold_ids": [
+        "D5:4",
+        "D7:22"
+      ],
+      "retrieved_top_ids": [
+        "D7:20",
+        "D19:14",
+        "D15:18",
+        "D8:18",
+        "D14:22"
+      ],
+      "retrieved_top_snippets": [
+        "[4:33 pm on 12 July, 2023] Melanie: Thanks, Caroline! These are for running. Been running longer since our last chat - a great way to destress and clear my mind. (image: a photo of a pair of pink sneakers in a box)",
+        "[9:55 am on 22 October, 2023] Melanie: Glad you had support. Being yourself is great!",
+        "[3:19 pm on 28 August, 2023] Melanie: Cool! What type of music do you play?"
+      ],
+      "reason": "miss_at_5"
+    },
+    {
+      "suite": "locomo",
+      "item_id": "conv-26#q27",
+      "category": "open_domain",
+      "question": "Would Caroline pursue writing as a career option?",
+      "expected_answer": "LIkely no; though she likes reading, she wants to be a counselor",
+      "gold_ids": [
+        "D7:5",
+        "D7:9"
+      ],
+      "retrieved_top_ids": [
+        "D1:9",
+        "D7:7",
+        "D4:14",
+        "D4:11",
+        "D7:8"
+      ],
+      "retrieved_top_snippets": [
+        "[1:56 pm on 8 May, 2023] Caroline: Gonna continue my edu and check out career options, which is pretty exciting!",
+        "[4:33 pm on 12 July, 2023] Caroline: I struggled with mental health, and support I got was really helpful. It made me realize how important it is for others to have a support system. So, I started looking into counseling and mental health career options, so I ",
+        "[10:37 am on 27 June, 2023] Melanie: Woah, Caroline, it sounds like you're doing some impressive work. It's inspiring to see your dedication to helping others. What motivated you to pursue counseling?"
+      ],
+      "reason": "miss_at_5"
+    },
+    {
+      "suite": "locomo",
+      "item_id": "conv-26#q34",
+      "category": "single_hop",
+      "question": "What events has Caroline participated in to help children?",
+      "expected_answer": "Mentoring program, school speech",
+      "gold_ids": [
+        "D3:3",
+        "D9:2"
+      ],
+      "retrieved_top_ids": [
+        "D8:32",
+        "D7:2",
+        "D10:6",
+        "D10:5",
+        "D17:20"
+      ],
+      "retrieved_top_snippets": [
+        "[1:51 pm on 15 July, 2023] Melanie: Yeah, Caroline, my family's been great - their love and support really helped me through tough times. It's awesome! We even went on another camping trip in the forest. (image: a photo of a man and two children sitting around",
+        "[4:33 pm on 12 July, 2023] Melanie: Wow, Caroline, that sounds awesome! So glad you felt accepted and supported. Events like these are great for reminding us of how strong community can be!",
+        "[8:56 pm on 20 July, 2023] Melanie: Wow, Caroline, your group sounds awesome! Supporting each other and making good things happen - that's so inspiring! Have you been part of any events or campaigns lately?"
+      ],
+      "reason": "miss_at_5"
+    },
+    {
+      "suite": "locomo",
+      "item_id": "conv-26#q38",
+      "category": "single_hop",
+      "question": "What activities has Melanie done with her family?",
+      "expected_answer": "Pottery, painting, camping, museum, swimming, hiking",
+      "gold_ids": [
+        "D1:18",
+        "D3:14",
+        "D6:4",
+        "D8:4",
+        "D8:6",
+        "D9:1"
+      ],
+      "retrieved_top_ids": [
+        "D15:10",
+        "D5:4",
+        "D8:33",
+        "D10:22",
+        "D6:16"
+      ],
+      "retrieved_top_snippets": [
+        "[3:19 pm on 28 August, 2023] Melanie: That's great news, Caroline! Love seeing your dedication to helping others. Any specific projects or activities you're looking forward to there?",
+        "[1:36 pm on 3 July, 2023] Melanie: Wow, Caroline! That's great! I just signed up for a pottery class yesterday. It's like therapy for me, letting me express myself and get creative. Have you found any activities that make you feel the same way? (image: a photo",
+        "[1:51 pm on 15 July, 2023] Caroline: Awesome, Mel! Family support's huge. What else do you guys like doing together? (image: a photo of a family walking through a forest with a toddler)"
+      ],
+      "reason": "miss_at_5"
+    },
+    {
+      "suite": "locomo",
+      "item_id": "conv-26#q42",
+      "category": "open_domain",
+      "question": "Would Melanie be more interested in going to a national park or a theme park?",
+      "expected_answer": "National park; she likes the outdoors",
+      "gold_ids": [
+        "D10:12",
+        "D10:14"
+      ],
+      "retrieved_top_ids": [
+        "D11:3",
+        "D11:13",
+        "D16:19",
+        "D15:12",
+        "D15:2"
+      ],
+      "retrieved_top_snippets": [
+        "[2:24 pm on 14 August, 2023] Melanie: Thanks, Caroline! It was Matt Patterson, he is so talented! His voice and songs were amazing. What's up with you? Anything interesting going on?",
+        "[2:24 pm on 14 August, 2023] Melanie: Wow, Caroline, that's gorgeous! I love the self-acceptance and love theme. How does art help you with your self-discovery and acceptance journey? (image: a photo of a woman is making a vase on a wheel)",
+        "[12:09 am on 13 September, 2023] Caroline: Phew! Glad it all worked out and you had a good time at the park!"
+      ],
+      "reason": "miss_at_5"
+    },
+    {
+      "suite": "locomo",
+      "item_id": "conv-26#q43",
+      "category": "single_hop",
+      "question": "What kind of art does Caroline make?",
+      "expected_answer": "abstract art",
+      "gold_ids": [
+        "D11:12",
+        "D11:8",
+        "D9:14"
+      ],
+      "retrieved_top_ids": [
+        "D16:7",
+        "D14:35",
+        "D16:9",
+        "D9:12",
+        "D14:33"
+      ],
+      "retrieved_top_snippets": [
+        "[12:09 am on 13 September, 2023] Caroline: Since I was 17 or so. I find it soempowering and cathartic. It's amazing how art can show things that are hard to put into words. How long have you been into art?",
+        "[1:33 pm on 25 August, 2023] Caroline: Yeah Mel, stoked! Gonna be a great night featuring LGBTQ artists and their awesome talents. We want it to spread understanding and acceptance - let's make it happen! (image: a photo of a poster for a concert with a man in",
+        "[12:09 am on 13 September, 2023] Caroline: Melanie, those bowls are amazing! They each have such cool designs. I love that you chose pottery for your art. Painting and drawing have helped me express my feelings and explore my gender identity. Creating art was "
+      ],
+      "reason": "miss_at_5"
+    },
+    {
+      "suite": "locomo",
+      "item_id": "conv-26#q47",
+      "category": "single_hop",
+      "question": "Who supports Caroline when she has a negative experience?",
+      "expected_answer": "Her mentors, family, and friends",
+      "gold_ids": [
+        "D12:1",
+        "D3:11"
+      ],
+      "retrieved_top_ids": [
+        "D5:2",
+        "D3:5",
+        "D9:3",
+        "D15:5",
+        "D11:2"
+      ],
+      "retrieved_top_snippets": [
+        "[1:36 pm on 3 July, 2023] Melanie: Wow, Caroline, sounds like the parade was an awesome experience! It's great to see the love and support for the LGBTQ+ community. Congrats! Has this experience influenced your goals at all?",
+        "[7:55 pm on 9 June, 2023] Caroline: Thanks Mel! Your kind words mean a lot. Sharing our experiences isn't always easy, but I feel it's important to help promote understanding and acceptance. I've been blessed with loads of love and support throughout this jour",
+        "[2:31 pm on 17 July, 2023] Melanie: Wow, Caroline! It's great that you're helping out. How's it going? Got any cool experiences you can share?"
+      ],
+      "reason": "miss_at_5"
+    },
+    {
+      "suite": "locomo",
+      "item_id": "conv-26#q48",
+      "category": "single_hop",
+      "question": "What types of pottery have Melanie and her kids made?",
+      "expected_answer": "bowls, cup",
+      "gold_ids": [
+        "D12:14",
+        "D5:6",
+        "D8:4"
+      ],
+      "retrieved_top_ids": [
+        "D15:18",
+        "D15:20",
+        "D8:5",
+        "D8:2",
+        "D14:4"
+      ],
+      "retrieved_top_snippets": [
+        "[3:19 pm on 28 August, 2023] Melanie: Cool! What type of music do you play?",
+        "[3:19 pm on 28 August, 2023] Melanie: That's awesome! What type of guitar? Been playing long?",
+        "[1:51 pm on 15 July, 2023] Caroline: Aww, that's so sweet! That cup is so cute. It's awesome to see how kids show their personalities through art. What other creative projects do you do with them, besides pottery?"
+      ],
+      "reason": "miss_at_5"
+    },
+    {
+      "suite": "locomo",
+      "item_id": "conv-26#q50",
+      "category": "open_domain",
+      "question": "What would Caroline's political leaning likely be?",
+      "expected_answer": "Liberal",
+      "gold_ids": [
+        "D12:1"
+      ],
+      "retrieved_top_ids": [
+        "D18:14",
+        "D19:13",
+        "D15:27",
+        "D15:13",
+        "D10:15"
+      ],
+      "retrieved_top_snippets": [
+        "[6:55 pm on 20 October, 2023] Caroline: Glad you've got people to lean on, Melanie. It helps during tougher times.",
+        "[9:55 am on 22 October, 2023] Caroline: Glad you agree, Caroline. Appreciate the support of those close to me. Their encouragement made me who I am.",
+        "[3:19 pm on 28 August, 2023] Caroline: Cool! Got any fav tunes?"
+      ],
+      "reason": "miss_at_5"
+    },
+    {
+      "suite": "locomo",
+      "item_id": "conv-26#q55",
+      "category": "single_hop",
+      "question": "What subject have Caroline and Melanie both painted?",
+      "expected_answer": "Sunsets",
+      "gold_ids": [
+        "D14:5",
+        "D8:6"
+      ],
+      "retrieved_top_ids": [
+        "D14:30",
+        "D11:8",
+        "D17:14",
+        "D14:7",
+        "D9:14"
+      ],
+      "retrieved_top_snippets": [
+        "[1:33 pm on 25 August, 2023] Melanie: Painting landscapes and still life is my favorite! Nature's amazing, here's a painting I did recently. (image: a photo of a painting of a sunflower on a canvas)",
+        "[2:24 pm on 14 August, 2023] Caroline: That pic is cool! Representing inclusivity and diversity in my art is important to me. I also use it to speak up for the LGBTQ+ community and push for acceptance. Here's a recent painting! (image: a photo of a painting wi",
+        "[10:31 am on 13 October, 2023] Melanie: Thanks, Caroline! I painted it because it was calming. I've done an abstract painting too, take a look! I love how art lets us get our emotions out. (image: a photo of a painting on a wall with a blue background)"
+      ],
+      "reason": "miss_at_5"
+    },
+    {
+      "suite": "locomo",
+      "item_id": "conv-26#q57",
+      "category": "temporal",
+      "question": "When did Caroline encounter people on a hike and have a negative experience?",
+      "expected_answer": "The week before 25 August 2023",
+      "gold_ids": [
+        "D14:1"
+      ],
+      "retrieved_top_ids": [
+        "D12:1",
+        "D12:2",
+        "D15:5",
+        "D11:10",
+        "D9:3"
+      ],
+      "retrieved_top_snippets": [
+        "[1:50 pm on 17 August, 2023] Caroline: Hey Mel! How're ya doin'? Recently, I had a not-so-great experience on a hike. I ran into a group of religious conservatives who said something that really upset me. It made me think how much work we still have to do for ",
+        "[1:50 pm on 17 August, 2023] Melanie: Hey Caroline, sorry about the hike. It sucks when people are so closed-minded. Strong support really helps. FYI, I finished another pottery project - want to see a pic?",
+        "[3:19 pm on 28 August, 2023] Caroline: I loved it. It was awesome to see how strong the young people were, with all the challenges they face. I felt fulfilled guiding and supporting them. I even got to let them know they're not alone by sharing my story. Such "
+      ],
+      "reason": "miss_at_5"
+    },
+    {
+      "suite": "locomo",
+      "item_id": "conv-26#q60",
+      "category": "single_hop",
+      "question": "What instruments does Melanie play?",
+      "expected_answer": "clarinet and violin",
+      "gold_ids": [
+        "D15:26",
+        "D2:5"
+      ],
+      "retrieved_top_ids": [
+        "D15:25",
+        "D15:17",
+        "D6:15",
+        "D15:20",
+        "D6:4"
+      ],
+      "retrieved_top_snippets": [
+        "[3:19 pm on 28 August, 2023] Caroline: Thanks, Melanie! Appreciate it. You play any instruments?",
+        "[3:19 pm on 28 August, 2023] Caroline: That sounds great! Music brings us together and brings joy. Playing and singing let me express myself and connect with others - love it! So cathartic and uplifting. (image: a photo of a man playing a guitar in a recording",
+        "[8:18 pm on 6 July, 2023] Caroline: I'm so lucky to have such a great support system around me. Their love and encouragement has really helped me accept and grow into my true self. They've been instrumental in my transition."
+      ],
+      "reason": "miss_at_5"
+    },
+    {
+      "suite": "locomo",
+      "item_id": "conv-26#q61",
+      "category": "single_hop",
+      "question": "What musical artists/bands has Melanie seen?",
+      "expected_answer": "Summer Sounds, Matt Patterson",
+      "gold_ids": [
+        "D11:3",
+        "D15:16"
+      ],
+      "retrieved_top_ids": [
+        "D11:7",
+        "D14:35",
+        "D15:13",
+        "D15:15",
+        "D17:12"
+      ],
+      "retrieved_top_snippets": [
+        "[2:24 pm on 14 August, 2023] Melanie: Wow, Caroline! That sounds awesome. This pic's from last night - looks like everyone was having a blast! Reminds me it's important to cultivate a loving and accepting environment for our kids. How do you stay inclusive in ",
+        "[1:33 pm on 25 August, 2023] Caroline: Yeah Mel, stoked! Gonna be a great night featuring LGBTQ artists and their awesome talents. We want it to spread understanding and acceptance - let's make it happen! (image: a photo of a poster for a concert with a man in",
+        "[3:19 pm on 28 August, 2023] Caroline: Wow! Did you see that band?"
+      ],
+      "reason": "miss_at_5"
+    },
+    {
+      "suite": "locomo",
+      "item_id": "conv-26#q64",
+      "category": "open_domain",
+      "question": "Would Melanie likely enjoy the song \"The Four Seasons\" by Vivaldi?",
+      "expected_answer": "Yes; it's classical music",
+      "gold_ids": [
+        "D15:28"
+      ],
+      "retrieved_top_ids": [
+        "D15:22",
+        "D11:3",
+        "D18:5",
+        "D8:39",
+        "D15:16"
+      ],
+      "retrieved_top_snippets": [
+        "[3:19 pm on 28 August, 2023] Melanie: Music's amazing, isn't it? Any songs that have deep meaning for you?",
+        "[2:24 pm on 14 August, 2023] Melanie: Thanks, Caroline! It was Matt Patterson, he is so talented! His voice and songs were amazing. What's up with you? Anything interesting going on?",
+        "[6:55 pm on 20 October, 2023] Melanie: Yeah, you're right, Caroline. Family's super important to me. Especially after the accident, I've thought a lot about how much I need them. They mean the world to me and I'm so thankful to have them. Thankfully, they enjo"
+      ],
+      "reason": "miss_at_5"
+    },
+    {
+      "suite": "locomo",
+      "item_id": "conv-26#q65",
+      "category": "single_hop",
+      "question": "What are some changes Caroline has faced during her transition journey?",
+      "expected_answer": "Changes to her body, losing unsupportive friends",
+      "gold_ids": [
+        "D11:14",
+        "D16:15"
+      ],
+      "retrieved_top_ids": [
+        "D3:1",
+        "D14:19",
+        "D10:5",
+        "D16:16",
+        "D19:9"
+      ],
+      "retrieved_top_snippets": [
+        "[7:55 pm on 9 June, 2023] Caroline: Hey Melanie! How's it going? I wanted to tell you about my school event last week. It was awesome! I talked about my transgender journey and encouraged students to get involved in the LGBTQ community. It was great to see the",
+        "[1:33 pm on 25 August, 2023] Caroline: Thanks! It was made for a local church and shows time changing our lives. I made it to show my own journey as a transgender woman and how we should accept growth and change. (image: a photo of a large stained glass window",
+        "[8:56 pm on 20 July, 2023] Caroline: Thanks, Melanie! It's awesome to have our own platform to be ourselves and support others' rights. Our group, 'Connected LGBTQ Activists', is made of all kinds of people investing in positive changes. We have regular meetin"
+      ],
+      "reason": "miss_at_5"
+    },
+    {
+      "suite": "locomo",
+      "item_id": "conv-26#q66",
+      "category": "single_hop",
+      "question": "What does Melanie do with her family on hikes?",
+      "expected_answer": "Roast marshmallows, tell stories",
+      "gold_ids": [
+        "D10:12",
+        "D16:4"
+      ],
+      "retrieved_top_ids": [
+        "D4:8",
+        "D12:2",
+        "D12:1",
+        "D8:33",
+        "D10:22"
+      ],
+      "retrieved_top_snippets": [
+        "[10:37 am on 27 June, 2023] Melanie: It was an awesome time, Caroline! We explored nature, roasted marshmallows around the campfire and even went on a hike. The view from the top was amazing! The 2 younger kids love nature. It was so special having these momen",
+        "[1:50 pm on 17 August, 2023] Melanie: Hey Caroline, sorry about the hike. It sucks when people are so closed-minded. Strong support really helps. FYI, I finished another pottery project - want to see a pic?",
+        "[1:50 pm on 17 August, 2023] Caroline: Hey Mel! How're ya doin'? Recently, I had a not-so-great experience on a hike. I ran into a group of religious conservatives who said something that really upset me. It made me think how much work we still have to do for "
+      ],
+      "reason": "miss_at_5"
+    },
+    {
+      "suite": "locomo",
+      "item_id": "conv-26#q68",
+      "category": "temporal",
+      "question": "How long has Melanie been practicing art?",
+      "expected_answer": "Since 2016",
+      "gold_ids": [
+        "D16:8"
+      ],
+      "retrieved_top_ids": [
+        "D16:7",
+        "D14:35",
+        "D16:9",
+        "D11:9",
+        "D9:12"
+      ],
+      "retrieved_top_snippets": [
+        "[12:09 am on 13 September, 2023] Caroline: Since I was 17 or so. I find it soempowering and cathartic. It's amazing how art can show things that are hard to put into words. How long have you been into art?",
+        "[1:33 pm on 25 August, 2023] Caroline: Yeah Mel, stoked! Gonna be a great night featuring LGBTQ artists and their awesome talents. We want it to spread understanding and acceptance - let's make it happen! (image: a photo of a poster for a concert with a man in",
+        "[12:09 am on 13 September, 2023] Caroline: Melanie, those bowls are amazing! They each have such cool designs. I love that you chose pottery for your art. Painting and drawing have helped me express my feelings and explore my gender identity. Creating art was "
+      ],
+      "reason": "miss_at_5"
+    },
+    {
+      "suite": "locomo",
+      "item_id": "conv-26#q69",
+      "category": "open_domain",
+      "question": "What personality traits might Melanie say Caroline has?",
+      "expected_answer": "Thoughtful, authentic, driven",
+      "gold_ids": [
+        "D13:16",
+        "D16:18",
+        "D7:4"
+      ],
+      "retrieved_top_ids": [
+        "D8:5",
+        "D7:27",
+        "D10:1",
+        "D15:25",
+        "D12:18"
+      ],
+      "retrieved_top_snippets": [
+        "[1:51 pm on 15 July, 2023] Caroline: Aww, that's so sweet! That cup is so cute. It's awesome to see how kids show their personalities through art. What other creative projects do you do with them, besides pottery?",
+        "[4:33 pm on 12 July, 2023] Caroline: Glad it helped ya, Melanie!",
+        "[8:56 pm on 20 July, 2023] Caroline: Hey Melanie! Just wanted to say hi!"
+      ],
+      "reason": "miss_at_5"
+    }
+  ]
+}

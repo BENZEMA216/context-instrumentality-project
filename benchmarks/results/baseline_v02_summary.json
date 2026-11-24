@@ -1,0 +1,41 @@
+{
+  "engine_label": "raw-memory-v0.2.0-baseline",
+  "description": "Pre-upgrade strict-AND FTS5 baseline before v0.3.0 Hybrid BM25 + RRF upgrade.",
+  "suites": {
+    "locomo_raw": {
+      "scored_questions": 1982,
+      "r@1": 0.001,
+      "r@5": 0.001,
+      "r@10": 0.001,
+      "mrr": 0.001,
+      "latency_p50_ms": 0.06
+    },
+    "locomo_curated": {
+      "scored_questions": 1982,
+      "r@1": 0.001,
+      "r@5": 0.001,
+      "r@10": 0.001,
+      "mrr": 0.001,
+      "latency_p50_ms": 0.16
+    },
+    "longmemeval_oracle": {
+      "scored_questions": 470,
+      "abstention_questions": 30,
+      "sess_r@1": 0.032,
+      "sess_r@5": 0.032,
+      "turn_r@5": 0.0,
+      "latency_p50_ms": 0.23
+    },
+    "longmemeval_s": {
+      "scored_questions": 470,
+      "abstention_questions": 30,
+      "sess_r@1": 0.032,
+      "sess_r@5": 0.032,
+      "sess_r@10": 0.032,
+      "sess_all_r@5": 0.017,
+      "sess_ndcg@5": 0.026,
+      "turn_r@5": 0.0,
+      "latency_p50_ms": 0.45
+    }
+  }
+}

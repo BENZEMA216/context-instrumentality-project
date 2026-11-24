@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "description": "Official public Agent Memory Benchmark suites integrated into Raw Memory (`raw-memory-eval bench`). External academic datasets are downloaded on demand to a local cache directory so this repository stays lightweight and license-clean.",
+  "default_cache_dir": "~/.local/share/context-hub-v2/benchmarks",
+  "suites": {
+    "locomo": {
+      "name": "LoCoMo (Long-Context Conversational Memory)",
+      "venue": "ACL 2024 (Snap Research / UNC Chapel Hill)",
+      "paper_url": "https://arxiv.org/abs/2402.17753",
+      "repo_url": "https://github.com/snap-research/locomo",
+      "filename": "locomo10.json",
+      "download_url": "https://raw.githubusercontent.com/snap-research/locomo/main/data/locomo10.json",
+      "conversations": 10,
+      "qa_pairs": 1986,
+      "categories": {
+        "1": "single_hop",
+        "2": "temporal",
+        "3": "open_domain",
+        "4": "multi_hop",
+        "5": "adversarial"
+      },
+      "supports_curated_mode": true,
+      "notes": "Evaluates both raw turn retrieval (L1) and curated episode+observation retrieval (L1+L2+L3) with exact dia_id evidence traceability."
+    },
+    "longmemeval-oracle": {
+      "name": "LongMemEval-Oracle (Cleaned)",
+      "venue": "ICLR 2025 (UCLA / Tencent AI Lab)",
+      "paper_url": "https://arxiv.org/abs/2410.10813",
+      "repo_url": "https://github.com/xiaowu0162/LongMemEval",
+      "filename": "longmemeval_oracle.json",
+      "download_url": "https://huggingface.co/datasets/xiaowu0162/longmemeval-cleaned/resolve/main/longmemeval_oracle.json",
+      "questions": 500,
+      "abstention_questions": 30,
+      "notes": "Evidence sessions only (~36 turns/question); isolates turn-level pinpointing precision across all 6 memory pillars."
+    },
+    "longmemeval-s": {
+      "name": "LongMemEval-S (Cleaned, ~115k tokens / ~48 sessions per question)",
+      "venue": "ICLR 2025 (UCLA / Tencent AI Lab)",
+      "paper_url": "https://arxiv.org/abs/2410.10813",
+      "repo_url": "https://github.com/xiaowu0162/LongMemEval",
+      "filename": "longmemeval_s_cleaned.json",
+      "download_url": "https://huggingface.co/datasets/xiaowu0162/longmemeval-cleaned/resolve/main/longmemeval_s_cleaned.json",
+      "questions": 500,
+      "abstention_questions": 30,
+      "notes": "Full haystack retrieval across ~48 distractor sessions (~494 turns/question, 246,750 turns total). Evaluates Session R@K/NDCG@K and Turn R@K/NDCG@K."
+    },
+    "reflexive-meta": {
+      "name": "Raw Memory Reflexive Meta Benchmark (RFC-0003)",
+      "venue": "Raw Memory Internal Suite (Bundled)",
+      "paper_url": "docs/rfc/0003-meta-memory-benchmark.md",
+      "repo_url": "https://github.com/BENZEMA216/context-instrumentality-project",
+      "filename": "packages/eval/datasets/synthetic_reflexive_v1.json",
+      "bundled": true,
+      "cases": 18,
+      "notes": "Tests causal H_<t time-travel isolation, bi-temporal supersession, cross-channel anchors, privacy boundaries, and 5-generation anti-echo stability."
+    }
+  }
+}

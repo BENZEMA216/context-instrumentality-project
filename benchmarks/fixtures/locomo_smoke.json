@@ -1,0 +1,92 @@
+[
+  {
+    "sample_id": "smoke-conv-1",
+    "conversation": {
+      "speaker_a": "Alice",
+      "speaker_b": "Bob",
+      "session_1_date_time": "10:15 am on 8 May, 2023",
+      "session_1": [
+        {
+          "speaker": "Alice",
+          "dia_id": "D1:1",
+          "text": "Hey Bob! Yesterday I joined the botanical watercolor workshop near River Park."
+        },
+        {
+          "speaker": "Bob",
+          "dia_id": "D1:2",
+          "text": "That sounds awesome! Did you paint anything special?"
+        },
+        {
+          "speaker": "Alice",
+          "dia_id": "D1:3",
+          "text": "Yes, I painted blue lavender stems using cold-pressed cotton paper."
+        }
+      ],
+      "session_2_date_time": "4:30 pm on 19 May, 2023",
+      "session_2": [
+        {
+          "speaker": "Bob",
+          "dia_id": "D2:1",
+          "text": "How is your new marathon training schedule going?"
+        },
+        {
+          "speaker": "Alice",
+          "dia_id": "D2:2",
+          "text": "I switched my long run from Sunday to Saturday mornings and registered for the Autumn Harbor Half Marathon."
+        }
+      ]
+    },
+    "session_summary": {
+      "session_1_summary": "On 8 May 2023 Alice told Bob she attended a botanical watercolor workshop near River Park the previous day and painted blue lavender stems on cold-pressed cotton paper.",
+      "session_2_summary": "On 19 May 2023 Alice told Bob she moved her long run to Saturday mornings and registered for the Autumn Harbor Half Marathon."
+    },
+    "observation": {
+      "session_1_observation": {
+        "Alice": [
+          [
+            "Alice attended the botanical watercolor workshop near River Park on 7 May 2023.",
+            "D1:1"
+          ],
+          [
+            "Alice painted blue lavender stems on cold-pressed cotton paper.",
+            "D1:3"
+          ]
+        ]
+      },
+      "session_2_observation": {
+        "Alice": [
+          [
+            "Alice switched her long run to Saturday mornings and registered for the Autumn Harbor Half Marathon.",
+            "D2:2"
+          ]
+        ]
+      }
+    },
+    "qa": [
+      {
+        "question": "What did Alice paint at the botanical watercolor workshop?",
+        "answer": "blue lavender stems",
+        "evidence": ["D1:3"],
+        "category": 1
+      },
+      {
+        "question": "When did Alice join the botanical watercolor workshop?",
+        "answer": "7 May 2023",
+        "evidence": ["D1:1"],
+        "category": 2
+      },
+      {
+        "question": "Which race did Alice register for after changing her long run schedule?",
+        "answer": "Autumn Harbor Half Marathon",
+        "evidence": ["D2:2"],
+        "category": 4
+      },
+      {
+        "question": "Did Alice win a gold medal in swimming at River Park?",
+        "adversarial_answer": "gold medal in swimming",
+        "evidence": ["D1:1"],
+        "category": 5
+      }
+    ]
+  }
+]
