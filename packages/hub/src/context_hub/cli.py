@@ -46,6 +46,10 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("status", help="Print JSON summary of local Hub data and curation queue")
     sub.add_parser("seed-demo", help="Load a multi-channel synthetic demo dataset")
     sub.add_parser("rebuild", help="Rebuild L1 SQLite index & links from immutable L0 raw/ logs")
+    sub.add_parser(
+        "reconcile-projects",
+        help="Re-normalize project names across raw_events, episodes, decisions & memories using project_aliases.json",
+    )
 
     prompt_cmd = sub.add_parser(
         "curate-prompt",
@@ -85,6 +89,8 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(seed_demo_data(store), ensure_ascii=False, indent=2))
     elif args.command == "rebuild":
         print(json.dumps(store.rebuild_from_l0(), ensure_ascii=False, indent=2))
+    elif args.command == "reconcile-projects":
+        print(json.dumps(store.reconcile_projects(), ensure_ascii=False, indent=2))
     return 0
 
 

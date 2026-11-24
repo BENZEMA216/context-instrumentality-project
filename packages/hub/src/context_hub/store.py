@@ -5,6 +5,7 @@ from __future__ import annotations
 import datetime
 import json
 import sqlite3
+from collections import Counter, defaultdict
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
@@ -2867,6 +2868,174 @@ class HubStore:
                 dict(r)
                 for r in conn.execute("SELECT * FROM collector_status ORDER BY collector").fetchall()
             ]
+
+    def reconcile_projects(self) -> dict[str, Any]:
+        """Re-normalize project attribution across raw_events, episodes, decisions & memories.
+
+        Uses the updated `ProjectResolver` (including `$HOME/.git` guards, system-path filters,
+        git worktree detection, and `project_aliases.json` exact + regex patterns) without
+        mutating immutable L0 raw/ JSONL archives.
+        """
+        self.project_resolver.reload_aliases()
+        now = now_ms()
+
+        raw_updated = 0
+        episodes_updated = 0
+        decisions_updated = 0
+        memories_updated = 0
+
+        with self._tx(True) as conn:
+            before_projects = conn.execute(
+                "SELECT COUNT(DISTINCT project) FROM raw_events "
+                "WHERE deleted = 0 AND project IS NOT NULL AND project != ''"
+            ).fetchone()[0]
+
+            # 1. Re-resolve all non-deleted raw_events
+            anchors_by_ev: dict[str, list[str]] = defaultdict(list)
+            for row in conn.execute("SELECT event_id, anchor FROM event_anchors"):
+                anchors_by_ev[row["event_id"]].append(row["anchor"])
+
+            raw_rows = conn.execute(
+                "SELECT id, project, event_json FROM raw_events WHERE deleted = 0"
+            ).fetchall()
+            new_proj_by_raw: dict[str, str | None] = {}
+            for r in raw_rows:
+                ev_id = r["id"]
+                old_proj = r["project"]
+                try:
+                    ev_obj = json.loads(r["event_json"] or "{}")
+                except ValueError:
+                    ev_obj = {}
+                # Strip stale project:* anchors before re-resolving so polluted slugs don't stick
+                non_proj_anchors = [
+                    a for a in anchors_by_ev.get(ev_id, []) if not a.startswith("project:")
+                ]
+                new_proj = self.project_resolver.resolve(
+                    ev_obj, non_proj_anchors, prefer_path=True
+                )
+                new_proj_by_raw[ev_id] = new_proj
+                if new_proj != old_proj:
+                    conn.execute(
+                        "UPDATE raw_events SET project = ?, updated_at = ? WHERE id = ?",
+                        (new_proj, now, ev_id),
+                    )
+                    conn.execute(
+                        "DELETE FROM event_anchors WHERE event_id = ? AND anchor LIKE 'project:%'",
+                        (ev_id,),
+                    )
+                    if new_proj:
+                        conn.execute(
+                            "INSERT OR IGNORE INTO event_anchors(event_id, anchor) VALUES (?, ?)",
+                            (ev_id, f"project:{new_proj}"),
+                        )
+                    raw_updated += 1
+
+            # 2. Reconcile episodes.project from canonical alias or majority of member events
+            ep_members: dict[str, list[str]] = defaultdict(list)
+            for row in conn.execute("SELECT episode_id, raw_id FROM episode_events"):
+                ep_members[row["episode_id"]].append(row["raw_id"])
+
+            ep_rows = conn.execute(
+                "SELECT id, title, summary, overview, project, entities_json, status FROM episodes"
+            ).fetchall()
+            for ep in ep_rows:
+                old_ep_proj = ep["project"]
+                member_projs = [
+                    p
+                    for rid in ep_members.get(ep["id"], [])
+                    if (p := new_proj_by_raw.get(rid))
+                ]
+                if ep["status"] in ("curated", "manual") and old_ep_proj:
+                    mapped = self.project_resolver.apply_alias(old_ep_proj)
+                    new_ep_proj = mapped or (
+                        Counter(member_projs).most_common(1)[0][0] if member_projs else None
+                    )
+                elif member_projs:
+                    new_ep_proj = Counter(member_projs).most_common(1)[0][0]
+                else:
+                    new_ep_proj = self.project_resolver.apply_alias(old_ep_proj) if old_ep_proj else None
+
+                if new_ep_proj != old_ep_proj:
+                    conn.execute(
+                        "UPDATE episodes SET project = ?, updated_at = ? WHERE id = ?",
+                        (new_ep_proj, now, ep["id"]),
+                    )
+                    try:
+                        entities = json.loads(ep["entities_json"] or "[]")
+                    except ValueError:
+                        entities = []
+                    conn.execute("DELETE FROM episodes_fts WHERE episode_id = ?", (ep["id"],))
+                    conn.execute(
+                        "INSERT INTO episodes_fts(episode_id, tokens) VALUES (?, ?)",
+                        (
+                            ep["id"],
+                            index_tokens(
+                                f"{ep['title']}\n{ep['summary'] or ''}\n{ep['overview'] or ''}\n"
+                                f"{new_ep_proj or ''}\n{' '.join(str(e) for e in entities)}"
+                            ),
+                        ),
+                    )
+                    episodes_updated += 1
+
+            # 3. Reconcile decisions.project
+            for dec in conn.execute("SELECT id, project, topic, statement FROM decisions").fetchall():
+                old_d = dec["project"]
+                new_d = self.project_resolver.apply_alias(old_d) or old_d
+                if new_d != old_d:
+                    conn.execute(
+                        "UPDATE decisions SET project = ?, updated_at = ? WHERE id = ?",
+                        (new_d, now, dec["id"]),
+                    )
+                    conn.execute("DELETE FROM decisions_fts WHERE decision_id = ?", (dec["id"],))
+                    conn.execute(
+                        "INSERT INTO decisions_fts(decision_id, tokens) VALUES (?, ?)",
+                        (dec["id"], index_tokens(f"{new_d}\n{dec['topic']}\n{dec['statement']}")),
+                    )
+                    decisions_updated += 1
+
+            # 4. Reconcile memories.project
+            for mem in conn.execute(
+                "SELECT id, project, title, body, tags_json FROM memories WHERE deleted = 0"
+            ).fetchall():
+                old_m = mem["project"]
+                if not old_m:
+                    continue
+                new_m = self.project_resolver.apply_alias(old_m) or old_m
+                if new_m != old_m:
+                    conn.execute(
+                        "UPDATE memories SET project = ?, updated_at = ? WHERE id = ?",
+                        (new_m, now, mem["id"]),
+                    )
+                    try:
+                        tags = json.loads(mem["tags_json"] or "[]")
+                    except ValueError:
+                        tags = []
+                    conn.execute("DELETE FROM memories_fts WHERE memory_id = ?", (mem["id"],))
+                    conn.execute(
+                        "INSERT INTO memories_fts(memory_id, tokens) VALUES (?, ?)",
+                        (
+                            mem["id"],
+                            index_tokens(
+                                f"{mem['title']}\n{mem['body']}\n{new_m}\n{' '.join(str(t) for t in tags)}"
+                            ),
+                        ),
+                    )
+                    memories_updated += 1
+
+            after_projects = conn.execute(
+                "SELECT COUNT(DISTINCT project) FROM raw_events "
+                "WHERE deleted = 0 AND project IS NOT NULL AND project != ''"
+            ).fetchone()[0]
+
+        self.sync_markdown_memory_layer()
+        return {
+            "distinct_projects_before": before_projects,
+            "distinct_projects_after": after_projects,
+            "raw_events_updated": raw_updated,
+            "episodes_updated": episodes_updated,
+            "decisions_updated": decisions_updated,
+            "memories_updated": memories_updated,
+        }
 
     def rebuild_from_l0(self) -> dict[str, Any]:
         """Destroy derived L1 raw index/links and deterministically replay from L0 raw/ JSONL."""

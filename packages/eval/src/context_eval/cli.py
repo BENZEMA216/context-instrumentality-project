@@ -9,6 +9,7 @@ from pathlib import Path
 
 from context_hub.mcp_server import default_data_dir
 
+from .fidelity import inspect_compression_fidelity, render_fidelity_markdown
 from .memory_judge import audit_curated_memory, render_memory_audit_markdown
 from .miner import default_eval_dir, mine_candidates
 from .raw_audit import audit_raw_data, render_raw_audit_markdown
@@ -136,6 +137,20 @@ def main(argv: list[str] | None = None) -> int:
     mem_cmd.add_argument("--skip-live-ab", action="store_true")
     mem_cmd.add_argument("--format", choices=("markdown", "json"), default="markdown")
 
+    fid_cmd = sub.add_parser(
+        "inspect-fidelity",
+        help="Verify compressed Decisions/Memories claim-by-claim against cited Raw Evidence and detect omitted user turns",
+    )
+    fid_cmd.add_argument(
+        "--data-dir",
+        type=Path,
+        default=default_data_dir(),
+        help="Local Raw Memory data directory (default: ~/.local/share/context-hub-v2)",
+    )
+    fid_cmd.add_argument("--project", type=str, default=None)
+    fid_cmd.add_argument("--include-quotes", action="store_true")
+    fid_cmd.add_argument("--format", choices=("markdown", "json"), default="markdown")
+
     args = parser.parse_args(argv)
 
     if args.command == "run":
@@ -197,6 +212,20 @@ def main(argv: list[str] | None = None) -> int:
         )
         sys.stdout.write(rendered)
         return 0 if report.overall_passed else 1
+
+    if args.command == "inspect-fidelity":
+        report = inspect_compression_fidelity(
+            args.data_dir,
+            include_quotes=args.include_quotes,
+            project=args.project,
+        )
+        rendered = (
+            render_fidelity_markdown(report)
+            if args.format == "markdown"
+            else report.model_dump_json(indent=2) + "\n"
+        )
+        sys.stdout.write(rendered)
+        return 0
 
     return 1
 
