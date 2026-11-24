@@ -1440,20 +1440,28 @@ class HubStore:
                     if not include_local_only and er["privacy_tier"] == "local_only":
                         continue
                     ev_ids.append(er["id"])
-                    compact_events.append(
-                        {
-                            "id": er["id"],
-                            "source": er["source"],
-                            "kind": er["kind"],
-                            "actor": er["actor"] or "unknown",
-                            "t_start": er["t_start"],
-                            "t_end": er["t_end"],
-                            "title": er["title"],
-                            "text": er["body_text"][:2000],
-                            "locator": er["locator"],
-                            "privacy_tier": er["privacy_tier"],
-                        }
-                    )
+                    ev_ctx = (json.loads(er["event_json"] or "{}")).get("context") or {}
+                    ev_item: dict[str, Any] = {
+                        "id": er["id"],
+                        "source": er["source"],
+                        "kind": er["kind"],
+                        "actor": er["actor"] or "unknown",
+                        "t_start": er["t_start"],
+                        "t_end": er["t_end"],
+                        "title": er["title"],
+                        "text": er["body_text"][:2000],
+                        "locator": er["locator"],
+                        "privacy_tier": er["privacy_tier"],
+                    }
+                    if ev_ctx.get("signal_hints"):
+                        ev_item["signal_hints"] = ev_ctx["signal_hints"]
+                    if ev_ctx.get("is_subagent"):
+                        ev_item["is_subagent"] = True
+                    if ev_ctx.get("provider"):
+                        ev_item["provider"] = ev_ctx["provider"]
+                    if ev_ctx.get("source_url"):
+                        ev_item["source_url"] = ev_ctx["source_url"]
+                    compact_events.append(ev_item)
 
                 links: list[dict[str, Any]] = []
                 if ev_ids:
@@ -2042,7 +2050,29 @@ class HubStore:
             active_decisions = [d for d in searched["decisions"] if d.get("status") == "active"]
             episodes = searched["episodes"]
             memories = searched["memories"]
-            raw_snippets = searched.get("raw", [])
+            raw_snippets = list(searched.get("raw_matches") or searched.get("raw") or [])
+            # Suppress raw evidence that exclusively backs superseded decisions so
+            # get_context_pack never leaks stale facts alongside active bi-temporal truth.
+            if raw_snippets:
+                with self._tx(False) as conn:
+                    cand_ids = [r["id"] for r in raw_snippets if r.get("id")]
+                    if cand_ids:
+                        ph = ",".join("?" for _ in cand_ids)
+                        sup_only = {
+                            row[0]
+                            for row in conn.execute(
+                                f"""SELECT de.raw_id
+                                    FROM decision_evidence de
+                                    JOIN decisions d ON d.id = de.decision_id
+                                    WHERE de.raw_id IN ({ph})
+                                    GROUP BY de.raw_id
+                                    HAVING SUM(CASE WHEN d.status = 'active' THEN 1 ELSE 0 END) = 0
+                                       AND SUM(CASE WHEN d.status = 'superseded' THEN 1 ELSE 0 END) > 0""",
+                                cand_ids,
+                            ).fetchall()
+                        }
+                        if sup_only:
+                            raw_snippets = [r for r in raw_snippets if r.get("id") not in sup_only]
 
         if normalized_project:
             state = self.get_project_state(normalized_project, include_history=False, agent=agent)
@@ -2368,7 +2398,22 @@ class HubStore:
                 bounded_dec.append(d)
                 used += cost
         for ep in episodes_out:
-            compact = {k: ep[k] for k in ("id", "title", "summary", "project", "primary_source", "t_start", "t_end", "status", "event_ids", "markdown_path")}
+            compact = {
+                k: ep[k]
+                for k in (
+                    "id",
+                    "title",
+                    "summary",
+                    "project",
+                    "primary_source",
+                    "t_start",
+                    "t_end",
+                    "status",
+                    "markdown_path",
+                )
+            }
+            compact["event_count"] = ep.get("event_count", len(ep.get("event_ids") or []))
+            compact["event_ids"] = list(ep.get("event_ids") or [])[:8]
             cost = _approx_tokens(compact)
             if used + cost <= max_tokens:
                 bounded_ep.append(compact)

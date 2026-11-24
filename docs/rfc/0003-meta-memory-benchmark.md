@@ -1,7 +1,9 @@
-# RFC 0003：Reflexive Meta Memory Benchmark —— 反身性元记忆评测体系与因果时间旅行重放规范
+# RFC 0003：Raw Memory · Reflexive Meta Memory Benchmark —— 原始数据门禁与反身性元记忆评测体系
 
-- **状态**：Proposed（v1 实现基线，配套 `packages/eval/`）
-- **前置参考**：[RFC-0001](0001-context-integration.md) · [RFC-0002](0002-hub-v2-agent-curator.md) · [Context Curator 规范](../../skills/context-curator/SKILL.md)
+- **状态**：Accepted（v1 实现基线，配套 `packages/eval/` 与 `raw-memory-eval` CLI）
+- **前置参考**：[RFC-0001](0001-context-integration.md) · [RFC-0002](0002-hub-v2-agent-curator.md) · [Raw Memory Curator 规范](../../skills/context-curator/SKILL.md)
+
+> **两段式质量门禁**：在整理任何 Memory 之前，必须先通过 **`raw-memory-eval audit-raw`**（验证 L0/L1 原始数据真实完整、零回显噪声、零隐私越界且 Agent 检索可消费）；整理产出 Memory 后，再通过 **`raw-memory-eval audit-memory`** 与 **`raw-memory-eval run`** 对中间产出的 Memory 做证据溯源、权威防膨胀（`user_confirmed` 必须含用户侧原始证据）、压缩比、双时序一致性和实时 A/B 对照评估。
 
 ## 1. 背景：为什么传统闲聊记忆基准无法评测 Agent Session 记忆？
 

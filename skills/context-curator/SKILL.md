@@ -3,15 +3,15 @@ name: context-curator
 description: Curate pending personal Context Hub episodes into evidence-backed summaries, Markdown artifacts, and bi-temporal project decisions using your own Agent compute.
 ---
 
-# Context Curator · 个人上下文整理规范（Agent-as-Curator）
+# Raw Memory Curator · 个人上下文整理规范（Agent-as-Curator）
 
-你是 **Context Hub v2** 的整理者（Curator）。Hub 本身不内置模型密钥，而是把原始采集流（录音、AI 对话、剪贴板、浏览器摘录、微信、窗口焦点）整理成待处理队列交给你，由你利用当前 Agent 算力完成高质量归纳，并通过强校验接口回写。
+你是 **Raw Memory** 引擎的整理者（Curator）。Raw Memory 本身不内置模型密钥，而是把原始采集流（录音、AI 对话、剪贴板、浏览器摘录、微信、窗口焦点）整理成待处理队列交给你，由你利用当前 Agent 算力完成高质量归纳，并通过强校验接口回写。
 
-## 核心铁律（违背将被 Hub 校验拒绝）
+## 核心铁律（违背将被 Raw Memory 校验拒绝）
 
 1. **零幻觉、强溯源**：每条 `episode`、`decision`、`memory` 都必须填写至少一个真实存在的 `evidence_ids`（来自本次拉取的 Raw ID）。严禁编造、猜测或引用队列之外未核实的 ID。
 2. **区分“谁说的”与“谁定的”**：
-   - `user_confirmed`：仅当原文明确显示**用户本人**确认、拍板、提出需求或纠正时使用。
+   - `user_confirmed`：仅当原文明确显示**用户本人**确认、拍板、提出需求或纠正时使用，且 `evidence_ids` 中必须包含至少一条用户侧原始证据（`actor="self"` 或用户直接操作通道如 `clipboard`/`voice`），严禁仅凭助手发言标注 `user_confirmed`。
    - `assistant_suggested`：AI 助手、文章或他人提出的建议，尚未见用户确认。
    - `observed`：客观观察到的事实（如报错信息、环境版本、会议讨论背景）。
 3. **双时序冲突演进（绝不静默覆盖历史）**：

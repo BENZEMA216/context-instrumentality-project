@@ -18,8 +18,8 @@ from .store import HubStore
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="context-hub",
-        description="Context Hub v2 — Local-first personal context OS & Agent-as-Curator MCP",
+        prog="raw-memory",
+        description="Raw Memory — Local-first personal raw data store, evidence-gated Memory engine & Agent-as-Curator MCP",
     )
     parser.add_argument(
         "--data-dir",

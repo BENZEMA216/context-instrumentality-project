@@ -1,13 +1,13 @@
 {
-  "name": "context-hub",
+  "name": "raw-memory",
   "version": "0.2.0",
-  "description": "Personal Context OS plugin rooted inside your AI Agent: progressive-disclosure Memory recall (MCP), Agent-as-Curator synthesis rules, and deep-linkable local Web Workbench views opened directly from chat.",
+  "description": "Raw Memory — Local-first personal raw data & evidence-gated Memory engine plugin rooted inside your AI Agent (MCP recall, Agent-as-Curator rules, and deep-linkable Workbench views).",
   "entry_experience": "agent-plugin-with-web-deeplinks",
   "workbench_base_url": "http://127.0.0.1:8741",
   "mcp_servers": {
-    "context-hub": {
+    "raw-memory": {
       "command": "uv",
-      "args": ["run", "context-hub", "mcp"]
+      "args": ["run", "raw-memory", "mcp"]
     }
   },
   "skills": [

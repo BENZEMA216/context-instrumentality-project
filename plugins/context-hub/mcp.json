@@ -1,12 +1,12 @@
 {
   "mcpServers": {
-    "context-hub": {
+    "raw-memory": {
       "command": "uv",
       "args": [
         "--directory",
         "<PATH_TO_CONTEXT_INSTRUMENTALITY_REPO>",
         "run",
-        "context-hub",
+        "raw-memory",
         "mcp"
       ],
       "env": {

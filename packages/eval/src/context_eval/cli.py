@@ -9,7 +9,9 @@ from pathlib import Path
 
 from context_hub.mcp_server import default_data_dir
 
+from .memory_judge import audit_curated_memory, render_memory_audit_markdown
 from .miner import default_eval_dir, mine_candidates
+from .raw_audit import audit_raw_data, render_raw_audit_markdown
 from .runner import default_dataset_path, evaluate_dataset, load_dataset, render_markdown_report
 from .schema import ALL_BASELINES, BaselineName
 
@@ -35,8 +37,8 @@ def _parse_baselines(raw: str | None) -> list[BaselineName]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="context-eval",
-        description="Reflexive Meta Memory Benchmark runner and privacy-safe candidate miner",
+        prog="raw-memory-eval",
+        description="Raw Memory — Raw Data Readiness Gate, Curated Memory Observability & Reflexive Meta Benchmark",
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -108,6 +110,32 @@ def main(argv: list[str] | None = None) -> int:
         help="Opt-in to include non-local_only text previews in local private export (default: redacted metadata only)",
     )
 
+    raw_cmd = sub.add_parser(
+        "audit-raw",
+        help="Verify Raw Data integrity, signal hygiene, privacy boundaries, and live Agent consumption readiness",
+    )
+    raw_cmd.add_argument(
+        "--data-dir",
+        type=Path,
+        default=default_data_dir(),
+        help="Local Raw Memory data directory (default: ~/.local/share/context-hub-v2)",
+    )
+    raw_cmd.add_argument("--query", type=str, default=None, help="Optional non-private smoke probe query")
+    raw_cmd.add_argument("--format", choices=("markdown", "json"), default="markdown")
+
+    mem_cmd = sub.add_parser(
+        "audit-memory",
+        help="Observe & grade real curated Memory against L0/L1 Raw Data + run live A/B benchmark scorecard",
+    )
+    mem_cmd.add_argument(
+        "--data-dir",
+        type=Path,
+        default=default_data_dir(),
+        help="Local Raw Memory data directory (default: ~/.local/share/context-hub-v2)",
+    )
+    mem_cmd.add_argument("--skip-live-ab", action="store_true")
+    mem_cmd.add_argument("--format", choices=("markdown", "json"), default="markdown")
+
     args = parser.parse_args(argv)
 
     if args.command == "run":
@@ -149,6 +177,26 @@ def main(argv: list[str] | None = None) -> int:
         }
         sys.stdout.write(json.dumps(summary, ensure_ascii=False, indent=2) + "\n")
         return 0
+
+    if args.command == "audit-raw":
+        report = audit_raw_data(args.data_dir, probe_query=args.query)
+        rendered = (
+            render_raw_audit_markdown(report)
+            if args.format == "markdown"
+            else report.model_dump_json(indent=2) + "\n"
+        )
+        sys.stdout.write(rendered)
+        return 0 if report.ready_for_curation else 1
+
+    if args.command == "audit-memory":
+        report = audit_curated_memory(args.data_dir, run_live_ab=not args.skip_live_ab)
+        rendered = (
+            render_memory_audit_markdown(report)
+            if args.format == "markdown"
+            else report.model_dump_json(indent=2) + "\n"
+        )
+        sys.stdout.write(rendered)
+        return 0 if report.overall_passed else 1
 
     return 1
 

@@ -2,38 +2,38 @@
   <img src="assets/eva-context-banner.png" alt="CONTEXT 补全计划 · The Context Instrumentality Project" width="100%" />
 </p>
 
-# Context 补全计划 · The Context Instrumentality Project
+# Raw Memory · Context 补全计划
 
-**Local-first 个人上下文操作系统**：把你在 **AI 对话、剪贴板、浏览器、微信、录音、窗口焦点与私密资料库（Vault）** 中散落的真实数字生活沉淀为可追溯的 `L0` 原档、`L1` 毫秒级全文索引与跨源链接、`L2` 人机共读的 Markdown 档案与 `L3` 双时序决策台账，并通过 **Agent-as-Curator** 模式复用你已有的 Agent 算力（Antigravity / Codex / WorkBuddy / Claude Code）自动整理与按需召回。
+**Local-first 个人原始数据与证据门控记忆引擎（`Raw Memory`）**：把你在 **AI 对话、剪贴板（`Clip for Agent`）、录音（`Record for Agent`）、浏览器（`Read for Agent`）、聊天（`Chat for Agent`）、窗口焦点（`Focus for Agent`）与私密资料库（`Vault for Agent`）** 中散落的真实数字生活沉淀为不可变 `L0` 原档、`L1` 毫秒级全文索引与跨源链接、`L2` 人机共读 Markdown 档案与 `L3` 双时序决策台账，通过 **Agent-as-Curator** 整理闭环与 **Meta Memory Benchmark** 可观测评测体系，确保原始数据真实可靠、记忆产出可观测可界定。
 
-> **核心理念**：Hub 本身不内置昂贵的外部模型密钥，也不靠脆弱正则伪装记忆——Hub 做最稳的确定性底座，把透明可编辑的**整理规则、待整理队列与强校验回写接口**通过 MCP & Skill 暴露给你正在使用的 Agent，零额外算力成本完成高质量记忆整理。
+> **核心理念**：`Raw Memory` 引擎本身不内置昂贵的外部模型密钥，也不靠脆弱正则伪装记忆——先守住真实可靠的 Raw Data 底座与严格可消费性，再通过 MCP & Skill 复用你已有的 Agent 算力完成证据门控整理，并用基于原始数据的 Meta Benchmark 量化观测记忆质量。
 
 ---
 
 ## 核心架构一览
 
-详细设计见 **[RFC-0002：Context Hub v2 与 Agent-as-Curator](docs/rfc/0002-hub-v2-agent-curator.md)** 与 **[RFC-0001：跨渠道整合草案](docs/rfc/0001-context-integration.md)**。
+详细设计见 **[RFC-0002：Raw Memory 架构与 Agent-as-Curator](docs/rfc/0002-hub-v2-agent-curator.md)**、**[RFC-0003：Reflexive Meta Memory Benchmark](docs/rfc/0003-meta-memory-benchmark.md)** 与 **[RFC-0001：跨渠道整合草案](docs/rfc/0001-context-integration.md)**。
 
 ```text
-采集渠道 (AI Chat / Clip for Agent / Read for Agent / Chat for Agent / Record for Agent / Focus for Agent)
+端侧采集矩阵 (AI Sessions / Clip for Agent / Record for Agent / Read for Agent / Chat for Agent / Focus for Agent)
    │
    ▼
-L0 raw/ (不可变原档) ──► L1 hub.sqlite (FTS5 中文检索 + 5 级跨源链接)
-                              │
-                              ▼
-L2 Episodes + markdown/ (YAML Frontmatter 人机共读) ◄──► Agent-as-Curator
-                              │                          (Antigravity / Codex / WorkBuddy)
-                              ▼
-L3 Bi-Temporal Decisions (当前定案 / superseded_by) ──► L4 高层 MCP Server + Workbench UI
-                                                              ▲
-Vault for Agent (隔离逐条加密库 · 实用型授权代办) ─────────────┘ (仅同步脱敏回执)
+Raw Memory 引擎: L0 raw/ (不可变原档) ──► L1 hub.sqlite (FTS5 中文检索 + 5 级跨源链接)
+                                              │
+                                              ▼
+                 L2 Episodes + markdown/ ◄──► Agent-as-Curator (Antigravity / Codex / Claude Code)
+                                              │
+                                              ▼
+                 L3 Bi-Temporal Decisions ──► L4 MCP Server (`raw-memory mcp`) + Meta Benchmark (`raw-memory-eval`)
+                                              ▲
+Vault for Agent (隔离逐条加密库) ──────────────┘ (仅同步脱敏回执)
 ```
 
 ---
 
-## `for Agent` 产品家族命名规范
+## `for Agent` 产品家族与 `Raw Memory` 引擎命名规范
 
-对外端侧采集工具统一采用 **`X for Agent`** 家族命名公式，底层中枢统称 **`Context Hub`**（中文总计划名：**Context 补全计划**）：
+对外端侧采集工具统一采用 **`X for Agent`** 家族命名公式，后端统一记忆引擎命名为 **`Raw Memory`**（CLI：`raw-memory` / `raw-memory-eval`，向下兼容 `context-hub` / `context-eval`）：
 
 | 渠道 | 统一产品名 | 平台 / 形态 | 底层兼容标识 | 状态 |
 | :--- | :--- | :--- | :--- | :---: |
@@ -43,7 +43,7 @@ Vault for Agent (隔离逐条加密库 · 实用型授权代办) ─────
 | 💬 聊天 | **`Chat for Agent`** | macOS 采集器（微信 / IM） | `packages/collectors/` | 🚧 Phase 3 |
 | 🖥️ 窗口与轨迹 | **`Focus for Agent`** | macOS 窗口焦点 & 位置 | `packages/collectors/` | ⏳ Phase 5 |
 | 🔐 私密库 | **`Vault for Agent`** | 逐条加密库 + 授权代办 | `packages/vault/` | ⏳ Phase 4 |
-| 🧠 统一底座 | **`Context Hub`** | Local-first SQLite + MCP + UI | `context-hub` | ✅ Phase 1-2 |
+| 🧠 后端引擎 | **`Raw Memory`** | Local-first L0–L4 引擎 + MCP + Eval | `raw-memory`（兼容 `context-hub`） | ✅ 运行中 |
 
 ---
 

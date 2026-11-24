@@ -30,6 +30,8 @@ audio = [
 ]
 
 [project.scripts]
+raw-memory = "context_hub.cli:main"
+raw-memory-eval = "context_eval.cli:main"
 context-hub = "context_hub.cli:main"
 context-collectors = "context_collectors.cli:main"
 context-eval = "context_eval.cli:main"

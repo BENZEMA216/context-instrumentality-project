@@ -15,7 +15,9 @@ from context_eval.baselines import (
     verify_causal_isolation,
 )
 from context_eval.cli import main as eval_cli_main
+from context_eval.memory_judge import audit_curated_memory
 from context_eval.miner import mine_candidates
+from context_eval.raw_audit import audit_raw_data
 from context_eval.runner import (
     default_dataset_path,
     evaluate_dataset,
@@ -357,3 +359,167 @@ def test_cli_run_and_mine_smoke(tmp_path: Path, capsys: pytest.CaptureFixture[st
     assert parsed["anti_echo"]["passed"] is True
     captured = capsys.readouterr()
     assert '"dataset_name": "synthetic_reflexive_v1"' in captured.out
+
+
+def test_raw_audit_and_memory_observability_gates(tmp_path: Path) -> None:
+    """Verify audit-raw readiness gate & audit-memory authority/grounding/live-AB grader."""
+    hub_dir = tmp_path / "raw_memory_store"
+    store = HubStore(hub_dir)
+    base_ms = 1_763_900_000_000
+
+    # 1. Ingest clean shareable + local_only raw events across ai_chat & clipboard
+    store.ingest_event(
+        RawEventIn(
+            id="ev_raw_u1",
+            source="ai_chat",
+            kind="chat_turn",
+            t_start=base_ms,
+            t_end=base_ms + 1000,
+            actor="self",
+            project="raw-memory-demo",
+            content={"role": "user", "title": "Old naming", "text": "引擎先叫 LegacyHubEngine"},
+            context={"provider": "codex", "session_id": "s1", "signal_hints": ["user_decision"]},
+            provenance={"connector": "chat-history/codex", "source_id": "s1:1"},
+        )
+    )
+    store.ingest_event(
+        RawEventIn(
+            id="ev_raw_a1",
+            source="ai_chat",
+            kind="chat_turn",
+            t_start=base_ms + 2000,
+            t_end=base_ms + 3000,
+            actor="codex",
+            project="raw-memory-demo",
+            content={"role": "assistant", "title": "Suggestion", "text": "建议加一个 Redis 缓存层"},
+            context={"provider": "codex", "session_id": "s1"},
+            provenance={"connector": "chat-history/codex", "source_id": "s1:2"},
+        )
+    )
+    store.ingest_event(
+        RawEventIn(
+            id="ev_raw_u2",
+            source="ai_chat",
+            kind="chat_turn",
+            t_start=base_ms + 60_000,
+            t_end=base_ms + 61_000,
+            actor="self",
+            project="raw-memory-demo",
+            content={"role": "user", "title": "Rename", "text": "把引擎名字统一改成 RawMemoryEngine，不要再用 LegacyHubEngine"},
+            context={"provider": "antigravity", "session_id": "s2", "signal_hints": ["user_correction", "user_decision"]},
+            provenance={"connector": "chat-history/antigravity", "source_id": "s2:1"},
+        )
+    )
+    store.ingest_event(
+        RawEventIn(
+            id="ev_raw_secret",
+            source="clipboard",
+            kind="copy",
+            t_start=base_ms + 70_000,
+            t_end=base_ms + 70_000,
+            actor="self",
+            project="raw-memory-demo",
+            privacy_tier="local_only",
+            content={"title": "secret", "text": "LOCAL_ONLY_CANARY_999"},
+            provenance={"connector": "clipcontext", "source_id": "dev:secret1"},
+        )
+    )
+
+    # Gate 1: audit-raw MUST pass with 0 privacy leaks & 0 leaked envelopes & consumable pack!
+    raw_rep = audit_raw_data(hub_dir, probe_query="RawMemoryEngine")
+    assert raw_rep.ready_for_curation is True
+    assert raw_rep.privacy["total_leaks"] == 0
+    assert raw_rep.consumption["get_context_pack_raw_evidence"] >= 1
+    assert raw_rep.consumption["get_curation_queue_returned"] >= 1
+
+    # Curate episode + bi-temporal supersession (v1 -> v2) + memory
+    q = store.get_curation_queue(limit=5, include_local_only=False)
+    ep_id = q["items"][0]["episode"]["id"]
+    # Verify signal_hints are surfaced in curation queue!
+    assert any("signal_hints" in ev for ev in q["items"][0]["events"])
+
+    c1 = store.commit_curation_batch(
+        CurationBatchIn(
+            curator_agent="antigravity",
+            episodes=[
+                {
+                    "episode_id": ep_id,
+                    "title": "引擎命名演进至 RawMemoryEngine",
+                    "summary": "用户最终决定把引擎改名为 RawMemoryEngine，废止 LegacyHubEngine。",
+                    "overview": "## 结论\n统一命名为 RawMemoryEngine。",
+                    "project": "raw-memory-demo",
+                    "entities": ["RawMemoryEngine"],
+                    "evidence_ids": ["ev_raw_u1", "ev_raw_u2"],
+                }
+            ],
+            decisions=[
+                DecisionCurationIn(
+                    project="raw-memory-demo",
+                    topic="engine_name",
+                    statement="引擎初版命名为 LegacyHubEngine",
+                    authority="user_confirmed",
+                    valid_at=base_ms + 1000,
+                    evidence_ids=["ev_raw_u1"],
+                )
+            ],
+            memories=[
+                {
+                    "title": "RawMemoryEngine 命名约束",
+                    "body": "对外统一使用 RawMemoryEngine，不再使用 LegacyHubEngine。",
+                    "kind": "preference",
+                    "project": "raw-memory-demo",
+                    "evidence_ids": ["ev_raw_u2"],
+                }
+            ],
+        )
+    )
+    old_dec = c1["committed"]["decisions"][0]
+    store.commit_curation_batch(
+        CurationBatchIn(
+            curator_agent="antigravity",
+            decisions=[
+                DecisionCurationIn(
+                    project="raw-memory-demo",
+                    topic="engine_name",
+                    statement="引擎正式命名为 RawMemoryEngine（取代旧名）",
+                    authority="user_confirmed",
+                    valid_at=base_ms + 62_000,
+                    supersedes_decision_id=old_dec,
+                    evidence_ids=["ev_raw_u2"],
+                )
+            ],
+        )
+    )
+
+    # Gate 2: audit-memory MUST pass 100% grounding, 100% authority fidelity, 0% stale leakage!
+    mem_rep = audit_curated_memory(hub_dir, run_live_ab=True)
+    assert mem_rep.overall_passed is True
+    assert mem_rep.grounding["grounding_rate"] == 1.0
+    assert mem_rep.grounding["authority_grounding_rate"] == 1.0
+    assert mem_rep.coherence["stale_pack_leaks"] == 0
+    by_b = {r.baseline: r for r in mem_rep.live_ab_scorecard}
+    assert by_b["raw_memory_curated"].active_truth_recall == 1.0
+    assert by_b["raw_memory_curated"].stale_leakage_rate == 0.0
+    assert by_b["flat_memory_md"].stale_leakage_rate > 0.0
+
+    # Negative test: an AI-only decision falsely marked `user_confirmed` MUST fail authority_grounding_100pct!
+    store.commit_curation_batch(
+        CurationBatchIn(
+            curator_agent="buggy-curator",
+            decisions=[
+                DecisionCurationIn(
+                    project="raw-memory-demo",
+                    topic="cache_layer",
+                    statement="强制引入 Redis 缓存层",
+                    authority="user_confirmed",
+                    valid_at=base_ms + 65_000,
+                    evidence_ids=["ev_raw_a1"],  # assistant-only!
+                )
+            ],
+        )
+    )
+    mem_rep_bad = audit_curated_memory(hub_dir, run_live_ab=False)
+    assert mem_rep_bad.overall_passed is False
+    assert mem_rep_bad.grounding["authority_grounding_rate"] < 1.0
+    auth_chk = next(c for c in mem_rep_bad.checks if c.name == "authority_grounding_100pct")
+    assert auth_chk.passed is False
