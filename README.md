@@ -15,7 +15,7 @@
 详细设计见 **[RFC-0002：Context Hub v2 与 Agent-as-Curator](docs/rfc/0002-hub-v2-agent-curator.md)** 与 **[RFC-0001：跨渠道整合草案](docs/rfc/0001-context-integration.md)**。
 
 ```text
-采集渠道 (AI Chat / ClipContext / Browser MV3 / WeChat / Record-for-Agent / Window / Location)
+采集渠道 (AI Chat / Clip for Agent / Read for Agent / Chat for Agent / Record for Agent / Focus for Agent)
    │
    ▼
 L0 raw/ (不可变原档) ──► L1 hub.sqlite (FTS5 中文检索 + 5 级跨源链接)
@@ -26,8 +26,24 @@ L2 Episodes + markdown/ (YAML Frontmatter 人机共读) ◄──► Agent-as-Cu
                               ▼
 L3 Bi-Temporal Decisions (当前定案 / superseded_by) ──► L4 高层 MCP Server + Workbench UI
                                                               ▲
-Context Vault v2 (隔离逐条加密库 · 实用型授权代办) ───────────┘ (仅同步脱敏回执)
+Vault for Agent (隔离逐条加密库 · 实用型授权代办) ─────────────┘ (仅同步脱敏回执)
 ```
+
+---
+
+## `for Agent` 产品家族命名规范
+
+对外端侧采集工具统一采用 **`X for Agent`** 家族命名公式，底层中枢统称 **`Context Hub`**（中文总计划名：**Context 补全计划**）：
+
+| 渠道 | 统一产品名 | 平台 / 形态 | 底层兼容标识 | 状态 |
+| :--- | :--- | :--- | :--- | :---: |
+| 🎙️ 录音 | **[`Record for Agent`](https://apps.apple.com/us/app/record-for-agent/id6831018336)** | iOS / watchOS App Store | `record-for-agent` | ✅ 已上架 |
+| 📋 剪贴板 | **`Clip for Agent`** | macOS 菜单栏 App | `com.benzema.ClipContext` / `clipcontext` | ✅ 已落地 |
+| 🌐 浏览器 | **`Read for Agent`** | Chrome MV3 扩展 | `extensions/browser/` | ✅ 骨架已落地 |
+| 💬 聊天 | **`Chat for Agent`** | macOS 采集器（微信 / IM） | `packages/collectors/` | 🚧 Phase 3 |
+| 🖥️ 窗口与轨迹 | **`Focus for Agent`** | macOS 窗口焦点 & 位置 | `packages/collectors/` | ⏳ Phase 5 |
+| 🔐 私密库 | **`Vault for Agent`** | 逐条加密库 + 授权代办 | `packages/vault/` | ⏳ Phase 4 |
+| 🧠 统一底座 | **`Context Hub`** | Local-first SQLite + MCP + UI | `context-hub` | ✅ Phase 1-2 |
 
 ---
 
@@ -39,11 +55,11 @@ Context Vault v2 (隔离逐条加密库 · 实用型授权代办) ────�
 | **Agent 插件包** | [`plugins/context-hub/`](plugins/context-hub/README.md) | ✅ Phase 2 已落地 | 根植于 Agent 的 MCP + `context-recall` / `context-curator` Skill + 对话直达深链打开本地 Workbench 网页视图 |
 | **Context Workbench UI** | `web/` | ✅ Phase 1-2 已落地 | React + TS 统一工作台（支持 `#/episodes/...`、`#/projects/...`、`#/artifacts/MEMORY.md` 深度直达路由） |
 | **AI 对话历史采集器** | [`packages/collectors/`](packages/collectors/src/context_collectors/ai_chat/) | ✅ Phase 2 已落地 | 11 端增量断点续传（含 **Antigravity** / Codex / Claude Code / Cursor / OpenCode / WorkBuddy / QClaw / DeepSeek / ChatGPT / Claude Web / Gemini）+ 离线 Spool |
-| **剪贴板（ClipContext）** | [`packages/collectors/`](packages/collectors/src/context_collectors/clipcontext.py) | ✅ Phase 2 已落地 | 兼容 `Agent/clipboard.json` 与 `Raw/manifest.json` 双格式 + 防版本回滚 + 撤销同步 + 密码管理器/隐匿 UTI 拦截 |
-| **浏览器扩展（MV3）** | [`extensions/browser/`](extensions/browser/README.md) | ✅ Phase 2 已落地 | 三层有效停留 + Defuddle/Readability 转 Markdown + 无弹窗划词提权 + 离线补传队列 + Promnesia 上下文侧边栏 |
-| **微信渠道** | `packages/collectors/` · `native/macos/` | 🚧 Phase 3 | WeFlow 合规历史导入 + macOS AX 优先 / 自适应 OCR 多会话监听 |
+| **剪贴板（Clip for Agent）** | [`packages/collectors/`](packages/collectors/src/context_collectors/clipcontext.py) | ✅ Phase 2 已落地 | 兼容 `Agent/clipboard.json` 与 `Raw/manifest.json` 双格式 + `org.chromium.source-url` 锚点 + 防版本回滚 + 撤销同步 + 密码管理器/隐匿 UTI 拦截 |
+| **浏览器扩展（Read for Agent）** | [`extensions/browser/`](extensions/browser/README.md) | ✅ Phase 2 已落地 | 三层有效停留 + Defuddle/Readability 转 Markdown + 无弹窗划词提权 + 离线补传队列 + Promnesia 上下文侧边栏 |
+| **聊天渠道（Chat for Agent）** | `packages/collectors/` · `native/macos/` | 🚧 Phase 3 | WeFlow 合规历史导入 + macOS AX 优先 / 自适应 OCR 多会话监听 |
 | **录音（Record for Agent）** | `packages/collectors/` | 🚧 Phase 3 | Mac/iCloud 自动增量接入 + `sherpa-onnx` + `SenseVoice-Small` 离线高精度转写 |
-| **Context Vault v2** | `packages/vault/` | ⏳ Phase 4 | 逐条加密私密库 + Touch ID 解锁 + HPKE 手机扫描 + 实用型白名单代理与 CLI 注入 |
+| **私密库（Vault for Agent）** | `packages/vault/` | ⏳ Phase 4 | 逐条加密私密库 + Touch ID 解锁 + HPKE 手机扫描 + 实用型白名单代理与 CLI 注入 |
 
 ---
 
