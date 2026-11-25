@@ -151,10 +151,21 @@ def test_human_in_the_loop_debug_workbench_endpoints(tmp_path: Path) -> None:
     app = create_workbench_app(hub_dir)
     client = TestClient(app)
 
-    # 1. HTML studio loads cleanly
+    # 1. HTML studio loads cleanly and embedded JS has zero syntax errors
     r_html = client.get("/")
     assert r_html.status_code == 200
     assert "Raw Memory" in r_html.text
+    import re
+    import shutil
+    import subprocess
+
+    m_js = re.search(r"<script>([\s\S]*?)</script>", r_html.text)
+    assert m_js is not None
+    if shutil.which("node"):
+        js_file = tmp_path / "workbench_check.js"
+        js_file.write_text(m_js.group(1), encoding="utf-8")
+        proc = subprocess.run(["node", "--check", str(js_file)], capture_output=True, text=True)
+        assert proc.returncode == 0, f"Workbench JS SyntaxError: {proc.stderr}"
 
     # 2. Overview detects unsupported "Vault" and omitted Watch turn
     r_ov = client.get("/api/debug/overview")

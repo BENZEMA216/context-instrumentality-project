@@ -281,7 +281,7 @@ def create_workbench_app(
     return app
 
 
-_WORKBENCH_HTML = """<!doctype html>
+_WORKBENCH_HTML = r"""<!doctype html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8" />
