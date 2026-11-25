@@ -43,20 +43,44 @@ def main(argv: list[str] | None = None) -> int:
 
     sub.add_parser("init", help="Initialize a new AES-256-GCM encrypted vault")
 
-    set_p = sub.add_parser("set", help="Store or update an encrypted secret record")
+    set_p = sub.add_parser("set", help="Store or update an encrypted secret/entity/document record")
     set_p.add_argument(
         "--kind",
         default="api_key",
-        choices=("api_key", "credential", "identity_doc", "address", "payment_card", "note"),
+        choices=(
+            "person_profile",
+            "company_entity",
+            "identity_doc",
+            "business_license",
+            "api_key",
+            "credential",
+            "address",
+            "payment_card",
+            "note",
+        ),
     )
+    set_p.add_argument("--subject", default="self", help="Entity subject ID (e.g. self, partner:zheng, company:rawmemory)")
     set_p.add_argument("--label", required=True)
     set_p.add_argument("--id", dest="record_id", default=None)
     set_p.add_argument("--project", default=None)
-    set_p.add_argument("--value-env", default=None, help="Read secret value from an env var")
+    set_p.add_argument("--value-env", default=None, help="Read simple secret value from an env var")
+    set_p.add_argument("--json-file", type=Path, default=None, help="Read structured JSON payload (person_profile/company_entity/identity_doc/business_license)")
     set_p.add_argument("--allow-cmd", action="append", default=[], help="Allowlist executable name for `run`")
     set_p.add_argument("--tag", action="append", default=[])
 
+    att_p = sub.add_parser("attach", help="Encrypt and attach a scan/PDF/photo (e.g. 营业执照/身份证) to a vault record")
+    att_p.add_argument("record_id")
+    att_p.add_argument("file", type=Path)
+    att_p.add_argument("--mime", default="application/octet-stream")
+
+    sub.add_parser("subjects", help="List subjects (self / partner:* / company:*) with document counts (no plaintext)")
+
+    af_p = sub.add_parser("autofill", help="Build unified Form-Fill bundle (profile + extracted ID/license fields)")
+    af_p.add_argument("--subject", default="self")
+    af_p.add_argument("--masked", action="store_true", help="Mask PII values for safe preview")
+
     list_p = sub.add_parser("list", help="List non-secret metadata of vault records")
+    list_p.add_argument("--subject", default=None)
     list_p.add_argument("--project", default=None)
     list_p.add_argument("--kind", default=None)
 
@@ -94,11 +118,38 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "list":
             print(
                 json.dumps(
-                    {"records": vault.list_records(project=args.project, kind=args.kind)},
+                    {
+                        "records": vault.list_records(
+                            subject_id=args.subject, project=args.project, kind=args.kind
+                        )
+                    },
                     ensure_ascii=False,
                     indent=2,
                 )
             )
+            return 0
+
+        if args.command == "subjects":
+            print(json.dumps({"subjects": vault.list_subjects()}, ensure_ascii=False, indent=2))
+            return 0
+
+        if args.command == "autofill":
+            pw = _resolve_passphrase(args)
+            bundle = vault.build_autofill_bundle(pw, args.subject, masked=args.masked)
+            print(json.dumps(bundle, ensure_ascii=False, indent=2))
+            return 0
+
+        if args.command == "attach":
+            pw = _resolve_passphrase(args)
+            raw_bytes = args.file.expanduser().read_bytes()
+            att = vault.add_attachment(
+                pw,
+                record_id=args.record_id,
+                filename=args.file.name,
+                data=raw_bytes,
+                mime_type=args.mime,
+            )
+            print(json.dumps(att, ensure_ascii=False, indent=2))
             return 0
 
         if args.command == "audit":
@@ -117,15 +168,20 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "set":
             pw = _resolve_passphrase(args)
-            if args.value_env:
-                secret_val = os.environ.get(args.value_env, "")
+            if args.json_file:
+                payload = json.loads(args.json_file.expanduser().read_text(encoding="utf-8"))
+                if not isinstance(payload, dict):
+                    raise ValueError("--json-file must contain a JSON object")
+            elif args.value_env:
+                payload = {"value": os.environ.get(args.value_env, "")}
             else:
-                secret_val = getpass.getpass("Secret value: ")
+                payload = {"value": getpass.getpass("Secret value: ")}
             meta = vault.put_record(
                 pw,
                 kind=args.kind,
+                subject_id=args.subject,
                 label=args.label,
-                secret_payload={"value": secret_val},
+                secret_payload=payload,
                 record_id=args.record_id,
                 project=args.project,
                 tags=args.tag,

@@ -68,6 +68,23 @@ def load_chat_allowlist(path: Path | None) -> dict[str, Any]:
     return {"allow_sessions": [], "default_allowed_tier": "shareable", "project_map": {}}
 
 
+def save_chat_allowlist(path: Path, allowlist: dict[str, Any]) -> dict[str, Any]:
+    """Persist `chat_allowlist.json` safely with normalized structure."""
+    target = Path(path).expanduser()
+    target.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    normalized = {
+        "allow_sessions": sorted({str(x).strip() for x in (allowlist.get("allow_sessions") or []) if str(x).strip()}),
+        "default_allowed_tier": str(allowlist.get("default_allowed_tier") or "shareable"),
+        "project_map": {
+            str(k).strip(): str(v).strip()
+            for k, v in (allowlist.get("project_map") or {}).items()
+            if str(k).strip() and str(v).strip()
+        },
+    }
+    target.write_text(json.dumps(normalized, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return normalized
+
+
 def _parse_ts_ms(raw: Any) -> int:
     if raw is None or raw == "":
         return 0

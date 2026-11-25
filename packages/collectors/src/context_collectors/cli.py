@@ -24,6 +24,8 @@ from .audio import (
 from .browser import BrowserHistoryCollector
 from .chat import ChatInboxCollector, load_chat_allowlist, parse_chat_export_file
 from .clipcontext import ClipContextCollector
+from .lark_im import LarkIMCollector
+from .registry import list_channel_specs
 from .runtime import (
     CheckpointBackend,
     Collector,
@@ -37,7 +39,16 @@ from .runtime import (
 )
 from .window import WindowFocusCollector
 
-ALL_COLLECTOR_CHOICES = ("all", "ai_chat", "clipcontext", "audio", "browser", "window", "chat")
+ALL_COLLECTOR_CHOICES = (
+    "all",
+    "ai_chat",
+    "clipcontext",
+    "audio",
+    "browser",
+    "window",
+    "chat",
+    "lark_im",
+)
 
 
 def _build_collectors(
@@ -58,6 +69,7 @@ def _build_collectors(
         "browser": BrowserHistoryCollector(since_days=since_days if since_days is not None else 14.0),
         "window": WindowFocusCollector(),
         "chat": ChatInboxCollector(data_dir=data_dir),
+        "lark_im": LarkIMCollector(data_dir=data_dir),
     }
     if selected == "all":
         return list(mapping.values())
@@ -103,6 +115,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--token", help="Owner bearer token when using --hub-url")
 
     sub = parser.add_subparsers(dest="command", required=True)
+
+    sub.add_parser("channels", help="List all active, ready, and reserved Raw Memory channel slots")
 
     doc_p = sub.add_parser("doctor", help="Inspect local channel availability & health without mutating state")
     doc_p.add_argument("--collector", default="all", choices=ALL_COLLECTOR_CHOICES)
@@ -209,6 +223,10 @@ def main(argv: list[str] | None = None) -> int:
     im_p.add_argument("files", nargs="+", type=Path)
 
     args = parser.parse_args(argv)
+
+    if args.command == "channels":
+        print(json.dumps({"channels": list_channel_specs()}, ensure_ascii=False, indent=2))
+        return 0
 
     if args.command == "download-asr-models":
         status = ensure_sensevoice_models()

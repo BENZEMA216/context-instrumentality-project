@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import json
 import sqlite3
 import sys
@@ -9,6 +10,7 @@ import time
 from pathlib import Path
 
 import pytest
+from fastapi.testclient import TestClient
 
 from context_collectors.ai_chat.parsers import sanitize_turn_text
 from context_collectors.browser import (
@@ -18,6 +20,8 @@ from context_collectors.browser import (
     BrowserProfileSource,
 )
 from context_collectors.chat import ChatInboxCollector, parse_chat_export_file
+from context_collectors.lark_im import parse_lark_messages
+from context_collectors.registry import list_channel_specs
 from context_collectors.runtime import DirectHubSink, HubCheckpointStore, run_collector
 from context_collectors.window import (
     WindowFocusCollector,
@@ -26,8 +30,9 @@ from context_collectors.window import (
     infer_project_from_window,
     is_blocked_window,
 )
+from context_eval.workbench import create_workbench_app
 from context_hub.store import HubStore
-from context_vault import VaultAuthError, VaultStore
+from context_vault import VaultAuthError, VaultStore, extract_cn_id_metadata
 
 
 def _make_chromium_history_db(path: Path) -> None:
@@ -332,3 +337,208 @@ def test_antigravity_user_settings_change_envelope_stripped() -> None:
     assert "Switched model tier" not in cleaned
     assert "请只保留真正有长期价值的记忆" in cleaned
     assert stripped is True
+
+
+def test_channel_registry_and_lark_im_privacy_gating() -> None:
+    specs = list_channel_specs()
+    sources = {s["source"] for s in specs}
+    assert {"ai_chat", "clipboard", "voice", "browser", "wechat", "im.lark", "vault", "window", "notes.obsidian"} <= sources
+
+    msgs = [
+        {"message_id": "om_1", "create_time": "1764200000000", "sender": {"id": "ou_self", "name": "Me"}, "content": '{"text": "确认本周接入飞书通道"}'},
+        {"message_id": "om_2", "create_time": "1764200060000", "sender": {"id": "ou_peer", "name": "Partner"}, "content": '{"text": "好的"}'},
+    ]
+    # Without allowlist -> strictly local_only
+    ev_locked = parse_lark_messages("oc_proj_1", "项目群", msgs, self_open_id="ou_self")
+    assert len(ev_locked) == 2
+    assert all(e.privacy.tier == "local_only" for e in ev_locked)
+    assert ev_locked[0].actor == "self"
+
+    # With allowlist -> promoted to shareable + mapped project
+    ev_allowed = parse_lark_messages(
+        "oc_proj_1",
+        "项目群",
+        msgs,
+        self_open_id="ou_self",
+        allowlist={"allow_sessions": ["oc_proj_1"], "default_allowed_tier": "shareable", "project_map": {"oc_proj_1": "raw-memory"}},
+    )
+    assert all(e.privacy.tier == "shareable" and e.project == "raw-memory" for e in ev_allowed)
+
+
+def test_vault_entities_multi_phone_cn_id_attachments_and_autofill(tmp_path: Path) -> None:
+    # Verify deterministic 18-digit Chinese ID birth_date & gender parser
+    meta = extract_cn_id_metadata("31010119920518123X")
+    assert meta == {"birth_date": "1992-05-18", "gender": "男"}
+
+    vault = VaultStore(tmp_path / "vault")
+    pw = "strong-local-passphrase"
+    vault.init_vault(pw)
+
+    # 1. Self profile with MULTIPLE phone numbers, emails, and addresses
+    vault.put_record(
+        pw,
+        kind="person_profile",
+        subject_id="self",
+        label="本人基础资料",
+        secret_payload={
+            "full_name": "测试用户",
+            "legal_name_en": "Test User",
+            "phones": [
+                {"label": "国内主力", "number": "13800138000", "country_code": "+86", "primary": True},
+                {"label": "海外工作", "number": "6505550199", "country_code": "+1", "primary": False},
+            ],
+            "emails": [
+                {"label": "个人", "address": "me@example.com", "primary": True},
+                {"label": "公司", "address": "founder@rawmemory.app", "primary": False},
+            ],
+            "addresses": [
+                {"label": "现居", "full_address": "上海市静安区示例路88号", "postal_code": "200040", "primary": True},
+            ],
+        },
+    )
+
+    # 2. Linked CN ID Card -> automatically contributes birth_date, gender, and 户籍地址
+    id_rec = vault.put_record(
+        pw,
+        kind="identity_doc",
+        subject_id="self",
+        label="本人身份证",
+        secret_payload={
+            "doc_type": "cn_id_card",
+            "holder_name": "测试用户",
+            "doc_number": "31010119920518123X",
+            "address": "浙江省杭州市西湖区示例路1号",
+            "expiry_date": "2036-05-18",
+        },
+    )
+
+    # 3. Company Business License + encrypted binary scan attachment
+    lic_rec = vault.put_record(
+        pw,
+        kind="business_license",
+        subject_id="company:rawmemory",
+        label="营业执照正本",
+        secret_payload={
+            "company_name": "示例智能科技有限公司",
+            "unified_social_credit_code": "91310106MA12345678",
+            "legal_representative": "测试用户",
+            "registered_address": "上海市静安区示例大厦10楼",
+            "established_date": "2025-01-15",
+        },
+    )
+    fake_pdf = b"%PDF-1.4\nBUSINESS_LICENSE_SECRET_BYTES_999"
+    att = vault.add_attachment(
+        pw,
+        record_id=lic_rec["id"],
+        filename="business_license.pdf",
+        data=fake_pdf,
+        mime_type="application/pdf",
+    )
+    # Encrypted blob on disk MUST NOT contain plaintext bytes
+    blob_file = vault.blobs_dir / f"{att['id']}.enc"
+    assert b"BUSINESS_LICENSE_SECRET_BYTES_999" not in blob_file.read_bytes()
+    att_meta, decrypted_bytes = vault.get_attachment_bytes(pw, att["id"])
+    assert att_meta["filename"] == "business_license.pdf"
+    assert decrypted_bytes == fake_pdf
+
+    # 4. Unified Form-Fill Bundle merges profile + extracted ID fields + all multiple phones/addresses
+    af_plain = vault.build_autofill_bundle(pw, "self", masked=False)
+    assert af_plain["basic_fields"]["full_name"] == "测试用户"
+    assert af_plain["basic_fields"]["birth_date"] == "1992-05-18"
+    assert af_plain["basic_fields"]["gender"] == "男"
+    assert len(af_plain["phones"]) == 2
+    assert len(af_plain["emails"]) == 2
+    assert len(af_plain["addresses"]) == 2  # 现居 + 证件住址(cn_id_card)
+    assert len(af_plain["documents"]) == 1 and af_plain["documents"][0]["record_id"] == id_rec["id"]
+
+    af_masked = vault.build_autofill_bundle(pw, "self", masked=True)
+    assert "13800138000" not in json.dumps(af_masked)
+    assert "31010119920518123X" not in json.dumps(af_masked)
+
+    # 5. Company autofill bundle includes business license credit code & attachment metadata
+    co_af = vault.build_autofill_bundle(pw, "company:rawmemory", masked=False)
+    assert co_af["entity_type"] == "company"
+    assert co_af["basic_fields"]["unified_social_credit_code"] == "91310106MA12345678"
+    assert len(co_af["documents"][0]["attachments"]) == 1
+
+    # 6. Sync masked pointers to Hub (zero PII leaks!)
+    hub = HubStore(tmp_path / "hub")
+    res = vault.sync_masked_receipts_to_hub(hub)
+    assert res["created"] == 3
+    all_receipts = hub.list_raw(sources=["vault"], agent=True)
+    assert len(all_receipts) == 3
+    joined = json.dumps(all_receipts, ensure_ascii=False)
+    assert "31010119920518123X" not in joined
+    assert "91310106MA12345678" not in joined
+    assert "13800138000" not in joined
+
+
+def test_workbench_channels_and_vault_endpoints(tmp_path: Path) -> None:
+    hub_dir = tmp_path / "hub_wb"
+    HubStore(hub_dir)
+    app = create_workbench_app(hub_dir)
+    client = TestClient(app)
+
+    # Channels status exposes all 13 reserved/active channels
+    r_ch = client.get("/api/channels/status")
+    assert r_ch.status_code == 200
+    assert len(r_ch.json()["channels"]) >= 12
+
+    # Upload a WeFlow chat export -> defaults to local_only -> toggle allowlist -> promoted to shareable!
+    weflow = json.dumps(
+        {
+            "session": {"accountId": "999@chatroom", "name": "核心产品群", "isGroup": True},
+            "messages": [
+                {"id": "w1", "createTime": 1764202000, "senderName": "合伙人", "isSelf": False, "content": "周三看新版"},
+            ],
+        },
+        ensure_ascii=False,
+    )
+    r_up = client.post("/api/channels/chat/upload", json={"filename": "group.json", "content": weflow})
+    assert r_up.status_code == 200
+    assert r_up.json()["report"]["created"] == 1
+
+    r_allow = client.post(
+        "/api/channels/chat/allowlist",
+        json={"session_id": "999@chatroom", "allow": True, "project": "raw-memory"},
+    )
+    assert r_allow.status_code == 200
+    assert r_allow.json()["updated_messages"] == 1
+
+    # Vault init -> save partner record -> attach file -> autofill -> lock -> 403 enforced!
+    assert client.post("/api/vault/init", json={"passphrase": "wb-secret-pass"}).status_code == 200
+    r_rec = client.post(
+        "/api/vault/record",
+        json={
+            "kind": "person_profile",
+            "subject_id": "partner:zheng",
+            "label": "合伙人政哥档案",
+            "payload": {
+                "full_name": "政哥示例",
+                "phones": [{"label": "主力", "number": "13900139000", "primary": True}],
+            },
+        },
+    )
+    assert r_rec.status_code == 200
+    rid = r_rec.json()["record"]["id"]
+
+    r_att = client.post(
+        f"/api/vault/record/{rid}/attach",
+        json={
+            "filename": "id_scan.txt",
+            "mime_type": "text/plain",
+            "content_b64": base64.b64encode(b"encrypted-scan").decode("ascii"),
+        },
+    )
+    assert r_att.status_code == 200
+    att_id = r_att.json()["attachment"]["id"]
+    assert client.get(f"/api/vault/attachment/{att_id}").content == b"encrypted-scan"
+
+    r_af = client.get("/api/vault/autofill/partner:zheng?masked=false")
+    assert r_af.status_code == 200
+    assert r_af.json()["phones"][0]["number"] == "13900139000"
+
+    assert client.post("/api/vault/sync-receipts").json()["created"] == 1
+    assert client.post("/api/vault/lock").json()["unlocked"] is False
+    assert client.get("/api/vault/autofill/partner:zheng").status_code == 403
+

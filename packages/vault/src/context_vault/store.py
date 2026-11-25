@@ -1,21 +1,27 @@
-"""Isolated encrypted SQLite store, masked Raw Memory receipts, and zero-exposure runner."""
+"""Isolated encrypted SQLite store, encrypted document attachments, autofill engine & receipts."""
 
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import os
 import sqlite3
 import subprocess
+from collections import defaultdict
 from collections.abc import Sequence
 from contextlib import contextmanager, suppress
 from pathlib import Path
 from typing import Any, Literal
 
+from cryptography.exceptions import InvalidTag
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
 from context_hub.models import RawEventIn, new_ulid, now_ms
 from context_hub.store import HubStore
 
 from .crypto import (
+    NONCE_LEN,
     VaultAuthError,
     decrypt_payload,
     derive_master_key,
@@ -24,11 +30,15 @@ from .crypto import (
     make_verifier,
     verify_key,
 )
+from .entities import merge_autofill_bundle
 
 VaultRecordKind = Literal[
+    "person_profile",
+    "company_entity",
+    "identity_doc",
+    "business_license",
     "api_key",
     "credential",
-    "identity_doc",
     "address",
     "payment_card",
     "note",
@@ -43,6 +53,7 @@ CREATE TABLE IF NOT EXISTS vault_meta (
 CREATE TABLE IF NOT EXISTS vault_records (
     id TEXT PRIMARY KEY,
     kind TEXT NOT NULL,
+    subject_id TEXT NOT NULL DEFAULT 'self',
     label TEXT NOT NULL,
     project TEXT,
     tags_json TEXT NOT NULL DEFAULT '[]',
@@ -55,6 +66,21 @@ CREATE TABLE IF NOT EXISTS vault_records (
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
 );
+CREATE INDEX IF NOT EXISTS idx_vault_subject ON vault_records(subject_id, deleted, updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS vault_attachments (
+    id TEXT PRIMARY KEY,
+    record_id TEXT NOT NULL REFERENCES vault_records(id) ON DELETE CASCADE,
+    filename TEXT NOT NULL,
+    mime_type TEXT NOT NULL DEFAULT 'application/octet-stream',
+    byte_size INTEGER NOT NULL,
+    sha256 TEXT NOT NULL,
+    nonce_b64 TEXT NOT NULL,
+    blob_relpath TEXT NOT NULL,
+    deleted INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_vault_att_rec ON vault_attachments(record_id, deleted);
 
 CREATE TABLE IF NOT EXISTS vault_audit (
     id TEXT PRIMARY KEY,
@@ -81,27 +107,38 @@ def redact_secrets(text: str, secrets_values: Sequence[str]) -> str:
 
 
 class VaultStore:
-    """Per-record AES-256-GCM encrypted personal vault completely isolated from Raw Memory."""
+    """Per-record AES-256-GCM encrypted personal & company identity/document/secret vault."""
 
     def __init__(self, vault_dir: Path | None = None):
         self.vault_dir = Path(vault_dir or default_vault_dir()).expanduser()
         self.vault_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+        self.blobs_dir = self.vault_dir / "blobs"
+        self.blobs_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.db_path = self.vault_dir / "vault.sqlite3"
         conn = sqlite3.connect(str(self.db_path), timeout=15, isolation_level=None)
         try:
             conn.execute("PRAGMA journal_mode=WAL")
             conn.execute("PRAGMA synchronous=FULL")
+            conn.execute("PRAGMA foreign_keys=ON")
             conn.executescript(_VAULT_SCHEMA)
+            self._migrate(conn)
         finally:
             conn.close()
         with suppress(OSError):
             self.db_path.chmod(0o600)
+
+    @staticmethod
+    def _migrate(conn: sqlite3.Connection) -> None:
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(vault_records)").fetchall()}
+        if "subject_id" not in cols:
+            conn.execute("ALTER TABLE vault_records ADD COLUMN subject_id TEXT NOT NULL DEFAULT 'self'")
 
     @contextmanager
     def _tx(self, write: bool = False):
         conn = sqlite3.connect(str(self.db_path), timeout=15, isolation_level=None)
         conn.row_factory = sqlite3.Row
         try:
+            conn.execute("PRAGMA foreign_keys=ON")
             conn.execute("BEGIN IMMEDIATE" if write else "BEGIN")
             yield conn
             conn.commit()
@@ -168,15 +205,35 @@ class VaultStore:
         )
 
     @staticmethod
-    def _meta_dict(row: sqlite3.Row) -> dict[str, Any]:
+    def _att_dict(row: sqlite3.Row) -> dict[str, Any]:
+        return {
+            "id": row["id"],
+            "record_id": row["record_id"],
+            "filename": row["filename"],
+            "mime_type": row["mime_type"],
+            "byte_size": row["byte_size"],
+            "sha256": row["sha256"],
+            "created_at": row["created_at"],
+        }
+
+    def _meta_dict(self, conn: sqlite3.Connection, row: sqlite3.Row) -> dict[str, Any]:
+        atts = [
+            self._att_dict(a)
+            for a in conn.execute(
+                "SELECT * FROM vault_attachments WHERE record_id=? AND deleted=0 ORDER BY created_at ASC",
+                (row["id"],),
+            ).fetchall()
+        ]
         return {
             "id": row["id"],
             "kind": row["kind"],
+            "subject_id": row["subject_id"] or "self",
             "label": row["label"],
             "project": row["project"],
             "tags": json.loads(row["tags_json"] or "[]"),
             "allowed_commands": json.loads(row["allowed_commands_json"] or "[]"),
             "allowed_hosts": json.loads(row["allowed_hosts_json"] or "[]"),
+            "attachments": atts,
             "version": row["version"],
             "created_at": row["created_at"],
             "updated_at": row["updated_at"],
@@ -189,16 +246,18 @@ class VaultStore:
         kind: VaultRecordKind,
         label: str,
         secret_payload: dict[str, Any],
+        subject_id: str = "self",
         record_id: str | None = None,
         project: str | None = None,
         tags: list[str] | None = None,
         allowed_commands: list[str] | None = None,
         allowed_hosts: list[str] | None = None,
     ) -> dict[str, Any]:
-        """Encrypt and store (or update) a secret record; returns non-secret metadata only."""
+        """Encrypt and store (or update) a secret/entity/document record; returns metadata only."""
         key = self.unlock_key(passphrase)
         now = now_ms()
         rid = record_id or new_ulid("vault_")
+        subj = (subject_id or "self").strip()
 
         with self._tx(True) as conn:
             existing = conn.execute(
@@ -212,12 +271,13 @@ class VaultStore:
             if existing:
                 conn.execute(
                     """UPDATE vault_records
-                       SET kind=?, label=?, project=?, tags_json=?, allowed_commands_json=?,
-                           allowed_hosts_json=?, nonce_b64=?, ciphertext_b64=?,
-                           version=?, updated_at=?
+                       SET kind=?, subject_id=?, label=?, project=?, tags_json=?,
+                           allowed_commands_json=?, allowed_hosts_json=?, nonce_b64=?,
+                           ciphertext_b64=?, version=?, updated_at=?
                        WHERE id=?""",
                     (
                         kind,
+                        subj,
                         label.strip(),
                         project,
                         json.dumps(tags or [], ensure_ascii=False),
@@ -233,13 +293,14 @@ class VaultStore:
             else:
                 conn.execute(
                     """INSERT INTO vault_records
-                       (id, kind, label, project, tags_json, allowed_commands_json,
+                       (id, kind, subject_id, label, project, tags_json, allowed_commands_json,
                         allowed_hosts_json, nonce_b64, ciphertext_b64, version, deleted,
                         created_at, updated_at)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)""",
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)""",
                     (
                         rid,
                         kind,
+                        subj,
                         label.strip(),
                         project,
                         json.dumps(tags or [], ensure_ascii=False),
@@ -252,14 +313,25 @@ class VaultStore:
                         now,
                     ),
                 )
-            self._audit(conn, rid, "set", "owner", f"Saved {kind} ({label.strip()}) v{version}", now)
+            self._audit(
+                conn, rid, "set", "owner", f"Saved {kind} [{subj}] ({label.strip()}) v{version}", now
+            )
             row = conn.execute("SELECT * FROM vault_records WHERE id=?", (rid,)).fetchone()
-            return self._meta_dict(row)
+            return self._meta_dict(conn, row)
 
-    def list_records(self, *, project: str | None = None, kind: str | None = None) -> list[dict[str, Any]]:
+    def list_records(
+        self,
+        *,
+        subject_id: str | None = None,
+        project: str | None = None,
+        kind: str | None = None,
+    ) -> list[dict[str, Any]]:
         """List non-secret metadata only (works without unlocking passphrase)."""
         where = ["deleted = 0"]
         params: list[Any] = []
+        if subject_id:
+            where.append("subject_id = ?")
+            params.append(subject_id)
         if project:
             where.append("project = ?")
             params.append(project)
@@ -271,7 +343,29 @@ class VaultStore:
                 f"SELECT * FROM vault_records WHERE {' AND '.join(where)} ORDER BY updated_at DESC",
                 params,
             ).fetchall()
-            return [self._meta_dict(r) for r in rows]
+            return [self._meta_dict(conn, r) for r in rows]
+
+    def list_subjects(self) -> list[dict[str, Any]]:
+        """Summarize subjects (`self`, `partner:*`, `company:*`) without decrypting PII."""
+        records = self.list_records()
+        grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        for r in records:
+            grouped[r["subject_id"]].append(r)
+        out: list[dict[str, Any]] = []
+        for sid, items in sorted(grouped.items()):
+            kinds = sorted({i["kind"] for i in items})
+            att_count = sum(len(i["attachments"]) for i in items)
+            out.append(
+                {
+                    "subject_id": sid,
+                    "record_count": len(items),
+                    "attachment_count": att_count,
+                    "kinds": kinds,
+                    "labels": [i["label"] for i in items],
+                    "updated_at": max(i["updated_at"] for i in items),
+                }
+            )
+        return out
 
     def get_record(
         self,
@@ -280,7 +374,7 @@ class VaultStore:
         *,
         actor: str = "owner",
     ) -> dict[str, Any]:
-        """Decrypt and return a single secret record with audit logging."""
+        """Decrypt and return a single secret/entity/document record with audit logging."""
         key = self.unlock_key(passphrase)
         now = now_ms()
         with self._tx(True) as conn:
@@ -297,7 +391,7 @@ class VaultStore:
                 aad=aad,
             )
             self._audit(conn, record_id, "get", actor, f"Decrypted {row['label']}", now)
-            return {**self._meta_dict(row), "secret": payload}
+            return {**self._meta_dict(conn, row), "secret": payload}
 
     def delete_record(self, record_id: str, *, actor: str = "owner") -> dict[str, Any]:
         now = now_ms()
@@ -307,12 +401,158 @@ class VaultStore:
             ).fetchone()
             if row is None:
                 raise KeyError(f"Vault record not found: {record_id}")
+            atts = conn.execute(
+                "SELECT id, blob_relpath FROM vault_attachments WHERE record_id=? AND deleted=0",
+                (record_id,),
+            ).fetchall()
+            for a in atts:
+                blob = self.vault_dir / a["blob_relpath"]
+                with suppress(OSError):
+                    blob.unlink(missing_ok=True)
+            conn.execute(
+                "UPDATE vault_attachments SET deleted=1 WHERE record_id=?", (record_id,)
+            )
             conn.execute(
                 "UPDATE vault_records SET deleted=1, ciphertext_b64='', nonce_b64='', updated_at=? WHERE id=?",
                 (now, record_id),
             )
             self._audit(conn, record_id, "delete", actor, f"Deleted {row['label']}", now)
         return {"id": record_id, "deleted": True}
+
+    # ------------------------------------------------------------------
+    # Encrypted Binary Document Attachments (营业执照 / 身份证 / 护照扫描件)
+    # ------------------------------------------------------------------
+    def add_attachment(
+        self,
+        passphrase: str,
+        *,
+        record_id: str,
+        filename: str,
+        data: bytes,
+        mime_type: str = "application/octet-stream",
+    ) -> dict[str, Any]:
+        """Encrypt and attach a binary scan/PDF/photo to a vault record."""
+        key = self.unlock_key(passphrase)
+        now = now_ms()
+        att_id = new_ulid("vatt_")
+        safe_name = Path(filename).name[:180] or "attachment.bin"
+        nonce = os.urandom(NONCE_LEN)
+        aad = f"{att_id}:{record_id}:{safe_name}".encode()
+        ciphertext = AESGCM(key).encrypt(nonce, data, aad)
+        sha256 = hashlib.sha256(data).hexdigest()
+        relpath = f"blobs/{att_id}.enc"
+        blob_path = self.vault_dir / relpath
+        blob_path.write_bytes(ciphertext)
+        with suppress(OSError):
+            blob_path.chmod(0o600)
+
+        with self._tx(True) as conn:
+            rec = conn.execute(
+                "SELECT id FROM vault_records WHERE id=? AND deleted=0", (record_id,)
+            ).fetchone()
+            if rec is None:
+                blob_path.unlink(missing_ok=True)
+                raise KeyError(f"Vault record not found: {record_id}")
+            conn.execute(
+                """INSERT INTO vault_attachments
+                   (id, record_id, filename, mime_type, byte_size, sha256, nonce_b64,
+                    blob_relpath, deleted, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?)""",
+                (
+                    att_id,
+                    record_id,
+                    safe_name,
+                    mime_type,
+                    len(data),
+                    sha256,
+                    base64.b64encode(nonce).decode("ascii"),
+                    relpath,
+                    now,
+                ),
+            )
+            self._audit(
+                conn,
+                record_id,
+                "attach",
+                "owner",
+                f"Attached encrypted file {safe_name} ({len(data)} bytes)",
+                now,
+            )
+            row = conn.execute("SELECT * FROM vault_attachments WHERE id=?", (att_id,)).fetchone()
+            return self._att_dict(row)
+
+    def get_attachment_bytes(
+        self,
+        passphrase: str,
+        attachment_id: str,
+        *,
+        actor: str = "owner",
+    ) -> tuple[dict[str, Any], bytes]:
+        """Decrypt and return `(metadata, raw_bytes)` for a vault attachment."""
+        key = self.unlock_key(passphrase)
+        now = now_ms()
+        with self._tx(True) as conn:
+            row = conn.execute(
+                "SELECT * FROM vault_attachments WHERE id=? AND deleted=0", (attachment_id,)
+            ).fetchone()
+            if row is None:
+                raise KeyError(f"Vault attachment not found: {attachment_id}")
+            blob_path = self.vault_dir / row["blob_relpath"]
+            ciphertext = blob_path.read_bytes()
+            nonce = base64.b64decode(row["nonce_b64"].encode("ascii"))
+            aad = f"{row['id']}:{row['record_id']}:{row['filename']}".encode()
+            try:
+                raw = AESGCM(key).decrypt(nonce, ciphertext, aad)
+            except InvalidTag as exc:
+                raise VaultAuthError("Attachment authentication failed") from exc
+            self._audit(
+                conn,
+                row["record_id"],
+                "download_att",
+                actor,
+                f"Decrypted attachment {row['filename']}",
+                now,
+            )
+            return self._att_dict(row), raw
+
+    # ------------------------------------------------------------------
+    # Unified Form-Fill Bundle (Base Profile + Extracted Document Fields)
+    # ------------------------------------------------------------------
+    def build_autofill_bundle(
+        self,
+        passphrase: str,
+        subject_id: str = "self",
+        *,
+        masked: bool = False,
+        actor: str = "owner",
+    ) -> dict[str, Any]:
+        """Decrypt all records for `subject_id` and synthesize a unified Form-Fill bundle."""
+        key = self.unlock_key(passphrase)
+        now = now_ms()
+        decrypted: list[dict[str, Any]] = []
+        with self._tx(True) as conn:
+            rows = conn.execute(
+                "SELECT * FROM vault_records WHERE subject_id=? AND deleted=0 ORDER BY updated_at ASC",
+                (subject_id,),
+            ).fetchall()
+            for row in rows:
+                aad = f"{row['id']}:{row['kind']}:v{row['version']}"
+                payload = decrypt_payload(
+                    key,
+                    base64.b64decode(row["nonce_b64"].encode("ascii")),
+                    base64.b64decode(row["ciphertext_b64"].encode("ascii")),
+                    aad=aad,
+                )
+                decrypted.append({**self._meta_dict(conn, row), "secret": payload})
+            self._audit(
+                conn,
+                None,
+                "autofill_read",
+                actor,
+                f"Built autofill bundle for {subject_id} (masked={masked}, records={len(decrypted)})",
+                now,
+            )
+        return merge_autofill_bundle(subject_id, decrypted, masked=masked)
 
     def list_audit_log(self, *, limit: int = 50) -> list[dict[str, Any]]:
         with self._tx(False) as conn:
@@ -329,11 +569,7 @@ class VaultStore:
         command: Sequence[str],
         actor: str = "agent",
     ) -> dict[str, Any]:
-        """Inject decrypted vault secrets into a subprocess env and redact any echo from output.
-
-        `env_bindings` maps `{ENV_VAR_NAME: record_id}` (or `{ENV_VAR_NAME: "record_id:field"}`).
-        Enforces `allowed_commands` if configured on the vault record.
-        """
+        """Inject decrypted vault secrets into a subprocess env and redact any echo from output."""
         if not command:
             raise ValueError("Command must not be empty")
         cmd_bin = Path(command[0]).name
@@ -400,14 +636,26 @@ class VaultStore:
         }
 
     def sync_masked_receipts_to_hub(self, hub_store: HubStore) -> dict[str, int]:
-        """Sync non-secret pointer receipts into Raw Memory so Agents know a secret exists without seeing it."""
+        """Sync non-secret structural pointer receipts into Raw Memory (zero plaintext PII/secrets)."""
         records = self.list_records()
         events: list[RawEventIn] = []
         for rec in records:
             rid = rec["id"]
             label = rec["label"]
             kind = rec["kind"]
-            cmd_hint = f"raw-vault run --secret SECRET_VAR={rid} -- <cmd>"
+            subj = rec["subject_id"]
+            att_names = [a["filename"] for a in rec["attachments"]]
+            if kind in {"person_profile", "company_entity", "identity_doc", "business_license"}:
+                body = (
+                    f"Encrypted {kind} `{rid}` for subject `{subj}` ({label}) is stored in Vault for Agent"
+                    + (f" with encrypted attachments: {', '.join(att_names)}." if att_names else ".")
+                    + " Plaintext PII/documents never enter Raw Memory; request owner unlock in Vault for authorized form-fill."
+                )
+            else:
+                body = (
+                    f"Encrypted record `{rid}` ({kind}: {label}, subject={subj}) is stored in Vault for Agent. "
+                    f"Plaintext never enters Raw Memory. Use `raw-vault run --secret SECRET_VAR={rid} -- <cmd>` for authorized execution."
+                )
             events.append(
                 RawEventIn(
                     source="vault",
@@ -417,25 +665,24 @@ class VaultStore:
                     actor="self",
                     project=rec.get("project"),
                     content={
-                        "title": f"Vault Pointer: {label} ({kind})",
-                        "text": (
-                            f"Encrypted record `{rid}` ({kind}: {label}) is stored in Vault for Agent. "
-                            f"Plaintext never enters Raw Memory. Use `{cmd_hint}` for authorized execution."
-                        ),
+                        "title": f"Vault Pointer [{subj}]: {label} ({kind})",
+                        "text": body,
                     },
                     context={
                         "vault_record_id": rid,
                         "vault_kind": kind,
+                        "subject_id": subj,
+                        "attachment_count": len(att_names),
                         "allowed_commands": rec["allowed_commands"],
                         "allowed_hosts": rec["allowed_hosts"],
                         "tags": rec["tags"],
                     },
                     provenance={
                         "connector": "vault-for-agent",
-                        "source_id": f"receipt:{rid}:v{rec['version']}",
-                        "locator": f"vault://{rid}",
+                        "source_id": f"receipt:{rid}:v{rec['version']}:a{len(att_names)}",
+                        "locator": f"vault://{subj}/{rid}",
                     },
-                    privacy={"tier": "shareable", "pii_tags": []},
+                    privacy={"tier": "redacted", "pii_tags": []},
                 )
             )
         if not events:
