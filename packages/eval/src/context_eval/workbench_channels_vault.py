@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import base64
 import json
+import re
 import sqlite3
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
@@ -343,10 +345,20 @@ def build_channels_and_vault_router(root: Path, store: HubStore) -> APIRouter:
             meta, data = vault.get_attachment_bytes(pw, att_id, actor="workbench_owner")
         except KeyError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from None
+        raw_name = Path(str(meta.get("filename") or "attachment")).name
+        suffix = Path(raw_name).suffix
+        ascii_stem = re.sub(r"[^A-Za-z0-9._-]+", "_", Path(raw_name).stem).strip("._-") or "attachment"
+        ascii_suffix = re.sub(r"[^A-Za-z0-9.]+", "", suffix)
+        fallback = f"{ascii_stem}{ascii_suffix}"
+        encoded = quote(raw_name, safe="")
         return Response(
             content=data,
             media_type=meta["mime_type"],
-            headers={"Content-Disposition": f'inline; filename="{meta["filename"]}"'},
+            headers={
+                "Content-Disposition": f"inline; filename=\"{fallback}\"; filename*=UTF-8''{encoded}",
+                "Cache-Control": "no-store, private",
+                "X-Content-Type-Options": "nosniff",
+            },
         )
 
     @router.get("/api/vault/autofill/{subject_id:path}")

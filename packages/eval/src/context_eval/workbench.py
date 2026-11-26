@@ -467,7 +467,29 @@ _WORKBENCH_HTML = r"""<!doctype html>
     font-size: 11.5px; color: var(--muted); margin-top: 2px;
     display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; min-width: 0;
   }
+  .row-sub.wrap { flex-wrap: wrap; }
   .row-sub > .sub-txt { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* ---- Lightbox Modal for Encrypted Vault Image/PDF Preview ---- */
+  .modal-bg {
+    position: fixed; inset: 0; z-index: 80;
+    background: rgba(15, 15, 20, .66);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center; padding: 24px;
+  }
+  .modal-bg.hidden { display: none; }
+  .modal-box {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    box-shadow: var(--shadow); max-width: min(920px, 94vw); max-height: 90vh;
+    width: auto; display: flex; flex-direction: column; overflow: hidden;
+  }
+  .modal-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 10px 14px; border-bottom: 1px solid var(--line-2);
+  }
+  .modal-body { padding: 14px; overflow: auto; display: flex; align-items: center; justify-content: center; background: var(--card-2); }
+  .modal-body img { max-width: 100%; max-height: 76vh; border-radius: 8px; display: block; }
+  .modal-body iframe { width: min(820px, 86vw); height: 74vh; border: 0; border-radius: 8px; background: #fff; }
   .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; flex: none; background: var(--faint); }
   .dot.ok { background: var(--green); }
   .dot.amber { background: var(--amber); }
@@ -724,6 +746,18 @@ _WORKBENCH_HTML = r"""<!doctype html>
 
 <footer class="scope-bar" id="scopeBar"></footer>
 <div class="toast" id="toast"></div>
+<div class="modal-bg hidden" id="previewModal" onclick="if(event.target===this) closePreviewModal()">
+  <div class="modal-box">
+    <div class="modal-head">
+      <strong id="previewTitle" style="font-size:13px;">加密附件预览</strong>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <a id="previewOpenLink" href="#" target="_blank" class="pill sm outline" style="text-decoration:none;">新标签打开</a>
+        <button class="pill sm" onclick="closePreviewModal()">关闭</button>
+      </div>
+    </div>
+    <div class="modal-body" id="previewBody"></div>
+  </div>
+</div>
 
 <script>
 const STATE = {
@@ -1090,14 +1124,21 @@ function renderVault() {
   const showForm = STATE.showVaultForm || recs.length === 0;
 
   const recRows = recs.map(r => {
-    const atts = (r.attachments || []).map(a =>
-      `<a href="/api/vault/attachment/${esc(a.id)}" target="_blank" class="chip accent" style="text-decoration:none;">${esc(a.filename)} · ${Math.max(1, Math.round(a.byte_size/1024))}KB</a>`
-    ).join("");
+    const atts = (r.attachments || []).map(a => {
+      const url = `/api/vault/attachment/${encodeURIComponent(a.id)}`;
+      const isImg = String(a.mime_type || "").startsWith("image/");
+      const isPdf = String(a.mime_type || "") === "application/pdf";
+      const kb = Math.max(1, Math.round(a.byte_size / 1024));
+      if (isImg || isPdf) {
+        return `<button class="chip accent" style="cursor:pointer;" onclick="openPreviewModal(${esc(JSON.stringify(url))}, ${esc(JSON.stringify(a.filename))}, ${esc(JSON.stringify(a.mime_type))})">${esc(a.filename)} · ${kb}KB</button>`;
+      }
+      return `<a href="${url}" target="_blank" class="chip accent" style="text-decoration:none;">${esc(a.filename)} · ${kb}KB</a>`;
+    }).join("");
     return `<div class="row">
       <div class="row-ic accent">${channelIconSvg("vault")}</div>
       <div class="row-who">
         <div class="row-title">${esc(r.label)} <span class="chip mono">${esc(r.subject_id)}</span> <span class="chip">${esc(r.kind)}</span></div>
-        <div class="row-sub">${atts || "暂无加密原件附件（可上传身份证/营业执照扫描件）"}</div>
+        <div class="row-sub wrap">${atts || "暂无加密原件附件（可上传身份证/营业执照扫描件）"}</div>
       </div>
       <div class="row-right">
         <label class="pill sm" style="cursor:pointer;">+ 上传原件<input type="file" style="display:none;" onchange="uploadVaultAtt('${esc(r.id)}', this)" /></label>
@@ -1277,14 +1318,41 @@ async function saveVaultForm() {
   showToast(`已加密保存「${label}」`);
 }
 
-function copyField(val, btn) {
+let _COPY_BUF = [];
+function copyFieldIdx(idx, btn) {
+  const val = _COPY_BUF[idx] ?? "";
   navigator.clipboard.writeText(val).then(() => {
     const prev = btn.textContent;
     btn.textContent = "已复制";
     setTimeout(() => { btn.textContent = prev; }, 1200);
-    showToast("已复制到剪贴板");
-  });
+    showToast(STATE.vaultMasked ? "已复制脱敏值（开启「明文显示」可复制原值）" : "已复制明文到剪贴板");
+  }).catch(() => showToast("浏览器阻止了剪贴板写入"));
 }
+
+function openPreviewModal(url, filename, mimeType) {
+  const modal = document.getElementById("previewModal");
+  const title = document.getElementById("previewTitle");
+  const link = document.getElementById("previewOpenLink");
+  const body = document.getElementById("previewBody");
+  if (!modal || !body) return;
+  title.textContent = filename || "加密附件预览";
+  link.href = url;
+  if (String(mimeType || "").startsWith("image/")) {
+    body.innerHTML = `<img src="${esc(url)}" alt="${esc(filename)}" />`;
+  } else {
+    body.innerHTML = `<iframe src="${esc(url)}" title="${esc(filename)}"></iframe>`;
+  }
+  modal.classList.remove("hidden");
+}
+
+function closePreviewModal() {
+  const modal = document.getElementById("previewModal");
+  const body = document.getElementById("previewBody");
+  if (modal) modal.classList.add("hidden");
+  if (body) body.innerHTML = "";
+}
+
+document.addEventListener("keydown", e => { if (e.key === "Escape") closePreviewModal(); });
 
 async function loadAutofillPreview() {
   const box = document.getElementById("autofillView");
@@ -1315,14 +1383,18 @@ async function loadAutofillPreview() {
     driver_license: "驾驶证",
     business_license: "营业执照",
   };
-  const row = (tag, tagCls, val, copyVal, sub) => `<div class="row" style="min-height:46px;">
-    <div style="width:168px;flex:none;"><span class="chip ${tagCls}">${esc(tag)}</span></div>
-    <div class="row-who" style="font-size:13px;font-variant-numeric:tabular-nums;word-break:break-all;">
-      <div>${esc(val)}</div>
-      ${sub ? `<div style="font-size:11.5px;color:var(--muted);margin-top:1px;">${esc(sub)}</div>` : ""}
-    </div>
-    <div class="row-right"><button class="pill sm" onclick='copyField(${JSON.stringify(String(copyVal ?? val))}, this)'>复制</button></div>
-  </div>`;
+  _COPY_BUF = [];
+  const row = (tag, tagCls, val, copyVal, sub) => {
+    const idx = _COPY_BUF.push(String(copyVal ?? val)) - 1;
+    return `<div class="row" style="min-height:46px;">
+      <div style="width:168px;flex:none;"><span class="chip ${tagCls}">${esc(tag)}</span></div>
+      <div class="row-who" style="font-size:13px;font-variant-numeric:tabular-nums;word-break:break-all;">
+        <div>${esc(val)}</div>
+        ${sub ? `<div style="font-size:11.5px;color:var(--muted);margin-top:1px;">${esc(sub)}</div>` : ""}
+      </div>
+      <div class="row-right"><button class="pill sm" onclick="copyFieldIdx(${idx}, this)">复制</button></div>
+    </div>`;
+  };
   const rows = [];
   for (const [k, v] of Object.entries(res.basic_fields || {})) rows.push(row(fieldLabels[k] || k, "", v, v));
   for (const p of (res.phones || [])) {
@@ -1364,18 +1436,28 @@ async function vaultLock() {
 async function uploadVaultAtt(recordId, input) {
   if (!input.files || !input.files.length) return;
   const file = input.files[0];
-  const buf = await file.arrayBuffer();
-  const bytes = new Uint8Array(buf);
-  let bin = "";
-  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-  const content_b64 = btoa(bin);
-  const r = await fetch(`/api/vault/record/${encodeURIComponent(recordId)}/attach`, {
-    method: "POST", headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({ filename: file.name, mime_type: file.type || "application/octet-stream", content_b64 }),
-  });
-  if (!r.ok) { showToast("加密上传失败"); return; }
-  await loadVault();
-  showToast(`已加密保存原件 ${file.name}`);
+  try {
+    const dataUrl = await new Promise((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(String(fr.result || ""));
+      fr.onerror = () => reject(fr.error || new Error("读取文件失败"));
+      fr.readAsDataURL(file);
+    });
+    const content_b64 = dataUrl.includes(",") ? dataUrl.split(",", 2)[1] : "";
+    const r = await fetch(`/api/vault/record/${encodeURIComponent(recordId)}/attach`, {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ filename: file.name, mime_type: file.type || "application/octet-stream", content_b64 }),
+    });
+    if (!r.ok) {
+      const j = await r.json().catch(() => ({}));
+      showToast("加密上传失败: " + (j.detail || r.status));
+      return;
+    }
+    await loadVault();
+    showToast(`已加密保存原件 ${file.name}`);
+  } finally {
+    input.value = "";
+  }
 }
 
 async function deleteVaultRec(recordId) {

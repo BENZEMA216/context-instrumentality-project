@@ -525,20 +525,73 @@ def test_workbench_channels_and_vault_endpoints(tmp_path: Path) -> None:
     r_att = client.post(
         f"/api/vault/record/{rid}/attach",
         json={
-            "filename": "id_scan.txt",
-            "mime_type": "text/plain",
-            "content_b64": base64.b64encode(b"encrypted-scan").decode("ascii"),
+            "filename": "身份证人像面.jpg",
+            "mime_type": "image/jpeg",
+            "content_b64": base64.b64encode(b"\xff\xd8\xff\xe0ENCRYPTED_JPEG_TEST_BYTES").decode("ascii"),
         },
     )
     assert r_att.status_code == 200
     att_id = r_att.json()["attachment"]["id"]
-    assert client.get(f"/api/vault/attachment/{att_id}").content == b"encrypted-scan"
+    r_dl = client.get(f"/api/vault/attachment/{att_id}")
+    assert r_dl.status_code == 200
+    assert r_dl.content == b"\xff\xd8\xff\xe0ENCRYPTED_JPEG_TEST_BYTES"
+    assert r_dl.headers["content-type"] == "image/jpeg"
+    assert "no-store" in r_dl.headers["cache-control"]
+    assert "filename*=UTF-8''" in r_dl.headers["content-disposition"]
+    r_dl.headers["content-disposition"].encode("latin-1")
+
+    # Company record with bank accounts & custom fields + Chinese business license image
+    r_co = client.post(
+        "/api/vault/record",
+        json={
+            "kind": "company_entity",
+            "subject_id": "company:demo",
+            "label": "营业执照与收款户",
+            "payload": {
+                "company_name": "示例科技有限公司",
+                "unified_social_credit_code": "91440300MA1234567X",
+                "bank_accounts": [
+                    {
+                        "label": "USD 账户",
+                        "bank_name": "Example Bank",
+                        "account_name": "DEMO CO LTD",
+                        "account_number": "8888123456",
+                        "swift_code": "EXAMUS33",
+                    }
+                ],
+                "custom_fields": {"Team ID": "TEAM12345"},
+            },
+        },
+    )
+    assert r_co.status_code == 200
+    co_id = r_co.json()["record"]["id"]
+    r_co_att = client.post(
+        f"/api/vault/record/{co_id}/attach",
+        json={
+            "filename": "营业执照-新照片.jpg",
+            "mime_type": "image/jpeg",
+            "content_b64": base64.b64encode(b"\xff\xd8\xffLICENSE_JPG").decode("ascii"),
+        },
+    )
+    assert r_co_att.status_code == 200
+    assert client.get(f"/api/vault/attachment/{r_co_att.json()['attachment']['id']}").status_code == 200
 
     r_af = client.get("/api/vault/autofill/partner:zheng?masked=false")
     assert r_af.status_code == 200
     assert r_af.json()["phones"][0]["number"] == "13900139000"
 
-    assert client.post("/api/vault/sync-receipts").json()["created"] == 1
+    r_co_af = client.get("/api/vault/autofill/company:demo?masked=false")
+    assert r_co_af.status_code == 200
+    assert r_co_af.json()["bank_accounts"][0]["account_number"] == "8888123456"
+    assert r_co_af.json()["custom_fields"]["Team ID"] == "TEAM12345"
+
+    assert client.post("/api/vault/sync-receipts").json()["created"] == 2
     assert client.post("/api/vault/lock").json()["unlocked"] is False
     assert client.get("/api/vault/autofill/partner:zheng").status_code == 403
+    assert client.get(f"/api/vault/attachment/{att_id}").status_code == 403
+    assert client.post("/api/vault/unlock", json={"passphrase": "wrong"}).status_code == 401
+    assert client.post("/api/vault/unlock", json={"passphrase": "wb-secret-pass"}).status_code == 200
+    assert client.get(f"/api/vault/attachment/{att_id}").status_code == 200
+    assert client.delete(f"/api/vault/record/{co_id}").status_code == 200
+    assert client.get(f"/api/vault/attachment/{r_co_att.json()['attachment']['id']}").status_code == 404
 
