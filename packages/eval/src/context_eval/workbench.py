@@ -1290,20 +1290,56 @@ async function loadAutofillPreview() {
   const box = document.getElementById("autofillView");
   if (!box || !STATE.vault?.unlocked) return;
   const res = await fetch(`/api/vault/autofill/${encodeURIComponent(STATE.vaultSubject)}?masked=${STATE.vaultMasked}`).then(r => r.json());
-  const row = (tag, tagCls, val, copyVal) => `<div class="row" style="min-height:44px;">
-    <div style="width:140px;flex:none;"><span class="chip ${tagCls}">${esc(tag)}</span></div>
-    <div class="row-who" style="font-size:13px;font-variant-numeric:tabular-nums;word-break:break-all;">${esc(val)}</div>
+  const fieldLabels = {
+    full_name: "姓名",
+    legal_name_en: "英文法定名",
+    nickname: "常用称呼",
+    role_relation: "身份 / 关系",
+    birth_date: "出生日期",
+    gender: "性别",
+    nationality: "国籍 / 民族",
+    company_name: "企业全称",
+    company_name_en: "英文企业名",
+    unified_social_credit_code: "统一社会信用代码",
+    company_type: "企业类型",
+    legal_representative: "法定代表人",
+    registered_capital: "注册资本",
+    established_date: "成立日期",
+    tax_id: "纳税人识别号",
+    business_scope: "经营范围",
+  };
+  const docLabels = {
+    cn_id_card: "居民身份证",
+    passport: "护照",
+    hk_macau_pass: "港澳通行证",
+    driver_license: "驾驶证",
+    business_license: "营业执照",
+  };
+  const row = (tag, tagCls, val, copyVal, sub) => `<div class="row" style="min-height:46px;">
+    <div style="width:168px;flex:none;"><span class="chip ${tagCls}">${esc(tag)}</span></div>
+    <div class="row-who" style="font-size:13px;font-variant-numeric:tabular-nums;word-break:break-all;">
+      <div>${esc(val)}</div>
+      ${sub ? `<div style="font-size:11.5px;color:var(--muted);margin-top:1px;">${esc(sub)}</div>` : ""}
+    </div>
     <div class="row-right"><button class="pill sm" onclick='copyField(${JSON.stringify(String(copyVal ?? val))}, this)'>复制</button></div>
   </div>`;
   const rows = [];
-  for (const [k, v] of Object.entries(res.basic_fields || {})) rows.push(row(k, "mono", v, v));
+  for (const [k, v] of Object.entries(res.basic_fields || {})) rows.push(row(fieldLabels[k] || k, "", v, v));
   for (const p of (res.phones || [])) {
     const val = `${p.country_code ? p.country_code + " " : ""}${p.number}`.trim();
-    rows.push(row(`电话 · ${p.label}`, "accent", val, p.number));
+    rows.push(row(`电话 · ${p.label}`, "accent", val, p.number, p.note || ""));
   }
-  for (const e of (res.emails || [])) rows.push(row(`邮箱 · ${e.label}`, "accent", e.address, e.address));
+  for (const e of (res.emails || [])) rows.push(row(`邮箱 · ${e.label}`, "accent", e.address, e.address, e.note || ""));
   for (const a of (res.addresses || [])) rows.push(row(`地址 · ${a.label}`, "", `${a.full_address} ${a.postal_code || ""}`.trim(), a.full_address));
-  for (const d of (res.documents || [])) rows.push(row(d.doc_type, "amber", `${d.doc_number}${d.expiry_date ? " · 有效至 " + d.expiry_date : ""}`, d.doc_number));
+  for (const d of (res.documents || [])) {
+    const sub = [d.issuing_authority, d.issue_date && d.expiry_date ? `有效期 ${d.issue_date} ~ ${d.expiry_date}` : (d.expiry_date ? `有效至 ${d.expiry_date}` : "")].filter(Boolean).join(" · ");
+    rows.push(row(docLabels[d.doc_type] || d.doc_type, "amber", d.doc_number, d.doc_number, sub));
+  }
+  for (const b of (res.bank_accounts || [])) {
+    const sub = [b.bank_name, b.swift_code ? `SWIFT/ACH: ${b.swift_code}` : "", b.account_name ? `户名: ${b.account_name}` : ""].filter(Boolean).join(" · ");
+    rows.push(row(`银行 · ${b.label}`, "ok", b.account_number, b.account_number, sub));
+  }
+  for (const [k, v] of Object.entries(res.custom_fields || {})) rows.push(row(k, "mono", v, v));
   box.innerHTML = rows.join("") || `<div class="empty">主体 <code>${esc(STATE.vaultSubject)}</code> 暂无可填表字段，点击右上角「+ 录入资料」添加。</div>`;
 }
 
