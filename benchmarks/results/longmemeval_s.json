@@ -1,144 +1,144 @@
 {
   "suite": "longmemeval-s",
-  "mode": "hub_retrieval+semantic",
-  "engine_label": "raw-memory-v0.5.0-hybrid-bm25-semantic",
+  "mode": "hub_retrieval+semantic+rerank",
+  "engine_label": "raw-memory-v0.6.0-maxsim-temporal-rerank",
   "dataset_path": "/Users/benzema/.local/share/context-hub-v2/benchmarks/longmemeval_s_cleaned.json",
-  "evaluated_at_ms": 1795776492204,
+  "evaluated_at_ms": 1795786168253,
   "total_questions": 500,
   "scored_questions": 470,
   "abstention_questions": 30,
   "overall": {
-    "sess_r@1": 0.8617,
-    "sess_r@5": 0.9766,
-    "sess_r@10": 0.9872,
-    "sess_all_r@5": 0.8723,
-    "sess_all_r@10": 0.9213,
-    "sess_ndcg@5": 0.8998,
-    "sess_ndcg@10": 0.9101,
-    "sess_mrr": 0.9143,
-    "turn_r@1": 0.4511,
-    "turn_r@5": 0.8511,
-    "turn_r@10": 0.9277,
-    "turn_ndcg@5": 0.5818,
-    "turn_ndcg@10": 0.6339,
-    "turn_mrr": 0.6169,
-    "ans_cov@5": 0.6277,
-    "ans_cov@10": 0.6851
+    "sess_r@1": 0.9383,
+    "sess_r@5": 0.9851,
+    "sess_r@10": 0.9894,
+    "sess_all_r@5": 0.9085,
+    "sess_all_r@10": 0.9277,
+    "sess_ndcg@5": 0.9431,
+    "sess_ndcg@10": 0.947,
+    "sess_mrr": 0.958,
+    "turn_r@1": 0.5894,
+    "turn_r@5": 0.9191,
+    "turn_r@10": 0.9617,
+    "turn_ndcg@5": 0.6869,
+    "turn_ndcg@10": 0.7314,
+    "turn_mrr": 0.7289,
+    "ans_cov@5": 0.6404,
+    "ans_cov@10": 0.6979
   },
   "by_category": {
     "knowledge-update": {
       "count": 72,
-      "sess_r@1": 0.9444,
+      "sess_r@1": 0.9722,
       "sess_r@5": 1.0,
       "sess_r@10": 1.0,
       "sess_all_r@5": 0.9861,
       "sess_all_r@10": 0.9861,
-      "sess_ndcg@5": 0.9703,
-      "sess_ndcg@10": 0.9703,
-      "sess_mrr": 0.9722,
-      "turn_r@1": 0.4167,
-      "turn_r@5": 0.9167,
-      "turn_r@10": 0.9722,
-      "turn_ndcg@5": 0.6108,
-      "turn_ndcg@10": 0.6593,
-      "turn_mrr": 0.6202,
-      "ans_cov@5": 0.8056,
-      "ans_cov@10": 0.9306
+      "sess_ndcg@5": 0.9839,
+      "sess_ndcg@10": 0.9839,
+      "sess_mrr": 0.9861,
+      "turn_r@1": 0.625,
+      "turn_r@5": 0.9583,
+      "turn_r@10": 1.0,
+      "turn_ndcg@5": 0.7589,
+      "turn_ndcg@10": 0.7924,
+      "turn_mrr": 0.7705,
+      "ans_cov@5": 0.8611,
+      "ans_cov@10": 0.9444
     },
     "multi-session": {
       "count": 121,
-      "sess_r@1": 0.9091,
+      "sess_r@1": 0.9504,
       "sess_r@5": 1.0,
       "sess_r@10": 1.0,
-      "sess_all_r@5": 0.7603,
-      "sess_all_r@10": 0.8678,
-      "sess_ndcg@5": 0.8985,
-      "sess_ndcg@10": 0.9185,
-      "sess_mrr": 0.9507,
-      "turn_r@1": 0.4628,
-      "turn_r@5": 0.876,
-      "turn_r@10": 0.9504,
-      "turn_ndcg@5": 0.4936,
-      "turn_ndcg@10": 0.5784,
-      "turn_mrr": 0.6281,
-      "ans_cov@5": 0.5455,
-      "ans_cov@10": 0.5785
+      "sess_all_r@5": 0.8595,
+      "sess_all_r@10": 0.9008,
+      "sess_ndcg@5": 0.9385,
+      "sess_ndcg@10": 0.9468,
+      "sess_mrr": 0.9704,
+      "turn_r@1": 0.6281,
+      "turn_r@5": 0.9504,
+      "turn_r@10": 0.9917,
+      "turn_ndcg@5": 0.6242,
+      "turn_ndcg@10": 0.7056,
+      "turn_mrr": 0.7659,
+      "ans_cov@5": 0.5372,
+      "ans_cov@10": 0.595
     },
     "single-session-assistant": {
       "count": 56,
-      "sess_r@1": 0.8929,
+      "sess_r@1": 1.0,
       "sess_r@5": 1.0,
       "sess_r@10": 1.0,
       "sess_all_r@5": 1.0,
       "sess_all_r@10": 1.0,
-      "sess_ndcg@5": 0.9581,
-      "sess_ndcg@10": 0.9581,
-      "sess_mrr": 0.9435,
-      "turn_r@1": 0.4821,
-      "turn_r@5": 0.875,
+      "sess_ndcg@5": 1.0,
+      "sess_ndcg@10": 1.0,
+      "sess_mrr": 1.0,
+      "turn_r@1": 0.5893,
+      "turn_r@5": 0.9107,
       "turn_r@10": 0.9821,
-      "turn_ndcg@5": 0.697,
-      "turn_ndcg@10": 0.7312,
-      "turn_mrr": 0.6511,
+      "turn_ndcg@5": 0.7609,
+      "turn_ndcg@10": 0.7844,
+      "turn_mrr": 0.7209,
       "ans_cov@5": 0.9107,
       "ans_cov@10": 0.9464
     },
     "single-session-preference": {
       "count": 30,
-      "sess_r@1": 0.7667,
+      "sess_r@1": 0.8,
       "sess_r@5": 0.9,
       "sess_r@10": 0.9333,
       "sess_all_r@5": 0.9,
       "sess_all_r@10": 0.9333,
-      "sess_ndcg@5": 0.8427,
-      "sess_ndcg@10": 0.8538,
-      "sess_mrr": 0.8281,
-      "turn_r@1": 0.3,
-      "turn_r@5": 0.7,
+      "sess_ndcg@5": 0.8564,
+      "sess_ndcg@10": 0.8683,
+      "sess_mrr": 0.8472,
+      "turn_r@1": 0.3333,
+      "turn_r@5": 0.8333,
       "turn_r@10": 0.8667,
-      "turn_ndcg@5": 0.4707,
-      "turn_ndcg@10": 0.5418,
-      "turn_mrr": 0.4838,
-      "ans_cov@5": 0.0667,
+      "turn_ndcg@5": 0.5456,
+      "turn_ndcg@10": 0.5755,
+      "turn_mrr": 0.5189,
+      "ans_cov@5": 0.0333,
       "ans_cov@10": 0.1
     },
     "single-session-user": {
       "count": 64,
-      "sess_r@1": 0.7969,
+      "sess_r@1": 0.9531,
       "sess_r@5": 1.0,
       "sess_r@10": 1.0,
       "sess_all_r@5": 1.0,
       "sess_all_r@10": 1.0,
-      "sess_ndcg@5": 0.9189,
-      "sess_ndcg@10": 0.9189,
-      "sess_mrr": 0.8906,
-      "turn_r@1": 0.6094,
-      "turn_r@5": 0.875,
-      "turn_r@10": 0.9531,
-      "turn_ndcg@5": 0.749,
-      "turn_ndcg@10": 0.7744,
-      "turn_mrr": 0.7252,
-      "ans_cov@5": 0.9375,
-      "ans_cov@10": 0.9531
+      "sess_ndcg@5": 0.9807,
+      "sess_ndcg@10": 0.9807,
+      "sess_mrr": 0.974,
+      "turn_r@1": 0.7812,
+      "turn_r@5": 0.9688,
+      "turn_r@10": 0.9844,
+      "turn_ndcg@5": 0.8848,
+      "turn_ndcg@10": 0.8895,
+      "turn_mrr": 0.8598,
+      "ans_cov@5": 0.9688,
+      "ans_cov@10": 0.9688
     },
     "temporal-reasoning": {
       "count": 127,
-      "sess_r@1": 0.811,
-      "sess_r@5": 0.937,
-      "sess_r@10": 0.9685,
-      "sess_all_r@5": 0.7874,
-      "sess_all_r@10": 0.8583,
-      "sess_ndcg@5": 0.8394,
-      "sess_ndcg@10": 0.8558,
-      "sess_mrr": 0.8661,
-      "turn_r@1": 0.4016,
-      "turn_r@5": 0.8031,
-      "turn_r@10": 0.8583,
-      "turn_ndcg@5": 0.5404,
-      "turn_ndcg@10": 0.5806,
-      "turn_mrr": 0.5662,
-      "ans_cov@5": 0.4567,
-      "ans_cov@10": 0.5354
+      "sess_r@1": 0.9055,
+      "sess_r@5": 0.9685,
+      "sess_r@10": 0.9764,
+      "sess_all_r@5": 0.8268,
+      "sess_all_r@10": 0.8504,
+      "sess_ndcg@5": 0.9009,
+      "sess_ndcg@10": 0.9044,
+      "sess_mrr": 0.93,
+      "turn_r@1": 0.4961,
+      "turn_r@5": 0.8661,
+      "turn_r@10": 0.9134,
+      "turn_ndcg@5": 0.6067,
+      "turn_ndcg@10": 0.6551,
+      "turn_mrr": 0.6574,
+      "ans_cov@5": 0.4724,
+      "ans_cov@10": 0.5512
     }
   },
   "abstention_metrics": {
@@ -146,9 +146,9 @@
     "refuting_sess_r@10": 1.0,
     "zero_hit_rate": 0.0
   },
-  "latency_p50_ms": 5.845,
-  "latency_p95_ms": 8.813,
-  "total_elapsed_s": 60.72,
+  "latency_p50_ms": 1824.151,
+  "latency_p95_ms": 3045.631,
+  "total_elapsed_s": 4255.8,
   "sample_failures": [
     {
       "suite": "longmemeval-s",
@@ -160,16 +160,16 @@
         "answer_d87a6ef8"
       ],
       "retrieved_top_ids": [
-        "c51583cd_1",
         "ultrachat_533748",
-        "sharegpt_xni9yYO_6",
-        "2bac8799_3",
-        "sharegpt_FYqt26U_0"
+        "sharegpt_FYqt26U_0",
+        "c51583cd_1",
+        "47ec1674_2",
+        "c884b67a_1"
       ],
       "retrieved_top_snippets": [
         "[2023/05/20 (Sat) 23:47] user: Hmm, most of these seem interesting, but can you recommend a Romance book for someone who wants a little more steamy, intimate scenes? I'm looking for a spicy read.",
-        "[2023/05/27 (Sat) 17:49] assistant: I totally understand the feeling! It's great that you're taking steps to break out of your shell and meet new people. Joining a hobby-based group or club is an excellent way to do so, ",
-        "[2023/05/20 (Sat) 23:47] user: Thanks for the recommendations, but I am really looking for a book with a strong female protagonist who isn't just focused on finding love. Can you help me out?"
+        "[2023/05/20 (Sat) 23:47] user: Thanks for the recommendations, but I am really looking for a book with a strong female protagonist who isn't just focused on finding love. Can you help me out?",
+        "[2023/05/20 (Sat) 23:47] user: Thanks for the recommendations, but I wasn't really a fan of \"The Help.\" Can you suggest something a bit more contemporary?"
       ],
       "reason": "miss_at_5"
     },
@@ -183,136 +183,39 @@
         "answer_92d5f7cd"
       ],
       "retrieved_top_ids": [
-        "6e6fbb6b",
         "91223fd5_1",
-        "cf543226_2",
-        "b459f888_3",
-        "728deb4d_4"
+        "6e6fbb6b",
+        "8b156015_2",
+        "728deb4d_4",
+        "42924d15"
       ],
       "retrieved_top_snippets": [
-        "[2023/05/24 (Wed) 22:45] user: I'm trying to plan a family dinner for my mom's 60th birthday, which is coming up soon. Can you suggest some healthy meal ideas that would be suitable for a big family gathering?",
-        "[2023/05/27 (Sat) 15:58] assistant: What an intriguing idea! Middle Eastern and Indian flavors can add a fascinating twist to the classic Old Fashioned. Here are some ingredients and flavor combinations that might work w",
-        "[2023/05/27 (Sat) 15:58] user: I've been playing around with different flavor profiles and ingredients in my Old Fashioned, and I'm thinking of trying a smoky flavor profile. Can you suggest some recipes or ingredients t"
+        "[2023/05/27 (Sat) 15:58] user: I've been experimenting with some unique flavor profiles lately, like the Spicy Mango Margarita I served at a BBQ party last weekend. I used jalapeno peppers, mango puree, tequila, lime jui",
+        "[2023/05/24 (Wed) 22:45] assistant: What a wonderful occasion! Planning a healthy and delicious meal for your mom's 60th birthday celebration is a great way to make the event even more special. Here are some healthy meal",
+        "[2023/05/24 (Wed) 22:45] user: I'm trying to plan a family dinner for my mom's 60th birthday, which is coming up soon. Can you suggest some healthy meal ideas that would be suitable for a big family gathering?"
       ],
       "reason": "miss_at_5"
     },
     {
       "suite": "longmemeval-s",
-      "item_id": "1c0ddc50",
+      "item_id": "d6233ab6",
       "category": "single-session-preference",
-      "question": "Can you suggest some activities I can do during my commute to work?",
-      "expected_answer": "The user would prefer suggestions related to listening to new podcasts or audiobooks, especially the genre beyond true crime or self-improvement, such as history. They may not be interested in activities that require visual attention, such as reading or watching videos, as they are commuting. The user would not prefer general podcast topics such as true crime or self-improvement, as the user wants to explore other topics.",
+      "question": "I've been feeling nostalgic lately. Do you think it would be a good idea to attend my high school reunion?",
+      "expected_answer": "The user would prefer responses that draw upon their personal experiences and memories, specifically their positive high school experiences such as being part of the debate team and taking advanced placement courses. They would prefer suggestions that highlight the potential benefits of attending the reunion, such as reconnecting with old friends and revisiting favorite subjects like history and economics. The user might not prefer generic or vague responses that do not take into account their individual experiences and interests.",
       "gold_ids": [
-        "answer_8da8c7e0"
+        "answer_b0fac439"
       ],
       "retrieved_top_ids": [
-        "2aa70c9c_1",
-        "b33e89b5_1",
-        "a0aa5035",
-        "sharegpt_ikJXzOG_0",
-        "ultrachat_494933"
+        "ultrachat_329160",
+        "0e726047",
+        "94bc18df_3",
+        "ultrachat_125013",
+        "e419b7c3_4"
       ],
       "retrieved_top_snippets": [
-        "[2023/05/23 (Tue) 11:21] assistant: Rush hour traffic can indeed impact your commute time. To provide a more realistic estimate, I've taken into account the increased traffic volume and pedestrian activity during peak ho",
-        "[2023/05/23 (Tue) 23:05] user: Can you also suggest some games or activities we can do during the trip to make it more fun and memorable with my friends?",
-        "[2023/05/23 (Tue) 11:21] user: I think that revised time estimate sounds more realistic. By the way, I've also been thinking about my morning routine, and I've noticed that I've been wasting a lot of time checking my ema"
-      ],
-      "reason": "miss_at_5"
-    },
-    {
-      "suite": "longmemeval-s",
-      "item_id": "gpt4_e061b84f",
-      "category": "temporal-reasoning",
-      "question": "What is the order of the three sports events I participated in during the past month, from earliest to latest?",
-      "expected_answer": "I first completed the Spring Sprint Triathlon, then took part in the Midsummer 5K Run, and finally participated in the company's annual charity soccer tournament.",
-      "gold_ids": [
-        "answer_8c64ce25_1",
-        "answer_8c64ce25_2",
-        "answer_8c64ce25_3"
-      ],
-      "retrieved_top_ids": [
-        "9345f7dc_4",
-        "0a6bf5e4_1",
-        "4cc9270f",
-        "ultrachat_129606",
-        "sharegpt_8ns7j9U_0"
-      ],
-      "retrieved_top_snippets": [
-        "[2023/06/17 (Sat) 14:08] user: I'm looking for some new recipe ideas. I've been stuck in a rut lately, eating a lot of chicken and veggies. I did try out some food delivery services last month, though. Speaking of which,",
-        "[2023/05/21 (Sun) 12:34] user: I'm thinking of trying to adjust my morning routine to get some exercise before work. Do you have any suggestions for a quick 20-minute workout that I can fit in before I head out the door?",
-        "[2023/05/21 (Sun) 12:34] user: I've been thinking about trying to adjust my morning routine to get some exercise before work. Do you have any suggestions for a quick 20-minute workout that I can fit in before I head out "
-      ],
-      "reason": "miss_at_5"
-    },
-    {
-      "suite": "longmemeval-s",
-      "item_id": "gpt4_1e4a8aec",
-      "category": "temporal-reasoning",
-      "question": "What gardening-related activity did I do two weeks ago?",
-      "expected_answer": "planting 12 new tomato saplings",
-      "gold_ids": [
-        "answer_16bd5ea6_1",
-        "answer_16bd5ea6_2"
-      ],
-      "retrieved_top_ids": [
-        "b34a52aa_3",
-        "9f1f3bf4",
-        "743b1fc3_2",
-        "1c662b7b_1",
-        "e675c69a_1"
-      ],
-      "retrieved_top_snippets": [
-        "[2023/03/25 (Sat) 04:00] user: Since I'm visiting my sister, I'd like to plan some activities that she'll enjoy as well. Can you suggest some outdoor activities or attractions that are suitable for a birthday celebration",
-        "[2023/04/03 (Mon) 15:46] user: I'm looking for some new brunch ideas, I've been experimenting with different brunch recipes on weekends and I'd love some inspiration. Do you have any suggestions?",
-        "[2023/04/21 (Fri) 22:47] assistant: Staying motivated and avoiding boredom is crucial to maintaining a consistent workout routine. Here are some tips to help you stay motivated and excited about your workouts:\n\n**Variety"
-      ],
-      "reason": "miss_at_5"
-    },
-    {
-      "suite": "longmemeval-s",
-      "item_id": "gpt4_59149c78",
-      "category": "temporal-reasoning",
-      "question": "I mentioned that I participated in an art-related event two weeks ago. Where was that event held at?",
-      "expected_answer": "The Metropolitan Museum of Art.",
-      "gold_ids": [
-        "answer_d00ba6d1_1",
-        "answer_d00ba6d1_2"
-      ],
-      "retrieved_top_ids": [
-        "23754665",
-        "ultrachat_463998",
-        "b2341a22",
-        "9848a1e3_2",
-        "sharegpt_GI6737T_2"
-      ],
-      "retrieved_top_snippets": [
-        "[2023/01/14 (Sat) 19:01] user: I'm going to add my past museum visits to the calendar now. I remember attending the \"Impressionist Masterpieces\" exhibition at the City Art Museum on a Saturday, which was a week before I ",
-        "[2023/01/14 (Sat) 19:01] assistant: It sounds like you have a good memory for your museum visits.\n\nAs you add your past museum visits to Google Calendar, remember to include as much detail as you can recall. This will he",
-        "[2023/01/14 (Sat) 19:01] assistant: I'm glad you're thinking of attending another art museum event! As a friendly assistant, I don't have real-time access to specific museum schedules or upcoming events. However, I can s"
-      ],
-      "reason": "miss_at_5"
-    },
-    {
-      "suite": "longmemeval-s",
-      "item_id": "gpt4_4929293b",
-      "category": "temporal-reasoning",
-      "question": "What was the the life event of one of my relatives that I participated in a week ago?",
-      "expected_answer": "my cousin's wedding",
-      "gold_ids": [
-        "answer_add9b013_1",
-        "answer_add9b013_2"
-      ],
-      "retrieved_top_ids": [
-        "bda611f6_3",
-        "sharegpt_rqvR1Ep_0",
-        "ultrachat_326769",
-        "ultrachat_131730",
-        "7fa98614_1"
-      ],
-      "retrieved_top_snippets": [
-        "[2023/04/12 (Wed) 06:33] assistant: Sure, here is an updated action plan that starts in the spring semester and shows the amount of credits the student would be taking as they continue through college:\n\nFirst Three Month",
-        "[2023/04/10 (Mon) 10:20] user: It's really fascinating to think about how Kassel's Enlightenment history might have influenced its response to the pandemic. Have there been any examples of how cultural institutions or ar",
-        "[2023/04/10 (Mon) 10:20] user: How has the COVID-19 pandemic impacted the cultural scene in Kassel, and what role has the city's Enlightenment history played in this context?"
+        "[2023/05/27 (Sat) 15:22] user: These are awesome ideas! I think I'll reward myself with a shopping spree if I stick to my cleaning routines for a whole month. Do you think that's a good idea?",
+        "[2023/05/22 (Mon) 22:28] user: I think I'll use a dedicated journal for my gratitude habit. I like the idea of having a physical book where I can write down my thoughts and reflect on them later. By the way, speaking of ",
+        "[2023/05/20 (Sat) 02:31] user: I'll definitely take those tips into consideration. Speaking of epic nights, I'm still on a high from the Khalid concert at the Greek Theatre in Berkeley with my sister, Sophia - it was suc"
       ],
       "reason": "miss_at_5"
     },
@@ -326,16 +229,16 @@
         "answer_9b09d95b_1"
       ],
       "retrieved_top_ids": [
-        "1e5bd28d_2",
         "25e5b797_1",
-        "cc3c5fa9_1",
+        "1e5bd28d_2",
+        "ultrachat_59629",
         "a2f0054f",
-        "ultrachat_59629"
+        "1d74a734"
       ],
       "retrieved_top_snippets": [
-        "[2023/04/11 (Tue) 20:41] assistant: Italian beef sandwiches are a quintessential Chicago classic! You'll find many spots serving them, but here are some iconic places to try:\n\n**Top Italian Beef Spots:**\n\n1. **Al's Beef*",
-        "[2023/04/11 (Tue) 20:41] user: I'm particularly interested in trying some of the classic Chicago eats. Can you recommend any good spots for Italian beef sandwiches? And do you have any tips on how to order it like a loca",
-        "[2023/04/11 (Tue) 20:41] user: I'm planning a trip to Chicago and I'm looking for some restaurant recommendations. I recently took a solo trip to New York City for 4 days and had an amazing time trying out different food"
+        "[2023/04/11 (Tue) 14:50] user: I'm glad to hear that the narrators are engaging. Since I have a 45-minute commute each way, I think I'll start with \"The Family Upstairs\" and see how I like it. Do you have any recommendat",
+        "[2023/04/11 (Tue) 19:52] assistant: Enforcing boundaries with a boss can be challenging, but it is important to communicate your limits and advocate for yourself. Here are some tips for approaching this situation:\n\n1. Id",
+        "[2023/04/11 (Tue) 01:21] user: I'm trying to plan my next theme park trip and I was wondering if you could help me compare the crowd levels at Universal Studios and Disneyland on Friday evenings. I remember going to Univ"
       ],
       "reason": "miss_at_5"
     },
@@ -351,15 +254,15 @@
       ],
       "retrieved_top_ids": [
         "990f3ef9_2",
+        "68d35085_1",
         "ultrachat_466884",
-        "fab41c07",
         "e72739cd_1",
-        "sharegpt_bUaSM2v_0"
+        "f8e9d4fa"
       ],
       "retrieved_top_snippets": [
+        "[2022/04/10 (Sun) 11:55] user: These are really helpful tips! I especially like the idea of suggesting sharing vegan dishes with my friends. I hope they'll be open to trying something different. I also just wanted to say",
         "[2022/04/10 (Sun) 19:28] assistant: You've got a great starting point with your Trader Joe's haul!\n\nI've got some quick, delicious, and healthy recipe ideas that incorporate your fruits and veggies. Since you mentioned y",
-        "[2022/04/10 (Sun) 11:55] user: It's reassuring to know that more restaurants are offering vegan options. I used to struggle finding something to eat whenever I went out to eat with my friends who aren't vegan. Do you hav",
-        "[2022/04/10 (Sun) 11:55] user: These are really helpful tips! I especially like the idea of suggesting sharing vegan dishes with my friends. I hope they'll be open to trying something different. I also just wanted to say"
+        "[2022/04/10 (Sun) 11:55] user: It's reassuring to know that more restaurants are offering vegan options. I used to struggle finding something to eat whenever I went out to eat with my friends who aren't vegan. Do you hav"
       ],
       "reason": "miss_at_5"
     },
@@ -374,16 +277,16 @@
         "answer_0d4d0348_2"
       ],
       "retrieved_top_ids": [
-        "7bb01253",
         "369695b4_2",
-        "2ea6fda4_1",
-        "2946bf12",
-        "28269633_2"
+        "sharegpt_5YtukCb_0",
+        "7bb01253",
+        "ultrachat_133409",
+        "2946bf12"
       ],
       "retrieved_top_snippets": [
-        "[2023/01/18 (Wed) 15:23] user: I'm glad you mentioned about cleaning the scale. I just organized my bathroom cabinet above the sink last Thursday, and I threw away some expired medications and cleaned the shelves with so",
-        "[2023/02/16 (Thu) 17:38] user: I'll try out some of those recipes. I've been pretty busy lately and I'm worried that I might forget some of my tasks. Can you help me set reminders for my upcoming events, like my breakfas",
-        "[2023/02/16 (Thu) 17:38] user: I'll make sure to set reminders for my upcoming events. By the way, do you have any tips on how to stay focused and avoid procrastination during work hours?"
+        "[2023/02/22 (Wed) 19:19] user: Can you list the most significant studies on this matter?",
+        "[2023/02/22 (Wed) 19:19] user: Can you provide links to the scientific articles you've listed?",
+        "[2023/03/01 (Wed) 19:28] user: I'd like to focus on my current projects, which include wrapping up the Johnson account, onboarding my new team, and mentoring Alex. The deadline for wrapping up the Johnson account is in t"
       ],
       "reason": "miss_at_5"
     },
@@ -397,16 +300,16 @@
         "answer_56521e66_1"
       ],
       "retrieved_top_ids": [
+        "bb107057_2",
         "b357fb8b_2",
-        "ultrachat_507878",
-        "dea400f8_2",
         "652c0717_3",
-        "ba9f938b_1"
+        "864a563d_5",
+        "ultrachat_526748"
       ],
       "retrieved_top_snippets": [
-        "[2023/02/23 (Thu) 19:39] assistant: You'll have a blast making okonomiyaki at home!\n\nAh, yes! Tokyo has plenty of amazing places to buy ingredients for Japanese cooking. Here are some popular options:\n\n1. **Tsukiji Outer",
-        "[2023/02/18 (Sat) 19:02] user: I've got a question about planning meals. Do you have any suggestions on how to meal prep on my days off, considering I have to eat lunch at the office on weekdays and usually grab somethin",
-        "[2023/02/18 (Sat) 19:02] assistant: Meal prep can be a game-changer for busy schedules. Given your constraints, here are some suggestions for meal prep on your days off to help you eat healthy and save time during the we"
+        "[2023/03/15 (Wed) 17:07] assistant: Thank you so much for your help and guidance! I'm really excited to try out the bulgur spaghetti with cherry tomatoes and mozzarella recipe. I think it's going to be a hit!\n\nI apprecia",
+        "[2023/03/15 (Wed) 17:07] assistant: Buon appetito! It's great to hear that you've been cooking at home regularly and feeling more confident in the kitchen. Italian cuisine offers a wealth of delicious and varied dishes t",
+        "[2023/02/23 (Thu) 19:39] assistant: You'll have a blast making okonomiyaki at home!\n\nAh, yes! Tokyo has plenty of amazing places to buy ingredients for Japanese cooking. Here are some popular options:\n\n1. **Tsukiji Outer"
       ],
       "reason": "miss_at_5"
     }

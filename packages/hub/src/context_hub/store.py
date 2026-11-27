@@ -2538,6 +2538,7 @@ class HubStore:
         embed_cache: Any | None = None,
         limit_per_kind: int | None = None,
         raw_ids: list[str] | None = None,
+        contextualize_turns: bool = False,
         batch_size: int = 64,
     ) -> dict[str, Any]:
         """Incrementally compute and store L2-normalized local embeddings in `semantic_vectors`."""
@@ -2572,8 +2573,6 @@ class HubStore:
                                ORDER BY r.t_start ASC LIMIT 40""",
                             (er["id"],),
                         ).fetchall()
-                        # Prioritize user/self turns first so verbose assistant replies never push
-                        # user facts & preferences out of the embedding model's 512-token window.
                         user_parts = [
                             f"user: {(tr['body_text'] or '')[:320]}"
                             for tr in turn_rows
@@ -2588,6 +2587,48 @@ class HubStore:
                         txt = f"{txt}\n{joined}".strip()
                     out.append((str(er["id"]), txt[:2000]))
                 return out
+            if kind == "episode_chunk":
+                ep_rows = conn.execute(
+                    f"SELECT id, title, summary, overview FROM episodes ORDER BY t_end DESC{lim}"
+                ).fetchall()
+                chunks_out: list[tuple[str, str]] = []
+                for er in ep_rows:
+                    eid = str(er["id"])
+                    summary_txt = f"{er['title']}\n{er['summary']}\n{er['overview']}".strip()
+                    if len(summary_txt) >= 120:
+                        chunks_out.append((f"{eid}::s0", summary_txt[:1500]))
+                        continue
+                    turn_rows = conn.execute(
+                        """SELECT r.actor, r.body_text FROM raw_events r
+                           JOIN episode_events ee ON ee.raw_id = r.id
+                           WHERE ee.episode_id=? AND r.deleted=0
+                           ORDER BY r.t_start ASC LIMIT 60""",
+                        (eid,),
+                    ).fetchall()
+                    user_turns = [
+                        (tr["body_text"] or "").strip()[:420]
+                        for tr in turn_rows
+                        if str(tr["actor"] or "").lower() in ("self", "user")
+                        and (tr["body_text"] or "").strip()
+                    ]
+                    asst_turns = [
+                        (tr["body_text"] or "").strip()[:300]
+                        for tr in turn_rows
+                        if str(tr["actor"] or "").lower() not in ("self", "user")
+                        and (tr["body_text"] or "").strip()
+                    ]
+                    # Topic-preserving 3-user-turn windows prevent multi-topic session dilution
+                    step = 3
+                    for cidx in range(0, len(user_turns), step):
+                        grp = user_turns[cidx : cidx + step]
+                        chunk_txt = f"{er['title']}\n" + "\n".join(grp)
+                        chunks_out.append((f"{eid}::u{cidx // step}", chunk_txt[:1400]))
+                    if asst_turns:
+                        asst_txt = f"{er['title']}\n" + "\n".join(asst_turns[:4])
+                        chunks_out.append((f"{eid}::a0", asst_txt[:1400]))
+                    elif not user_turns:
+                        chunks_out.append((f"{eid}::s0", summary_txt[:1400]))
+                return chunks_out
             if kind == "memory":
                 rows = conn.execute(
                     f"SELECT id, title, body FROM memories WHERE deleted=0 ORDER BY updated_at DESC{lim}"
@@ -2599,14 +2640,33 @@ class HubStore:
                         return []
                     ph = ",".join("?" for _ in raw_ids)
                     rows = conn.execute(
-                        f"SELECT id, title, body_text FROM raw_events WHERE deleted=0 AND id IN ({ph})",
+                        f"SELECT id, episode_id, t_start, actor, title, body_text FROM raw_events WHERE deleted=0 AND id IN ({ph}) ORDER BY episode_id, t_start ASC, id ASC",
                         raw_ids,
                     ).fetchall()
                 else:
+                    order_sql = "episode_id, t_start ASC, id ASC" if contextualize_turns else "t_start DESC"
                     rows = conn.execute(
-                        f"SELECT id, title, body_text FROM raw_events WHERE deleted=0 ORDER BY t_start DESC{lim}"
+                        f"SELECT id, episode_id, t_start, actor, title, body_text FROM raw_events WHERE deleted=0 ORDER BY {order_sql}{lim}"
                     ).fetchall()
-                return [(str(r["id"]), f"{r['title']}\n{r['body_text']}"[:2000]) for r in rows]
+                if not contextualize_turns:
+                    return [(str(r["id"]), f"{r['title']}\n{r['body_text']}"[:2000]) for r in rows]
+                out_raw: list[tuple[str, str]] = []
+                prev_ep: str | None = None
+                prev_actor = ""
+                prev_body = ""
+                for r in rows:
+                    ep_id = r["episode_id"]
+                    body = str(r["body_text"] or "")
+                    base_txt = f"{r['title']}\n{body[:1350]}"
+                    if ep_id and ep_id == prev_ep and prev_body:
+                        ctx_txt = f"{base_txt}\n[prev {prev_actor}]: {prev_body[:240]}"
+                    else:
+                        ctx_txt = base_txt
+                    out_raw.append((str(r["id"]), ctx_txt[:1800]))
+                    prev_ep = ep_id
+                    prev_actor = str(r["actor"] or "")
+                    prev_body = body
+                return out_raw
             return []
 
         with self._tx(False) as conn:
@@ -2704,6 +2764,50 @@ class HubStore:
         if not ids:
             return []
         return cosine_top_k(query_vec, ids, mat, top_k=top_k, min_score=min_score)
+
+    def _semantic_episode_maxsim(
+        self,
+        conn: sqlite3.Connection,
+        *,
+        query_vec: Any,
+        model: str,
+        top_k: int,
+        min_score: float = 0.25,
+    ) -> tuple[list[tuple[str, float]], dict[str, float]]:
+        """Multi-vector MaxSim episode ranking over `episode_chunk` (falls back to `episode`)."""
+        chunk_ids, mat = self._load_semantic_matrix(conn, "episode_chunk", model)
+        if chunk_ids:
+            scores = mat @ query_vec
+            per_ep: dict[str, list[float]] = defaultdict(list)
+            for idx, cid in enumerate(chunk_ids):
+                sc = float(scores[idx])
+                eid = cid.rsplit("::", 1)[0]
+                per_ep[eid].append(sc)
+            ep_score_map: dict[str, float] = {}
+            for eid, vals in per_ep.items():
+                vals.sort(reverse=True)
+                best = vals[0]
+                second = vals[1] if len(vals) > 1 else 0.0
+                ep_score_map[eid] = best + 0.15 * max(0.0, second)
+            ranked = [
+                (eid, sc)
+                for eid, sc in sorted(ep_score_map.items(), key=lambda kv: kv[1], reverse=True)
+                if sc >= min_score
+            ][:top_k]
+            return ranked, ep_score_map
+
+        # Fallback to single-vector `episode` embeddings
+        ep_ids, ep_mat = self._load_semantic_matrix(conn, "episode", model)
+        if not ep_ids:
+            return [], {}
+        scores = ep_mat @ query_vec
+        ep_score_map = {ep_ids[i]: float(scores[i]) for i in range(len(ep_ids))}
+        ranked = [
+            (eid, sc)
+            for eid, sc in sorted(ep_score_map.items(), key=lambda kv: kv[1], reverse=True)
+            if sc >= min_score
+        ][:top_k]
+        return ranked, ep_score_map
 
     def get_evidence_context_window(
         self,
@@ -3279,12 +3383,15 @@ class HubStore:
         project: str | None = None,
         since_ms: int | None = None,
         until_ms: int | None = None,
+        reference_time_ms: int | None = None,
         limit: int = 15,
         agent: bool = True,
         max_tokens: int = 3000,
         use_semantic: bool | None = None,
         embed_model: str | None = None,
         embed_cache: Any | None = None,
+        use_reranker: bool = False,
+        rerank_model: str | None = None,
     ) -> dict[str, Any]:
         fts_q = fts_match_query(query)
         fts_or = fts_match_query_or(query)
@@ -3387,10 +3494,18 @@ class HubStore:
                 m_rows = _fetch_two_stage(conn, m_sql, m_params, limit)
                 memories_out = [self._memory_dict(conn, r) for r in m_rows]
 
-            # 3b. Optional Local Semantic Vector RRF fusion (only activates if vectors exist)
+            # 3b. Optional Local Semantic Vector RRF + Automatic Soft Temporal Window RRF
+            from .temporal import parse_temporal_window, temporal_proximity_score
+
+            temp_window = (
+                parse_temporal_window(query, reference_time_ms or now_ts)
+                if (since_ms is None and until_ms is None and query.strip())
+                else None
+            )
             sem_raw_ids: list[str] = []
             sem_ep_ids: list[str] = []
             sem_mem_ids: list[str] = []
+            ep_sem_score_map: dict[str, float] = {}
             has_sem = False
             if use_semantic is not False and query.strip():
                 from .semantic import (
@@ -3411,8 +3526,8 @@ class HubStore:
                     else:
                         q_vec = embed_texts_direct([query.strip()], model_name=active_model)[0]
 
-                    sem_ep_pairs = self._semantic_candidates(
-                        conn, query_vec=q_vec, item_kind="episode", model=active_model, top_k=limit * 2
+                    sem_ep_pairs, ep_sem_score_map = self._semantic_episode_maxsim(
+                        conn, query_vec=q_vec, model=active_model, top_k=limit * 2
                     )
                     if sem_ep_pairs:
                         sem_ep_ids = [eid for eid, _ in sem_ep_pairs]
@@ -3435,8 +3550,8 @@ class HubStore:
                                     continue
                                 ep_map[r["id"]] = self._episode_dict(conn, r)
                         fused_ep_ids = rrf_fuse_lists(
-                            [([e["id"] for e in episodes_out], 1.0), ([eid for eid in sem_ep_ids if eid in ep_map], 1.15)],
-                            k=20.0,
+                            [([e["id"] for e in episodes_out], 0.85), ([eid for eid in sem_ep_ids if eid in ep_map], 1.55)],
+                            k=18.0,
                         )
                         episodes_out = [ep_map[eid] for eid in fused_ep_ids if eid in ep_map][:limit]
 
@@ -3470,6 +3585,49 @@ class HubStore:
                         conn, query_vec=q_vec, item_kind="raw", model=active_model, top_k=limit * 2
                     )
                     sem_raw_ids = [rid for rid, _ in sem_raw_pairs]
+
+            # 3c. Soft Temporal Window RRF signal for queries with relative/calendar time cues
+            if temp_window is not None:
+                from .semantic import rrf_fuse_lists
+
+                tw_where = ["t_end >= ?", "t_start <= ?"]
+                tw_params: list[Any] = [temp_window.start_ms, temp_window.end_ms]
+                if agent:
+                    tw_where.append("privacy_tier != 'local_only'")
+                if project:
+                    tw_where.append("project = ?")
+                    tw_params.append(project)
+                if sources:
+                    ph = ",".join("?" for _ in sources)
+                    tw_where.append(f"primary_source IN ({ph})")
+                    tw_params.extend(sources)
+                tw_rows = conn.execute(
+                    f"SELECT * FROM episodes WHERE {' AND '.join(tw_where)} ORDER BY t_end DESC LIMIT 40",
+                    tw_params,
+                ).fetchall()
+                if tw_rows:
+                    ep_map = {e["id"]: e for e in episodes_out}
+                    bm25_ep_rank = {e["id"]: idx for idx, e in enumerate(episodes_out)}
+                    scored_tw: list[tuple[str, float]] = []
+                    for r in tw_rows:
+                        eid = str(r["id"])
+                        if eid not in ep_map:
+                            ep_map[eid] = self._episode_dict(conn, r)
+                        prox = temporal_proximity_score(int(r["t_start"]), int(r["t_end"]), temp_window)
+                        sem_sc = max(0.0, ep_sem_score_map.get(eid, 0.0))
+                        lex_bonus = 0.18 / (1.0 + bm25_ep_rank[eid]) if eid in bm25_ep_rank else 0.0
+                        if temp_window.specificity == "point":
+                            scored_tw.append((eid, 0.50 * sem_sc + 0.50 * prox + lex_bonus))
+                        else:
+                            scored_tw.append((eid, 0.72 * sem_sc + 0.28 * prox + lex_bonus))
+                    scored_tw.sort(key=lambda kv: kv[1], reverse=True)
+                    tw_ep_ids = [eid for eid, _ in scored_tw[:limit]]
+                    tw_weight = 1.65 if temp_window.specificity == "point" else 1.05
+                    fused_ep_ids = rrf_fuse_lists(
+                        [([e["id"] for e in episodes_out], 1.0), (tw_ep_ids, tw_weight)],
+                        k=15.0,
+                    )
+                    episodes_out = [ep_map[eid] for eid in fused_ep_ids if eid in ep_map][:limit]
 
         # 4. Raw events (always searchable for verbatim evidence; uses same two-stage BM25)
         raw_hits = self.list_raw(
@@ -3510,24 +3668,28 @@ class HubStore:
             )
             raw_hits = [raw_map[rid] for rid in fused_raw_ids if rid in raw_map][:limit]
 
-        # 5. Cross-tier Episode <-> Turn RRF fusion so multi-turn session relevance and
-        #    sharp turn-level needles mutually reinforce each other.
+        # 5. Cross-tier Episode <-> Turn RRF fusion (deduplicated per episode so a single
+        #    verbose session with multiple BM25 keyword repeats cannot swamp semantic/temporal hits).
         if episodes_out and raw_hits:
             rrf_k = 20.0
             ep_scores: dict[str, float] = {}
-            ep_by_id: dict[str, dict[str, Any]] = {}
+            ep_weight = 1.35 if (has_sem and not sem_raw_ids) else 1.0
+            raw_ep_weight = 0.50 if (has_sem and not sem_raw_ids) else 0.75
             for rank, ep in enumerate(episodes_out):
                 eid = ep["id"]
-                ep_by_id[eid] = ep
-                ep_scores[eid] = ep_scores.get(eid, 0.0) + 1.0 / (rrf_k + rank + 1)
+                ep_scores[eid] = ep_scores.get(eid, 0.0) + ep_weight / (rrf_k + rank + 1)
 
-            raw_ep_best_rank: dict[str, int] = {}
+            raw_ep_hits_seen: dict[str, int] = {}
             for rank, rh in enumerate(raw_hits):
                 ep_id = rh.get("episode_id")
                 if ep_id:
-                    ep_scores[ep_id] = ep_scores.get(ep_id, 0.0) + 0.75 / (rrf_k + rank + 1)
-                    if ep_id not in raw_ep_best_rank:
-                        raw_ep_best_rank[ep_id] = rank
+                    cnt = raw_ep_hits_seen.get(ep_id, 0)
+                    if cnt < 2:
+                        decay = 1.0 if cnt == 0 else 0.25
+                        ep_scores[ep_id] = ep_scores.get(ep_id, 0.0) + (
+                            raw_ep_weight * decay / (rrf_k + rank + 1)
+                        )
+                        raw_ep_hits_seen[ep_id] = cnt + 1
 
             episodes_out.sort(
                 key=lambda ep: (ep_scores.get(ep["id"], 0.0), int(ep.get("t_end") or 0)),
@@ -3547,6 +3709,74 @@ class HubStore:
                 reverse=True,
             )
             raw_hits = [item for _, item in raw_hits]
+
+        # 6. Optional Local ONNX Cross-Encoder Reranking on top fused candidates
+        if use_reranker and query.strip():
+            from .semantic import (
+                DEFAULT_RERANK_MODEL,
+                rerank_candidates,
+                reranker_available,
+                rrf_fuse_lists,
+            )
+
+            if reranker_available():
+                rmodel = rerank_model or DEFAULT_RERANK_MODEL
+                if len(raw_hits) > 1:
+                    top_n = raw_hits[:25]
+                    prev_by_raw: dict[str, str] = {}
+                    ep_ids_for_prev = list({r["episode_id"] for r in top_n if r.get("episode_id")})
+                    if ep_ids_for_prev:
+                        with self._tx(False) as conn:
+                            ph_e = ",".join("?" for _ in ep_ids_for_prev)
+                            priv_c = "AND privacy_tier != 'local_only'" if agent else ""
+                            ep_turns = conn.execute(
+                                f"""SELECT id, episode_id, actor, body_text FROM raw_events
+                                    WHERE episode_id IN ({ph_e}) AND deleted=0 {priv_c}
+                                    ORDER BY episode_id, t_start ASC, id ASC""",
+                                ep_ids_for_prev,
+                            ).fetchall()
+                            last_ep = None
+                            last_txt = ""
+                            for tr in ep_turns:
+                                if tr["episode_id"] == last_ep and last_txt:
+                                    prev_by_raw[str(tr["id"])] = last_txt
+                                last_ep = tr["episode_id"]
+                                last_txt = f"{tr['actor'] or ''}: {(tr['body_text'] or '')[:220]}"
+                    cand_raw: list[tuple[str, str]] = []
+                    for r in top_n:
+                        actor_lbl = (
+                            "User"
+                            if str(r.get("actor") or "").lower() in ("self", "user")
+                            else str(r.get("actor") or "assistant")
+                        )
+                        doc = f"{actor_lbl}: {(r.get('body_text') or r.get('snippet') or '')[:950]}"
+                        prev_ctx = prev_by_raw.get(r["id"])
+                        if prev_ctx:
+                            doc += f"\n[Previous turn] {prev_ctx}"
+                        cand_raw.append((r["id"], doc))
+                    ce_raw = [rid for rid, _ in rerank_candidates(query, cand_raw, model_name=rmodel)]
+                    if ce_raw:
+                        raw_by_id = {r["id"]: r for r in raw_hits}
+                        fused_r = rrf_fuse_lists(
+                            [([r["id"] for r in top_n], 0.90), (ce_raw, 1.45)],
+                            k=15.0,
+                        )
+                        reranked = [raw_by_id[rid] for rid in fused_r if rid in raw_by_id]
+                        seen_rr = {r["id"] for r in reranked}
+                        raw_hits = reranked + [r for r in raw_hits if r["id"] not in seen_rr]
+                if len(memories_out) > 1:
+                    top_m = memories_out[:20]
+                    cand_m = [(m["id"], f"{m['title']}\n{m['body'][:800]}") for m in top_m]
+                    ce_m = [mid for mid, _ in rerank_candidates(query, cand_m, model_name=rmodel)]
+                    if ce_m:
+                        mem_by_id = {m["id"]: m for m in memories_out}
+                        fused_m = rrf_fuse_lists(
+                            [([m["id"] for m in top_m], 0.90), (ce_m, 1.35)],
+                            k=15.0,
+                        )
+                        reranked_m = [mem_by_id[mid] for mid in fused_m if mid in mem_by_id]
+                        seen_rm = {m["id"] for m in reranked_m}
+                        memories_out = reranked_m + [m for m in memories_out if m["id"] not in seen_rm]
 
         # Apply token budget progressively: Decisions -> Episodes -> Memories -> Raw excerpts
         used = 100
@@ -3608,6 +3838,17 @@ class HubStore:
             "episodes": bounded_ep,
             "memories": bounded_mem,
             "raw_matches": raw_out,
+            "temporal_window": (
+                {
+                    "matched_phrase": temp_window.matched_phrase,
+                    "specificity": temp_window.specificity,
+                    "start_ms": temp_window.start_ms,
+                    "end_ms": temp_window.end_ms,
+                    "center_ms": temp_window.center_ms,
+                }
+                if temp_window is not None
+                else None
+            ),
             "approx_tokens": used,
         }
 

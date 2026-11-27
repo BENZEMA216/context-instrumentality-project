@@ -204,6 +204,8 @@ def main(argv: list[str] | None = None) -> int:
     bench_run.add_argument("--engine-label", type=str, default="raw-memory")
     bench_run.add_argument("--semantic", action="store_true", help="Enable Hybrid BM25 + Local fastembed Semantic Vector RRF")
     bench_run.add_argument("--embed-model", type=str, default=None, help="Optional fastembed ONNX model name")
+    bench_run.add_argument("--rerank", action="store_true", help="Enable v0.6 Multi-Chunk MaxSim + Temporal Window + Local Cross-Encoder Reranker")
+    bench_run.add_argument("--rerank-model", type=str, default=None, help="Optional local ONNX Cross-Encoder model name")
     bench_run.add_argument("--limit", type=int, default=None, help="Optional limit (conversations for LoCoMo, questions for LongMemEval)")
     bench_run.add_argument("--format", choices=("markdown", "json"), default="markdown")
     bench_run.add_argument("--out", type=Path, default=None)
@@ -361,6 +363,8 @@ def main(argv: list[str] | None = None) -> int:
                     limit_convs=args.limit,
                     use_semantic=args.semantic,
                     embed_model=args.embed_model,
+                    use_reranker=args.rerank,
+                    rerank_model=args.rerank_model,
                 )
             elif args.suite == "convomem-smoke":
                 report = evaluate_convomem(
@@ -377,6 +381,8 @@ def main(argv: list[str] | None = None) -> int:
                     limit_questions=args.limit,
                     use_semantic=args.semantic,
                     embed_model=args.embed_model,
+                    use_reranker=args.rerank,
+                    rerank_model=args.rerank_model,
                 )
             rendered = (
                 render_benchmark_markdown(report)

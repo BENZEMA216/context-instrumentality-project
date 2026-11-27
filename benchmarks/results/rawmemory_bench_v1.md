@@ -1,10 +1,10 @@
 # RawMemory-Bench v1.0.0 Scorecard
 
-- **Engine**: `raw-memory-v0.5.0`
+- **Engine**: `raw-memory-v0.6.0`
 - **SHA-256 Lock**: `faaf53763019a000...` (VERIFIED)
 - **Overall Pass Rate**: **100.0%** (`32/32`)
 - **Safety & Isolation**: Stale Leakage `0.0%` · Cross-Project Bleed `0` · Privacy Leaks `0` · Poisoning Block `100.0%` · TTL Pass `100.0%`
-- **Prompt Cache & Speed**: Stable Prefix Ratio `68.7%` · Avg Tokens `417` · p50 `31.96 ms` / p95 `194.98 ms`
+- **Prompt Cache & Speed**: Stable Prefix Ratio `68.7%` · Avg Tokens `417` · p50 `0.80 ms` / p95 `4.65 ms`
 
 | Pillar | Passed | Total | Pass Rate |
 | :--- | ---: | ---: | ---: |

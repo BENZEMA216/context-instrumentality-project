@@ -18,9 +18,11 @@ from pathlib import Path
 from typing import Any
 
 DEFAULT_EMBED_MODEL = os.environ.get("RAW_MEMORY_EMBED_MODEL", "BAAI/bge-small-en-v1.5")
+DEFAULT_RERANK_MODEL = os.environ.get("RAW_MEMORY_RERANK_MODEL", "Xenova/ms-marco-MiniLM-L-6-v2")
 MULTILINGUAL_EMBED_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 
 _MODEL_CACHE: dict[str, Any] = {}
+_RERANKER_CACHE: dict[str, Any] = {}
 
 
 def semantic_available() -> bool:
@@ -28,6 +30,16 @@ def semantic_available() -> bool:
     try:
         import fastembed  # noqa: F401
         import numpy  # noqa: F401
+
+        return True
+    except Exception:
+        return False
+
+
+def reranker_available() -> bool:
+    """Return True if local ONNX `TextCrossEncoder` reranker is available."""
+    try:
+        from fastembed.rerank.cross_encoder import TextCrossEncoder  # noqa: F401
 
         return True
     except Exception:
@@ -45,6 +57,33 @@ def get_embedder(model_name: str = DEFAULT_EMBED_MODEL) -> Any:
 
         _MODEL_CACHE[model_name] = TextEmbedding(model_name=model_name)
     return _MODEL_CACHE[model_name]
+
+
+def get_reranker(model_name: str = DEFAULT_RERANK_MODEL) -> Any:
+    """Lazily load and cache a local ONNX `fastembed.TextCrossEncoder` model."""
+    if model_name not in _RERANKER_CACHE:
+        from fastembed.rerank.cross_encoder import TextCrossEncoder
+
+        _RERANKER_CACHE[model_name] = TextCrossEncoder(model_name=model_name)
+    return _RERANKER_CACHE[model_name]
+
+
+def rerank_candidates(
+    query: str,
+    candidates: list[tuple[str, str]],
+    *,
+    model_name: str = DEFAULT_RERANK_MODEL,
+    max_chars: int = 1200,
+) -> list[tuple[str, float]]:
+    """Score `(item_id, text)` candidates with a local ONNX Cross-Encoder, sorted descending."""
+    if not candidates or not query.strip() or not reranker_available():
+        return []
+    reranker = get_reranker(model_name)
+    docs = [txt[:max_chars] for _, txt in candidates]
+    scores = [float(s) for s in reranker.rerank(query.strip(), docs)]
+    paired = [(candidates[i][0], scores[i]) for i in range(len(candidates))]
+    paired.sort(key=lambda kv: kv[1], reverse=True)
+    return paired
 
 
 class PersistentEmbedCache:

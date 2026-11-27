@@ -6,112 +6,87 @@ This directory integrates a **3-Tier Fixed Regression & Public Academic Benchmar
 2. **Tier 2 · Private `Personal Golden Set`** (`~/.local/share/context-hub-v2/eval/personal_bench_v1.json`, strictly outside Git): read-only regression suite run live against the owner's local `HubStore`, checking real-world recall, zero stale leakage, and zero raw PII exposure.
 3. **Tier 3 · Public Academic & Reflexive Suites**: **LongMemEval-S** (ICLR 2025), **LongMemEval-Oracle** (ICLR 2025), **LoCoMo** (ACL 2024), **ConvoMem** + 5-Stage **MemoryBench E2E Judge (`MemScore`)**, and **Reflexive Meta Benchmark (RFC-0003)**.
 
-All evaluations run deterministically against genuine `HubStore` SQLite FTS5 + optional local `fastembed` ONNX (`BAAI/bge-small-en-v1.5`, 384-d) vector indices—**zero cloud embedding APIs, zero GPU required, zero mocked stores**.
+All evaluations run deterministically against genuine `HubStore` SQLite FTS5 + local `fastembed` ONNX (`BAAI/bge-small-en-v1.5`, 384-d) + local ONNX Cross-Encoder (`Xenova/ms-marco-MiniLM-L-6-v2`, 82 MB)—**100% local on CPU, zero cloud LLM / embedding APIs, zero GPU, zero mocked stores**.
 
 ---
 
-## 1. Integrated Suites
+## 1. Reproducible 4-Generation Progression (`v0.2.0` → `v0.3.0` → `v0.5.0` → `v0.6.0`)
 
-| Tier & Suite | Source & Venue | Scale | What It Tests |
-| :--- | :--- | :--- | :--- |
-| **Tier 1 · `RawMemory-Bench v1.0`** | Frozen Bundled (`SHA-256` locked) | 32 cases × 9 pillars | Isolation, poisoning trust gate, cascade delete, TTL expiry, Vault boundary, Prompt-Cache stability |
-| **Tier 2 · `Personal Golden Set`** | Local Private (Outside Git) | Owner-maintained queries | Live personal recall, anti-stale, zero raw PII leakage |
-| **Tier 3 · [LongMemEval-S](https://github.com/xiaowu0162/LongMemEval)** | ICLR 2025 (UCLA / Tencent AI Lab) | 500 Qs × ~48 sessions (246,750 turns) | Full haystack retrieval across 6 pillars + 30 `_abs` abstention traps |
-| **Tier 3 · [LongMemEval-Oracle](https://github.com/xiaowu0162/LongMemEval)** | ICLR 2025 (Cleaned) | 500 Qs (evidence sessions only) | Turn-level pinpointing precision across all 6 memory pillars |
-| **Tier 3 · [LoCoMo](https://github.com/snap-research/locomo)** | ACL 2024 (Snap Research / UNC) | 10 dialogues, 5,882 turns, 1,986 QAs | Multi-session recall (`single_hop`, `temporal`, `open_domain`, `multi_hop`, `adversarial`); **L1 Raw** vs **L1+L2+L3 Curated** |
-| **Tier 3 · `ConvoMem` + 5-Stage E2E** | ConvoMem / MemoryBench schema | 12 bundled smoke cases × 6 categories | `user_facts`, `assistant_facts`, `changing_facts`, `preferences`, `implicit_connections`, `abstention` + `MemScore` |
-| **Tier 3 · [Reflexive Meta](../docs/rfc/0003-meta-memory-benchmark.md)** | Raw Memory (Bundled) | 18 causal $H_{<t}$ cases + 5-gen anti-echo | Causal time-travel isolation, bi-temporal truth, 5-generation hallucination/echo resistance |
+- **`v0.2.0`**: Strict-AND FTS5 baseline.
+- **`v0.3.0`**: Stopword-aware two-stage `AND → BM25 OR` + Cross-tier Episode↔Turn RRF (`~2 ms`).
+- **`v0.5.0`**: Hybrid BM25 + Local `fastembed` ONNX single-vector Semantic RRF (`~6–9 ms` warm).
+- **`v0.6.0`**: **Multi-Chunk Topic-Preserving Episode MaxSim** + **Bilingual (EN/ZH) Temporal Window Parser & Soft Gaussian RRF** + **Deduplicated Cross-Tier Fusion** + **Contextualized `±1` Dialogue Turn Windows** + **Local ONNX Cross-Encoder Reranking**.
 
----
-
-## 2. Reproducible Progression: `v0.2.0` → `v0.3.0` (BM25+RRF) → `v0.5.0` (Hybrid BM25 + Local Semantic RRF)
-
-### A. LongMemEval-S (470 scored + 30 `_abs`, ~115k tokens / ~48 sessions per question)
+### A. LongMemEval-S (ICLR 2025 · 470 scored + 30 `_abs`, ~115k tokens / ~48 sessions / 246,750 turns)
 
 | Engine | Sess R@1 | Sess R@5 | Sess R@10 | Sess All-R@5 | Sess NDCG@5 | Turn R@5 | Turn R@10 | Turn NDCG@5 | `_abs` R@5 |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `v0.2.0` (Strict-AND FTS) | 3.2% | 3.2% | 3.2% | 1.7% | 2.6% | 0.0% | 0.0% | 0.0% | 3.3% |
-| `v0.3.0` (Hybrid BM25 + RRF) | 80.6% | 96.6% | 98.5% | 85.3% | 86.1% | 77.0% | 86.2% | 55.4% | 96.7% |
-| **`v0.5.0` (BM25 + Local Semantic RRF)** | **86.2%** (+5.6) | **97.7%** (+1.1) | **98.7%** | **87.2%** (+1.9) | **90.0%** (+3.9) | **85.1%** (+8.1) | **92.8%** (+6.6) | **58.2%** (+2.8) | **100.0%** |
+| `v0.3.0` (BM25 + RRF) | 80.6% | 96.6% | 98.5% | 85.3% | 86.1% | 77.0% | 86.2% | 55.4% | 96.7% |
+| `v0.5.0` (BM25 + Semantic RRF) | 86.2% | 97.7% | 98.7% | 87.2% | 90.0% | 85.1% | 92.8% | 58.2% | 100.0% |
+| **`v0.6.0` (MaxSim + Temporal + Rerank)** | **93.8%** (+7.6) | **98.5%** (463/470) | **98.9%** | **90.8%** (+3.6) | **94.3%** (+4.3) | **91.9%** (+6.8) | **96.2%** (+3.4) | **68.7%** (+10.5) | **100.0%** |
 
-Per-pillar jump on LongMemEval-S (`v0.3.0 BM25` → `v0.5.0 Hybrid BM25 + Semantic`, full report: [longmemeval_s.md](results/longmemeval_s.md)):
+Per-pillar breakdown (`v0.6.0`, full report: [longmemeval_s.md](results/longmemeval_s.md)):
 
-| Official Pillar | N | Sess R@1 | Sess R@5 | Sess NDCG@5 | Turn R@5 |
-| :--- | ---: | ---: | ---: | ---: | ---: |
-| `single-session-preference` | 30 | `43.3%` → **76.7%** (**+33.4**) | `83.3%` → **90.0%** (+6.7) | `63.6%` → **84.3%** (**+20.7**) | `40.0%` → **70.0%** (**+30.0**) |
-| `multi-session` | 121 | `85.1%` → **90.9%** (+5.8) | `98.4%` → **100.0%** (+1.6) | `85.5%` → **89.8%** (+4.3) | `76.9%` → **87.6%** (+10.7) |
-| `temporal-reasoning` | 127 | `77.2%` → **81.1%** (+3.9) | `92.9%` → **93.7%** (+0.8) | `80.7%` → **83.9%** (+3.2) | `71.7%` → **80.3%** (+8.6) |
-| `single-session-user` | 64 | `75.0%` → **79.7%** (+4.7) | **100.0%** | `89.6%` → **91.9%** (+2.3) | `82.8%` → **87.5%** (+4.7) |
-| `single-session-assistant` | 56 | `87.5%` → **89.3%** (+1.8) | **100.0%** | `94.7%` → **95.8%** (+1.1) | **87.5%** |
-| `knowledge-update` | 72 | **94.4%** | **100.0%** | `96.0%` → **97.0%** (+1.0) | `88.9%` → **91.7%** (+2.8) |
+| Official Pillar | N | Sess R@1 | Sess R@5 | Sess All-R@5 | Sess NDCG@5 | Turn R@5 | Turn NDCG@5 |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `single-session-assistant` | 56 | **100.0%** | **100.0%** | **100.0%** | **100.0%** | 91.1% | 76.1% |
+| `single-session-user` | 64 | **95.3%** | **100.0%** | **100.0%** | **98.1%** | **96.9%** | **88.5%** |
+| `knowledge-update` | 72 | **97.2%** | **100.0%** | 98.6% | **98.4%** | **95.8%** | 75.9% |
+| `multi-session` | 121 | **95.0%** | **100.0%** | **86.0%** (+10.0) | **93.8%** | **95.0%** | 62.4% |
+| `temporal-reasoning` | 127 | **90.5%** (+9.4) | **96.9%** (+3.2) | **82.7%** (+4.0) | **90.1%** (+6.2) | **86.6%** (+6.3) | 60.7% |
+| `single-session-preference` | 30 | **80.0%** | **90.0%** | **90.0%** | **85.6%** | **83.3%** (+13.3) | 54.6% |
 
-### B. LongMemEval-Oracle (470 scored + 30 `_abs`, evidence sessions only)
+### B. LongMemEval-Oracle (ICLR 2025 · 470 scored + 30 `_abs`, evidence sessions only)
 
-| Engine | Sess R@1 | Sess R@5 | Turn R@5 | Turn R@10 | Turn NDCG@5 | `preference` Turn R@5 |
-| :--- | ---: | ---: | ---: | ---: | ---: | ---: |
-| `v0.2.0` (Strict-AND FTS) | 3.2% | 3.2% | 0.0% | 0.0% | 0.0% | 0.0% |
-| `v0.3.0` (Hybrid BM25) | 100.0% | 100.0% | 84.3% | 93.0% | 61.4% | 53.3% |
-| **`v0.5.0` (BM25 + Local Semantic RRF)** | **100.0%** | **100.0%** | **91.3%** (+7.0) | **97.2%** (+4.2) | **64.2%** (+2.8) | **86.7%** (+33.4) |
+| Engine | Sess R@1 | Sess R@5 | Turn R@5 | Turn R@10 | Turn NDCG@5 | `preference` Turn R@5 | `knowledge-update` Turn R@5 |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `v0.2.0` (Strict-AND FTS) | 3.2% | 3.2% | 0.0% | 0.0% | 0.0% | 0.0% | 0.0% |
+| `v0.3.0` (BM25 + RRF) | 100.0% | 100.0% | 84.3% | 93.0% | 61.4% | 53.3% | 88.9% |
+| `v0.5.0` (BM25 + Semantic RRF) | 100.0% | 100.0% | 91.3% | 97.2% | 64.2% | 86.7% | 93.1% |
+| **`v0.6.0` (MaxSim + Temporal + Rerank)** | **100.0%** | **100.0%** | **94.0%** (+2.7) | **98.3%** | **73.0%** (+8.8) | **96.7%** (+10.0) | **100.0%** (+6.9) |
 
 Full report: [longmemeval_oracle.md](results/longmemeval_oracle.md).
 
-### C. LoCoMo (10 conversations, 1,982 scored / 1,986 total QA pairs)
+### C. LoCoMo (ACL 2024 · 10 dialogues, 5,882 turns, 1,982 scored QA pairs)
 
-| Engine & Mode | R@1 | R@5 | R@10 | All-R@5 | All-R@10 | NDCG@5 | MRR | Ans-Cov@10 | `open_domain` R@10 | p50 Latency |
+| Engine & Mode | R@1 | R@5 | R@10 | All-R@5 | All-R@10 | NDCG@5 | MRR | Ans-Cov@5 | Ans-Cov@10 | `open_domain` R@10 |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| `v0.2.0` Raw / Curated | 0.1% | 0.1% | 0.1% | 0.1% | 0.1% | 0.1% | 0.1% | 0.1% | 0.0% | 0.06 ms |
-| `v0.3.0` L1 Raw (BM25) | 37.0% | 61.7% | 69.6% | 52.7% | 60.0% | 47.3% | 47.5% | 54.3% | 41.3% | 0.96 ms |
-| `v0.3.0` Curated (BM25) | 34.2% | 61.3% | 72.5% | 50.9% | 61.5% | 45.4% | 46.2% | 56.1% | 47.8% | 2.04 ms |
-| `v0.5.0` L1 Raw + Semantic | 33.7% | 64.1% | 76.5% | 54.3% | **66.8%** | 46.9% | 46.9% | 59.3% | 53.3% | 19.04 ms |
-| **`v0.5.0` Curated + Semantic** | **35.5%** | **67.1%** | **77.0%** | **56.5%** | 66.1% | **49.2%** | **49.3%** | **59.9%** | **58.7%** (+10.9) | **8.44 ms** |
+| `v0.2.0` Raw / Curated | 0.1% | 0.1% | 0.1% | 0.1% | 0.1% | 0.1% | 0.1% | 0.1% | 0.1% | 0.0% |
+| `v0.3.0` Curated (BM25) | 34.2% | 61.3% | 72.5% | 50.9% | 61.5% | 45.4% | 46.2% | 45.2% | 56.1% | 47.8% |
+| `v0.5.0` Curated + Semantic | 35.5% | 67.1% | 77.0% | 56.5% | 66.1% | 49.2% | 49.3% | 50.2% | 59.9% | 58.7% |
+| `v0.6.0` Raw + Context + Rerank | 47.4% | 80.3% | 86.9% | 69.6% | 76.5% | 61.7% | 61.1% | 61.2% | **67.8%** | 57.6% |
+| **`v0.6.0` Curated + Context + Rerank** | **56.7%** (+21.2) | **82.2%** (+15.1) | **87.8%** (+10.8) | **71.4%** (+14.9) | **77.2%** (+11.1) | **67.1%** (+17.9) | **67.6%** (+18.3) | **61.3%** (+11.1) | 67.3% | **63.0%** (+15.2 vs v0.3) |
 
-Full reports: [locomo10_raw.md](results/locomo10_raw.md), [locomo10_curated.md](results/locomo10_curated.md).
+Full reports: [locomo10_curated.md](results/locomo10_curated.md), [locomo10_raw.md](results/locomo10_raw.md).
 
-### D. Tier 1 Frozen `RawMemory-Bench v1.0` (32 Cases × 9 Pillars, SHA-256 Locked)
+### D. Tier 1 Frozen `RawMemory-Bench v1.0` & Tier 3 ConvoMem / Reflexive Meta
 
-| Metric | `v0.5.0` Score |
-| :--- | ---: |
-| Overall Pass Rate (all 9 pillars) | **100.0%** (`32/32`) |
-| Stale Leakage Rate | **0.0%** |
-| Cross-Project Bleed Count | **0** |
-| Privacy / Vault Raw Leak Count | **0** |
-| Prompt-Injection Poisoning Block Rate | **100.0%** |
-| Ephemeral TTL Expiry Pass Rate | **100.0%** |
-| Prompt-Cache Stable Prefix Ratio | **68.7%** (byte-identical across queries) |
-
-Full report: [rawmemory_bench_v1.md](results/rawmemory_bench_v1.md).
-
-### E. ConvoMem Smoke + 5-Stage E2E `MemScore` & Reflexive Meta Benchmark
-
-- **ConvoMem Smoke (Hybrid Semantic)**: `Sess R@5 = 100.0%`, `Ans-Cov@5 = 100.0%`, `Sess R@1 = 90.0%`, `Sess NDCG@5 = 96.3%` ([convomem_smoke.md](results/convomem_smoke.md)).
-- **5-Stage E2E `MemScore` (Offline Extractive Judge)**: `retrieval_recall@5 = 100.0%`, `abstention_accuracy = 100.0%`, `evidence_grounding = 100.0%`, `answer_accuracy = 83.3%` ([convomem_e2e_memscore.json](results/convomem_e2e_memscore.json)). Set `OPENAI_API_KEY` (or `RAW_MEMORY_JUDGE_API_KEY` + `RAW_MEMORY_JUDGE_BASE_URL`) to enable LLM-as-a-Judge.
-- **Reflexive Meta Benchmark (RFC-0003)**: `hub_v2_curated` **100.0%** Fact Recall, **100.0%** Truth Accuracy, **0.0%** Stale Leakage (vs `flat_memory_md` 83.3% stale), **PASS** 5-gen Anti-Echo ([reflexive_meta.md](results/reflexive_meta.md)).
+- **`RawMemory-Bench v1.0`** (SHA-256 locked, 32 cases × 9 pillars): **`32/32 (100.0%)`** — Stale Leakage `0.0%`, Cross-Project Bleed `0`, Privacy/Vault Leaks `0`, Poisoning Block `100.0%`, Ephemeral TTL Pass `100.0%`, Prompt-Cache Stable Prefix `68.7%` ([rawmemory_bench_v1.md](results/rawmemory_bench_v1.md)).
+- **`ConvoMem Smoke` + 5-Stage E2E `MemScore`**: `Sess R@5 = 100.0%`, `Ans-Cov@5 = 100.0%`, `Abstention = 100.0%`, Offline E2E Accuracy `83.3%` ([convomem_smoke.md](results/convomem_smoke.md), [convomem_e2e_memscore.json](results/convomem_e2e_memscore.json)).
+- **`Reflexive Meta Benchmark (RFC-0003)`**: `hub_v2_curated` `100.0%` Fact Recall, `100.0%` Truth Accuracy, `0.0%` Stale Leakage (vs `flat_memory_md` `83.3%` stale), `PASS` 5-gen Anti-Echo ([reflexive_meta.md](results/reflexive_meta.md)).
 
 ---
 
-## 3. Reproduce Locally & Interactive Workbench
+## 2. Reproduce Locally
 
 ```bash
-# Install with optional local semantic embedding extra (ONNX fastembed, no PyTorch/GPU)
 uv sync --extra dev --extra semantic
 
-# 1. Run Tier 1 Frozen RawMemory-Bench v1.0 (SHA-256 verified)
+# Tier 1 Frozen Regression (SHA-256 verified)
 uv run raw-memory-eval bench-frozen
 
-# 2. Run Tier 2 Private Personal Golden Set (~/.local/share/context-hub-v2/eval/personal_bench_v1.json)
+# Tier 2 Private Local Personal Golden Set (outside Git)
 uv run raw-memory-eval bench-personal
 
-# 3. Run Tier 3 Public Academic Benchmarks (add --semantic for Hybrid BM25+Semantic RRF)
+# Tier 3 Public Academic Benchmarks (v0.6: --semantic --rerank)
 uv run raw-memory-eval bench download --suite all
-uv run raw-memory-eval bench run --suite locomo --mode curated --semantic
-uv run raw-memory-eval bench run --suite longmemeval-oracle --semantic
-uv run raw-memory-eval bench run --suite longmemeval-s --semantic
+uv run raw-memory-eval bench run --suite locomo --mode curated --semantic --rerank
+uv run raw-memory-eval bench run --suite longmemeval-oracle --semantic --rerank
+uv run raw-memory-eval bench run --suite longmemeval-s --semantic --rerank
 uv run raw-memory-eval bench run --suite convomem-smoke --semantic
 uv run raw-memory-eval bench-e2e --semantic
 
-# 4. Run Reflexive Meta Benchmark (H_<t + 5-gen anti-echo)
-uv run raw-memory-eval run
-
-# 5. Launch Localhost Workbench (with one-click Frozen & Personal regression buttons)
+# Localhost Interactive Debug & Benchmark Workbench
 uv run raw-memory-eval workbench --port 8765
 ```

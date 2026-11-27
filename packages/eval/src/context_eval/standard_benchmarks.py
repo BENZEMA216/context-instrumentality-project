@@ -306,9 +306,13 @@ def _retrieve_locomo_ranked(
     raw_to_dia: dict[str, str],
     dia_to_text: dict[str, str],
     ep_to_dias: dict[str, list[str]],
+    dia_to_prev: dict[str, str] | None = None,
+    dia_to_next: dict[str, str] | None = None,
     use_semantic: bool = False,
     embed_model: str | None = None,
     embed_cache: Any | None = None,
+    use_reranker: bool = False,
+    rerank_model: str | None = None,
 ) -> tuple[list[str], list[str]]:
     """Query genuine `HubStore` and return ranked `(dia_ids, snippets)`."""
     ranked_dias: list[str] = []
@@ -322,19 +326,22 @@ def _retrieve_locomo_ranked(
         ranked_dias.append(dia)
         snippets.append((snippet_override or dia_to_text.get(dia, ""))[:260])
 
+    cand_limit = max(top_k * 3, 30) if use_reranker else max(top_k * 2, 20)
+    best_snippet: dict[str, str] = {}
+    rrf_order: list[str] = []
+
     if mode == "curated":
         res = store.search_context(
             question,
-            limit=max(top_k * 2, 20),
+            limit=cand_limit,
             agent=True,
-            max_tokens=24_000,
+            max_tokens=32_000,
             use_semantic=use_semantic,
             embed_model=embed_model,
             embed_cache=embed_cache,
         )
         # Fuse L3 Curated Observations (evidence_ids), L1 Raw Turns, and L2 Episodes via RRF
         scores: dict[str, float] = {}
-        best_snippet: dict[str, str] = {}
         rrf_k = 15.0
 
         for rank, mem in enumerate(res.get("memories") or []):
@@ -358,28 +365,85 @@ def _retrieve_locomo_ranked(
                 if dia not in best_snippet:
                     best_snippet[dia] = f"[L2 Episode] {ep.get('summary') or ''} || {dia_to_text.get(dia, '')}"
 
-        for dia, _ in sorted(scores.items(), key=lambda kv: kv[1], reverse=True)[:top_k]:
-            _push_dia(dia, best_snippet.get(dia))
+        rrf_order = [dia for dia, _ in sorted(scores.items(), key=lambda kv: kv[1], reverse=True)]
     elif use_semantic:
         res = store.search_context(
             question,
-            limit=max(top_k * 2, 20),
+            limit=cand_limit,
             agent=True,
-            max_tokens=24_000,
+            max_tokens=32_000,
             use_semantic=True,
             embed_model=embed_model,
             embed_cache=embed_cache,
         )
         for hit in res.get("raw_matches") or []:
             dia = raw_to_dia.get(hit["id"])
-            if dia:
-                _push_dia(dia, hit.get("snippet") or dia_to_text.get(dia, ""))
+            if dia and dia not in best_snippet:
+                rrf_order.append(dia)
+                best_snippet[dia] = hit.get("snippet") or dia_to_text.get(dia, "")
     else:
         raw_hits = store.list_raw(q=question, limit=max(top_k, 15), agent=True)
         for hit in raw_hits:
             dia = raw_to_dia.get(hit["id"])
-            if dia:
-                _push_dia(dia, hit.get("body_text") or dia_to_text.get(dia, ""))
+            if dia and dia not in best_snippet:
+                rrf_order.append(dia)
+                best_snippet[dia] = hit.get("body_text") or dia_to_text.get(dia, "")
+
+    if use_reranker and rrf_order:
+        from context_hub.semantic import (
+            DEFAULT_RERANK_MODEL,
+            rerank_candidates,
+            reranker_available,
+            rrf_fuse_lists,
+        )
+
+        if reranker_available():
+            # Expand top-12 RRF hits with their immediate reply/antecedent neighbors (±1 turn)
+            # so elliptical answers (e.g. reply turn following a question turn) enter reranking.
+            pool: list[str] = []
+            seen_p: set[str] = set()
+            for d in rrf_order[:20]:
+                if d not in seen_p:
+                    seen_p.add(d)
+                    pool.append(d)
+            for d in rrf_order[:12]:
+                for nb in (
+                    (dia_to_next or {}).get(d),
+                    (dia_to_prev or {}).get(d),
+                ):
+                    if nb and nb not in seen_p and len(pool) < 32:
+                        seen_p.add(nb)
+                        pool.append(nb)
+
+            cand_pairs: list[tuple[str, str]] = []
+            for d in pool:
+                cur_t = dia_to_text.get(d, "")
+                prev_d = (dia_to_prev or {}).get(d)
+                prev_t = dia_to_text.get(prev_d, "") if prev_d else ""
+                obs_prefix = best_snippet.get(d, "") if best_snippet.get(d, "").startswith("[L3") else ""
+                doc_parts = [cur_t]
+                if obs_prefix:
+                    doc_parts.append(obs_prefix[:300])
+                if prev_t:
+                    doc_parts.append(f"[Previous turn] {prev_t[:240]}")
+                cand_pairs.append((d, "\n".join(doc_parts)))
+
+            ce_ranked = [
+                d
+                for d, _ in rerank_candidates(
+                    question,
+                    cand_pairs,
+                    model_name=rerank_model or DEFAULT_RERANK_MODEL,
+                )
+            ]
+            if ce_ranked:
+                rrf_order = rrf_fuse_lists(
+                    [(rrf_order[:25], 0.85), (ce_ranked, 1.55)],
+                    k=15.0,
+                )
+
+    for dia in rrf_order[:top_k]:
+        _push_dia(dia, best_snippet.get(dia))
 
     return ranked_dias[:top_k], snippets[:top_k]
 
@@ -395,6 +459,8 @@ def evaluate_locomo(
     use_semantic: bool = False,
     embed_model: str | None = None,
     embed_cache_path: Path | None = None,
+    use_reranker: bool = False,
+    rerank_model: str | None = None,
 ) -> StandardBenchmarkReport:
     """Evaluate Raw Memory on LoCoMo (`locomo10.json` or schema-compatible fixture)."""
     t_wall0 = time.perf_counter()
@@ -428,6 +494,8 @@ def evaluate_locomo(
         raw_to_dia: dict[str, str] = {}
         dia_to_raw: dict[str, str] = {}
         dia_to_text: dict[str, str] = {}
+        dia_to_prev: dict[str, str] = {}
+        dia_to_next: dict[str, str] = {}
         ep_to_dias: dict[str, list[str]] = {}
         summaries = sample.get("session_summary") or {}
 
@@ -450,6 +518,10 @@ def evaluate_locomo(
                 raw_to_dia[raw_id] = dia_id
                 dia_to_raw[dia_id] = raw_id
                 dia_to_text[dia_id] = full_text
+                if ep_dias:
+                    prev_d = ep_dias[-1]
+                    dia_to_prev[dia_id] = prev_d
+                    dia_to_next[prev_d] = dia_id
                 ep_dias.append(dia_id)
                 turns_payload.append(
                     {
@@ -519,6 +591,7 @@ def evaluate_locomo(
                     kinds=("raw", "episode", "memory") if mode == "curated" else ("raw",),
                     model_name=embed_model,
                     embed_cache=embed_cache,
+                    contextualize_turns=use_reranker,
                 )
 
             for qidx, qa in enumerate(sample.get("qa") or []):
@@ -540,9 +613,13 @@ def evaluate_locomo(
                     raw_to_dia=raw_to_dia,
                     dia_to_text=dia_to_text,
                     ep_to_dias=ep_to_dias,
+                    dia_to_prev=dia_to_prev,
+                    dia_to_next=dia_to_next,
                     use_semantic=use_semantic,
                     embed_model=embed_model,
                     embed_cache=embed_cache,
+                    use_reranker=use_reranker,
+                    rerank_model=rerank_model,
                 )
                 latencies.append((time.perf_counter() - t0) * 1000.0)
 
@@ -585,9 +662,14 @@ def evaluate_locomo(
         cat: {"count": len(rows), **_mean_metrics(rows)}
         for cat, rows in sorted(by_cat_rows.items())
     }
+    mode_tag = mode
+    if use_semantic:
+        mode_tag += "+semantic"
+    if use_reranker:
+        mode_tag += "+rerank"
     return StandardBenchmarkReport(
         suite="locomo",
-        mode=f"{mode}+semantic" if use_semantic else mode,
+        mode=mode_tag,
         engine_label=engine_label,
         dataset_path=str(dataset_path),
         evaluated_at_ms=now_ms(),
@@ -616,6 +698,8 @@ def evaluate_longmemeval(
     use_semantic: bool = False,
     embed_model: str | None = None,
     embed_cache_path: Path | None = None,
+    use_reranker: bool = False,
+    rerank_model: str | None = None,
 ) -> StandardBenchmarkReport:
     """Evaluate Raw Memory on LongMemEval-S or LongMemEval-Oracle.
 
@@ -661,6 +745,7 @@ def evaluate_longmemeval(
         gold_turn_ids: set[str] = set()
         raw_to_sess: dict[str, str] = {}
         raw_to_text: dict[str, str] = {}
+        raw_to_meta: dict[str, tuple[str, str, str, str]] = {}  # (role, sdate, content, prev_content)
         ep_to_sess: dict[str, str] = {}
         sess_to_raw_ids: dict[str, list[str]] = defaultdict(list)
 
@@ -671,6 +756,7 @@ def evaluate_longmemeval(
             ep_id = f"{sid}__s{sidx}"
             ep_to_sess[ep_id] = sid
             turns_payload: list[dict[str, Any]] = []
+            prev_content = ""
             for tidx, turn in enumerate(turns):
                 rid = f"t_{sidx}_{tidx}"
                 role = str(turn.get("role") or "user")
@@ -679,6 +765,8 @@ def evaluate_longmemeval(
                 stamped = f"[{sdate}] {role}: {content}"
                 raw_to_sess[rid] = sid
                 raw_to_text[rid] = stamped
+                raw_to_meta[rid] = (role, sdate, content, prev_content)
+                prev_content = content[:260]
                 sess_to_raw_ids[sid].append(rid)
                 if turn.get("has_answer"):
                     gold_turn_ids.add(rid)
@@ -705,13 +793,15 @@ def evaluate_longmemeval(
                 }
             )
 
+        q_date_ms = _parse_longmemeval_datetime_ms(item.get("question_date"), len(sess_ids))
         store = HubStore(Path("/tmp/raw-memory-bench-unused"), in_memory=True)
         try:
             store.ingest_sessions_bulk(sessions_payload, project=f"lme-{qid}")
             if use_semantic:
-                # Stage 1: Index episode-level embeddings (user-first text, content-hashed cache)
+                # Stage 1: Multi-chunk topic-preserving Episode MaxSim when reranker/v0.6 is active,
+                # or single-vector episode embedding for v0.5 semantic-only mode.
                 store.index_semantic(
-                    kinds=("episode",),
+                    kinds=("episode_chunk",) if use_reranker else ("episode",),
                     model_name=embed_model,
                     embed_cache=embed_cache,
                 )
@@ -719,7 +809,8 @@ def evaluate_longmemeval(
             t0 = time.perf_counter()
             searched = store.search_context(
                 question,
-                limit=max(top_k * 2, 20),
+                reference_time_ms=q_date_ms,
+                limit=max(top_k * 2, 24),
                 agent=True,
                 max_tokens=32_000,
                 use_semantic=use_semantic,
@@ -729,36 +820,51 @@ def evaluate_longmemeval(
 
             raw_hits = searched.get("raw_matches") or []
             ep_hits = searched.get("episodes") or []
+            tw_meta = searched.get("temporal_window")
 
-            # Derive session ranking via RRF fusion of session-level `episodes` and turn-level `raw_matches`
+            # Derive session ranking: `ep_hits` from `store.search_context` ALREADY fuses
+            # BM25 + Multi-Chunk MaxSim + Temporal Window + deduplicated raw_hits, so avoid
+            # double-counting BM25 raw_hits when `use_semantic` is enabled.
             sess_scores: dict[str, float] = {}
             rrf_k = 15.0
             for rank, ep in enumerate(ep_hits):
                 sid = ep_to_sess.get(ep["id"], ep["id"])
-                sess_scores[sid] = sess_scores.get(sid, 0.0) + (1.30 if use_semantic else 1.15) / (
+                sess_scores[sid] = sess_scores.get(sid, 0.0) + (1.85 if use_semantic else 1.15) / (
                     rrf_k + rank + 1
                 )
-            for rank, hit in enumerate(raw_hits):
-                sid = raw_to_sess.get(hit["id"])
-                if sid:
-                    sess_scores[sid] = sess_scores.get(sid, 0.0) + 0.90 / (rrf_k + rank + 1)
+            if not use_semantic:
+                seen_raw_sess: dict[str, int] = {}
+                for rank, hit in enumerate(raw_hits):
+                    sid = raw_to_sess.get(hit["id"])
+                    if sid:
+                        cnt = seen_raw_sess.get(sid, 0)
+                        if cnt < 2:
+                            decay = 1.0 if cnt == 0 else 0.25
+                            sess_scores[sid] = sess_scores.get(sid, 0.0) + (
+                                0.90 * decay / (rrf_k + rank + 1)
+                            )
+                            seen_raw_sess[sid] = cnt + 1
             ranked_sessions = [
                 sid for sid, _ in sorted(sess_scores.items(), key=lambda kv: kv[1], reverse=True)
-            ][:top_k]
+            ][: max(top_k, 12)]
 
             bm25_turns = [h["id"] for h in raw_hits]
             if use_semantic and embed_cache is not None:
-                # Stage 2: Turn-level dense semantic reranking inside top-8 candidate sessions
+                # Stage 2: Turn-level dense semantic reranking inside top candidate sessions
                 from context_hub.semantic import (
                     DEFAULT_EMBED_MODEL,
+                    DEFAULT_RERANK_MODEL,
                     cosine_top_k,
+                    rerank_candidates,
+                    reranker_available,
                     rrf_fuse_lists,
                 )
 
                 active_model = embed_model or DEFAULT_EMBED_MODEL
+                cand_sess_n = 10 if use_reranker else 8
                 cand_rids: list[str] = []
                 seen_r: set[str] = set()
-                for sid in ranked_sessions[:8]:
+                for sid in ranked_sessions[:cand_sess_n]:
                     for rid in sess_to_raw_ids.get(sid, []):
                         if rid not in seen_r:
                             seen_r.add(rid)
@@ -773,26 +879,95 @@ def evaluate_longmemeval(
                     q_vec = embed_cache.embed_texts([question], model_name=active_model)[0]
                     cand_mat = embed_cache.embed_texts(cand_texts, model_name=active_model)
                     sem_turn_pairs = cosine_top_k(
-                        q_vec, cand_rids, cand_mat, top_k=max(top_k * 2, 20)
+                        q_vec, cand_rids, cand_mat, top_k=max(top_k * 3, 30)
                     )
                     sem_turns = [rid for rid, _ in sem_turn_pairs]
-                    ranked_turns = rrf_fuse_lists(
-                        [(bm25_turns, 1.0), (sem_turns, 1.35)],
-                        k=20.0,
-                    )[:top_k]
-                    # Refine session ranking with fused turns
-                    for rank, rid in enumerate(sem_turns[:10]):
+                    turn_lists: list[tuple[list[str], float]] = [
+                        (bm25_turns, 0.95),
+                        (sem_turns, 1.45),
+                    ]
+                    if tw_meta:
+                        # Lift turns inside the parsed temporal window ranked by semantic similarity
+                        tw_s, tw_e = int(tw_meta["start_ms"]), int(tw_meta["end_ms"])
+                        tw_turn_ids: list[str] = []
+                        for rid, _ in sem_turn_pairs:
+                            _, sdate_t, _, _ = raw_to_meta.get(rid, ("user", "", "", ""))
+                            t_ms_t = _parse_longmemeval_datetime_ms(sdate_t, 0)
+                            if tw_s <= t_ms_t <= tw_e:
+                                tw_turn_ids.append(rid)
+                        if tw_turn_ids:
+                            turn_lists.append(
+                                (tw_turn_ids, 1.15 if tw_meta.get("specificity") == "point" else 0.70)
+                            )
+                    fused_turns = rrf_fuse_lists(turn_lists, k=20.0)
+
+                    # Stage 3: Local ONNX Cross-Encoder Reranking on top-28 contextualized turns
+                    if use_reranker and reranker_available() and fused_turns:
+                        ce_pool = fused_turns[:28]
+                        ce_pairs: list[tuple[str, str]] = []
+                        for rid in ce_pool:
+                            role, sdate, content, prev_c = raw_to_meta.get(rid, ("user", "", raw_to_text.get(rid, ""), ""))
+                            if role == "user":
+                                doc = f"User said ({sdate}): {content[:950]}"
+                                if prev_c:
+                                    doc += f"\n[Previous context]: {prev_c[:180]}"
+                            else:
+                                doc = f"Assistant replied ({sdate}): {content[:950]}"
+                                if prev_c:
+                                    doc += f"\n[In reply to user]: {prev_c[:240]}"
+                            ce_pairs.append((rid, doc))
+                        ce_ranked = [
+                            rid
+                            for rid, _ in rerank_candidates(
+                                question,
+                                ce_pairs,
+                                model_name=rerank_model or DEFAULT_RERANK_MODEL,
+                            )
+                        ]
+                        if ce_ranked:
+                            ranked_turns = rrf_fuse_lists(
+                                [(fused_turns[:28], 0.85), (ce_ranked, 1.65)],
+                                k=15.0,
+                            )[:top_k]
+                            # Feed deduplicated top Cross-Encoder turn evidence back into session ranking
+                            seen_ce_sess: dict[str, int] = {}
+                            for rank, rid in enumerate(ce_ranked[:12]):
+                                sid = raw_to_sess.get(rid)
+                                if sid:
+                                    cnt = seen_ce_sess.get(sid, 0)
+                                    if cnt < 2:
+                                        decay = 1.0 if cnt == 0 else 0.25
+                                        sess_scores[sid] = sess_scores.get(sid, 0.0) + (
+                                            1.35 * decay / (rrf_k + rank + 1)
+                                        )
+                                        seen_ce_sess[sid] = cnt + 1
+                        else:
+                            ranked_turns = fused_turns[:top_k]
+                    else:
+                        ranked_turns = fused_turns[:top_k]
+
+                    # Refine session ranking with deduplicated semantic turns
+                    seen_sem_sess: dict[str, int] = {}
+                    for rank, rid in enumerate(sem_turns[:12]):
                         sid = raw_to_sess.get(rid)
                         if sid:
-                            sess_scores[sid] = sess_scores.get(sid, 0.0) + 0.65 / (rrf_k + rank + 1)
+                            cnt = seen_sem_sess.get(sid, 0)
+                            if cnt < 2:
+                                decay = 1.0 if cnt == 0 else 0.25
+                                sess_scores[sid] = sess_scores.get(sid, 0.0) + (
+                                    0.75 * decay / (rrf_k + rank + 1)
+                                )
+                                seen_sem_sess[sid] = cnt + 1
                     ranked_sessions = [
                         sid
                         for sid, _ in sorted(sess_scores.items(), key=lambda kv: kv[1], reverse=True)
                     ][:top_k]
                 else:
                     ranked_turns = bm25_turns[:top_k]
+                    ranked_sessions = ranked_sessions[:top_k]
             else:
                 ranked_turns = bm25_turns[:top_k]
+                ranked_sessions = ranked_sessions[:top_k]
 
             latencies.append((time.perf_counter() - t0) * 1000.0)
             ranked_texts = [raw_to_text.get(rid, "") for rid in ranked_turns]
@@ -854,9 +1029,14 @@ def evaluate_longmemeval(
         cat: {"count": len(rows), **_mean_metrics(rows)}
         for cat, rows in sorted(by_cat_rows.items())
     }
+    lme_mode = "hub_retrieval"
+    if use_semantic:
+        lme_mode += "+semantic"
+    if use_reranker:
+        lme_mode += "+rerank"
     return StandardBenchmarkReport(
         suite=split_name,
-        mode="hub_retrieval+semantic" if use_semantic else "hub_retrieval",
+        mode=lme_mode,
         engine_label=engine_label,
         dataset_path=str(dataset_path),
         evaluated_at_ms=now_ms(),
