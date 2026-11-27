@@ -1,35 +1,35 @@
-# Raw Memory Benchmark Report — `longmemeval-s` (hub_retrieval)
+# Raw Memory Benchmark Report — `longmemeval-s` (hub_retrieval+semantic)
 
-- **Engine**: `raw-memory-v0.3.0-hybrid-bm25`
+- **Engine**: `raw-memory-v0.5.0-hybrid-bm25-semantic`
 - **Questions**: `470` scored / `500` total (`30` abstention `_abs` tracked separately)
-- **Latency**: p50=`1.93 ms`, p95=`3.26 ms`, wall=`49.36 s`
+- **Latency**: p50=`5.84 ms`, p95=`8.81 ms`, wall=`60.72 s`
 
 ## Overall Metrics (Session-Level & Turn-Level Retrieval)
 
 | Sess R@1 | Sess R@5 | Sess R@10 | Sess All-R@5 | Sess NDCG@5 | Turn R@5 | Turn R@10 | Turn NDCG@5 | Ans-Cov@5 |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 80.6% | 96.6% | 98.5% | 85.3% | 86.1% | 77.0% | 86.2% | 55.4% | 61.1% |
+| 86.2% | 97.7% | 98.7% | 87.2% | 90.0% | 85.1% | 92.8% | 58.2% | 62.8% |
 
 ## Breakdown by Official LongMemEval Pillar
 
 | Question Type | N | Sess R@1 | Sess R@5 | Sess All-R@5 | Sess NDCG@5 | Turn R@5 | Turn NDCG@5 | Ans-Cov@5 |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| `knowledge-update` | 72 | 94.4% | 100.0% | 98.6% | 96.0% | 88.9% | 65.3% | 86.1% |
-| `multi-session` | 121 | 85.1% | 98.4% | 73.6% | 85.5% | 76.9% | 42.5% | 50.4% |
-| `single-session-assistant` | 56 | 87.5% | 100.0% | 100.0% | 94.7% | 87.5% | 79.8% | 91.1% |
-| `single-session-preference` | 30 | 43.3% | 83.3% | 83.3% | 63.6% | 40.0% | 20.0% | 0.0% |
-| `single-session-user` | 64 | 75.0% | 100.0% | 100.0% | 89.6% | 82.8% | 69.6% | 90.6% |
-| `temporal-reasoning` | 127 | 77.2% | 92.9% | 75.6% | 80.7% | 71.7% | 52.3% | 43.3% |
+| `knowledge-update` | 72 | 94.4% | 100.0% | 98.6% | 97.0% | 91.7% | 61.1% | 80.6% |
+| `multi-session` | 121 | 90.9% | 100.0% | 76.0% | 89.8% | 87.6% | 49.4% | 54.5% |
+| `single-session-assistant` | 56 | 89.3% | 100.0% | 100.0% | 95.8% | 87.5% | 69.7% | 91.1% |
+| `single-session-preference` | 30 | 76.7% | 90.0% | 90.0% | 84.3% | 70.0% | 47.1% | 6.7% |
+| `single-session-user` | 64 | 79.7% | 100.0% | 100.0% | 91.9% | 87.5% | 74.9% | 93.8% |
+| `temporal-reasoning` | 127 | 81.1% | 93.7% | 78.7% | 83.9% | 80.3% | 54.0% | 45.7% |
 
-**Abstention (`_abs`, N=30)**: Refuting-session R@5=`96.7%`, R@10=`96.7%`, zero-hit rate=`3.3%`
+**Abstention (`_abs`, N=30)**: Refuting-session R@5=`100.0%`, R@10=`100.0%`, zero-hit rate=`0.0%`
 
 ## Sample Failure Cases (Top 8 for Debugging)
 
-- **`[multi-session]` `gpt4_d84a3211`** (`miss_at_5`): *How much total money have I spent on bike-related expenses since the start of the year?* (gold=['answer_2880eb6c_1', 'answer_2880eb6c_2', 'answer_2880eb6c_3', 'answer_2880eb6c_4'], got=['sharegpt_OHd1RQ7_37', '8f6b938d_4', '4a32d58c_2'])
-- **`[single-session-preference]` `75832dbd`** (`miss_at_5`): *Can you recommend some recent publications or conferences that I might find interesting?* (gold=['answer_d87a6ef8'], got=['sharegpt_xni9yYO_6', '2bac8799_3', 'ultrachat_533748'])
-- **`[single-session-preference]` `195a1a1b`** (`miss_at_5`): *Can you suggest some activities that I can do in the evening?* (gold=['answer_6dc4305e'], got=['87fff4b4_1', 'sharegpt_DwfIyV9_0', '9f12daa1_1'])
-- **`[single-session-preference]` `06f04340`** (`miss_at_5`): *What should I serve for dinner this weekend with my homegrown ingredients?* (gold=['answer_92d5f7cd'], got=['6e6fbb6b', 'cf543226_2', 'b459f888_3'])
-- **`[single-session-preference]` `d6233ab6`** (`miss_at_5`): *I've been feeling nostalgic lately. Do you think it would be a good idea to attend my high school reunion?* (gold=['answer_b0fac439'], got=['f916c63a_2', '87cfeb28_2', 'ultrachat_125013'])
-- **`[single-session-preference]` `1c0ddc50`** (`miss_at_5`): *Can you suggest some activities I can do during my commute to work?* (gold=['answer_8da8c7e0'], got=['b33e89b5_1', '2aa70c9c_1', 'a0aa5035'])
-- **`[multi-session]` `8e91e7d9`** (`miss_at_5`): *What is the total number of siblings I have?* (gold=['answer_477ae455_1', 'answer_477ae455_2'], got=['sharegpt_8lpX5R7_19', 'sharegpt_PZrBCF2_0', '2f980ae0_2'])
-- **`[temporal-reasoning]` `gpt4_7f6b06db`** (`miss_at_5`): *What is the order of the three trips I took in the past three months, from earliest to latest?* (gold=['answer_5d8c99d3_1', 'answer_5d8c99d3_2', 'answer_5d8c99d3_3'], got=['252715f8_2', 'd9ca4aca', '39c1bf6a'])
+- **`[single-session-preference]` `75832dbd`** (`miss_at_5`): *Can you recommend some recent publications or conferences that I might find interesting?* (gold=['answer_d87a6ef8'], got=['c51583cd_1', 'ultrachat_533748', 'sharegpt_xni9yYO_6'])
+- **`[single-session-preference]` `06f04340`** (`miss_at_5`): *What should I serve for dinner this weekend with my homegrown ingredients?* (gold=['answer_92d5f7cd'], got=['6e6fbb6b', '91223fd5_1', 'cf543226_2'])
+- **`[single-session-preference]` `1c0ddc50`** (`miss_at_5`): *Can you suggest some activities I can do during my commute to work?* (gold=['answer_8da8c7e0'], got=['2aa70c9c_1', 'b33e89b5_1', 'a0aa5035'])
+- **`[temporal-reasoning]` `gpt4_e061b84f`** (`miss_at_5`): *What is the order of the three sports events I participated in during the past month, from earliest to latest?* (gold=['answer_8c64ce25_1', 'answer_8c64ce25_2', 'answer_8c64ce25_3'], got=['9345f7dc_4', '0a6bf5e4_1', '4cc9270f'])
+- **`[temporal-reasoning]` `gpt4_1e4a8aec`** (`miss_at_5`): *What gardening-related activity did I do two weeks ago?* (gold=['answer_16bd5ea6_1', 'answer_16bd5ea6_2'], got=['b34a52aa_3', '9f1f3bf4', '743b1fc3_2'])
+- **`[temporal-reasoning]` `gpt4_59149c78`** (`miss_at_5`): *I mentioned that I participated in an art-related event two weeks ago. Where was that event held at?* (gold=['answer_d00ba6d1_1', 'answer_d00ba6d1_2'], got=['23754665', 'ultrachat_463998', 'b2341a22'])
+- **`[temporal-reasoning]` `gpt4_4929293b`** (`miss_at_5`): *What was the the life event of one of my relatives that I participated in a week ago?* (gold=['answer_add9b013_1', 'answer_add9b013_2'], got=['bda611f6_3', 'sharegpt_rqvR1Ep_0', 'ultrachat_326769'])
+- **`[temporal-reasoning]` `gpt4_468eb064`** (`miss_at_5`): *Who did I meet with during the lunch last Tuesday?* (gold=['answer_9b09d95b_1'], got=['1e5bd28d_2', '25e5b797_1', 'cc3c5fa9_1'])

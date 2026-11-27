@@ -1,0 +1,66 @@
+{
+  "suite": "convomem-smoke",
+  "mode": "hub_retrieval+semantic",
+  "engine_label": "raw-memory-v0.5.0-hybrid-bm25-semantic",
+  "dataset_path": "/Users/benzema/Downloads/Context 补全计划/context-instrumentality-project/benchmarks/fixtures/convomem_smoke.json",
+  "evaluated_at_ms": 1795776426036,
+  "total_questions": 12,
+  "scored_questions": 10,
+  "abstention_questions": 2,
+  "overall": {
+    "sess_r@1": 0.9,
+    "sess_r@5": 1.0,
+    "sess_ndcg@5": 0.9631,
+    "sess_mrr": 0.95,
+    "ans_cov@5": 1.0
+  },
+  "by_category": {
+    "assistant_facts": {
+      "count": 2,
+      "sess_r@1": 0.5,
+      "sess_r@5": 1.0,
+      "sess_ndcg@5": 0.8155,
+      "sess_mrr": 0.75,
+      "ans_cov@5": 1.0
+    },
+    "changing_facts": {
+      "count": 2,
+      "sess_r@1": 1.0,
+      "sess_r@5": 1.0,
+      "sess_ndcg@5": 1.0,
+      "sess_mrr": 1.0,
+      "ans_cov@5": 1.0
+    },
+    "implicit_connections": {
+      "count": 2,
+      "sess_r@1": 1.0,
+      "sess_r@5": 1.0,
+      "sess_ndcg@5": 1.0,
+      "sess_mrr": 1.0,
+      "ans_cov@5": 1.0
+    },
+    "preferences": {
+      "count": 2,
+      "sess_r@1": 1.0,
+      "sess_r@5": 1.0,
+      "sess_ndcg@5": 1.0,
+      "sess_mrr": 1.0,
+      "ans_cov@5": 1.0
+    },
+    "user_facts": {
+      "count": 2,
+      "sess_r@1": 1.0,
+      "sess_r@5": 1.0,
+      "sess_ndcg@5": 1.0,
+      "sess_mrr": 1.0,
+      "ans_cov@5": 1.0
+    }
+  },
+  "abstention_metrics": {
+    "zero_hit_rate": 0.0
+  },
+  "latency_p50_ms": 0.77,
+  "latency_p95_ms": 1.087,
+  "total_elapsed_s": 0.36,
+  "sample_failures": []
+}

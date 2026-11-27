@@ -1,24 +1,24 @@
-# Raw Memory Benchmark Report — `longmemeval-oracle` (hub_retrieval)
+# Raw Memory Benchmark Report — `longmemeval-oracle` (hub_retrieval+semantic)
 
-- **Engine**: `raw-memory-v0.3.0-hybrid-bm25`
+- **Engine**: `raw-memory-v0.5.0-hybrid-bm25-semantic`
 - **Questions**: `470` scored / `500` total (`30` abstention `_abs` tracked separately)
-- **Latency**: p50=`0.64 ms`, p95=`0.97 ms`, wall=`3.26 s`
+- **Latency**: p50=`1.52 ms`, p95=`3.50 ms`, wall=`4.86 s`
 
 ## Overall Metrics (Session-Level & Turn-Level Retrieval)
 
 | Sess R@1 | Sess R@5 | Sess R@10 | Sess All-R@5 | Sess NDCG@5 | Turn R@5 | Turn R@10 | Turn NDCG@5 | Ans-Cov@5 |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 100.0% | 100.0% | 100.0% | 97.2% | 99.3% | 84.3% | 93.0% | 61.4% | 65.5% |
+| 100.0% | 100.0% | 100.0% | 99.4% | 100.0% | 91.3% | 97.2% | 64.2% | 64.7% |
 
 ## Breakdown by Official LongMemEval Pillar
 
 | Question Type | N | Sess R@1 | Sess R@5 | Sess All-R@5 | Sess NDCG@5 | Turn R@5 | Turn NDCG@5 | Ans-Cov@5 |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| `knowledge-update` | 72 | 100.0% | 100.0% | 98.6% | 99.5% | 88.9% | 67.5% | 88.9% |
-| `multi-session` | 121 | 100.0% | 100.0% | 95.0% | 98.5% | 80.2% | 49.4% | 52.9% |
-| `single-session-assistant` | 56 | 100.0% | 100.0% | 100.0% | 100.0% | 92.9% | 80.8% | 94.6% |
-| `single-session-preference` | 30 | 100.0% | 100.0% | 100.0% | 100.0% | 63.3% | 39.8% | 3.3% |
-| `single-session-user` | 64 | 100.0% | 100.0% | 100.0% | 100.0% | 87.5% | 73.0% | 95.3% |
-| `temporal-reasoning` | 127 | 100.0% | 100.0% | 95.3% | 99.1% | 85.0% | 60.2% | 51.2% |
+| `knowledge-update` | 72 | 100.0% | 100.0% | 100.0% | 100.0% | 93.1% | 63.8% | 81.9% |
+| `multi-session` | 121 | 100.0% | 100.0% | 100.0% | 100.0% | 93.4% | 56.0% | 52.9% |
+| `single-session-assistant` | 56 | 100.0% | 100.0% | 100.0% | 100.0% | 92.9% | 70.3% | 92.9% |
+| `single-session-preference` | 30 | 100.0% | 100.0% | 100.0% | 100.0% | 86.7% | 61.6% | 3.3% |
+| `single-session-user` | 64 | 100.0% | 100.0% | 100.0% | 100.0% | 92.2% | 76.4% | 96.9% |
+| `temporal-reasoning` | 127 | 100.0% | 100.0% | 97.6% | 100.0% | 88.2% | 64.0% | 52.0% |
 
-**Abstention (`_abs`, N=30)**: Refuting-session R@5=`96.7%`, R@10=`96.7%`, zero-hit rate=`3.3%`
+**Abstention (`_abs`, N=30)**: Refuting-session R@5=`100.0%`, R@10=`100.0%`, zero-hit rate=`0.0%`

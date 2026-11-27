@@ -79,6 +79,8 @@ def test_mcp_dual_loop_tools_resources_and_prompt(tmp_path: Path) -> None:
             "get_project_state",
             "list_project_profiles",
             "upsert_project_profile",
+            "get_user_profile",
+            "upsert_user_profile",
             "get_evidence_context",
             "related",
             "expand",

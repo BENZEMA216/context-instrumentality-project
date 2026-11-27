@@ -421,6 +421,7 @@ def _curate_naive_unguarded(
             notes=f"Naive unguarded curation generation {generation}",
         ),
         allow_local_only=False,
+        enforce_trust_gate=False,
     )
     return True
 

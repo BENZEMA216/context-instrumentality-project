@@ -306,6 +306,9 @@ def _retrieve_locomo_ranked(
     raw_to_dia: dict[str, str],
     dia_to_text: dict[str, str],
     ep_to_dias: dict[str, list[str]],
+    use_semantic: bool = False,
+    embed_model: str | None = None,
+    embed_cache: Any | None = None,
 ) -> tuple[list[str], list[str]]:
     """Query genuine `HubStore` and return ranked `(dia_ids, snippets)`."""
     ranked_dias: list[str] = []
@@ -320,7 +323,15 @@ def _retrieve_locomo_ranked(
         snippets.append((snippet_override or dia_to_text.get(dia, ""))[:260])
 
     if mode == "curated":
-        res = store.search_context(question, limit=max(top_k * 2, 20), agent=True, max_tokens=24_000)
+        res = store.search_context(
+            question,
+            limit=max(top_k * 2, 20),
+            agent=True,
+            max_tokens=24_000,
+            use_semantic=use_semantic,
+            embed_model=embed_model,
+            embed_cache=embed_cache,
+        )
         # Fuse L3 Curated Observations (evidence_ids), L1 Raw Turns, and L2 Episodes via RRF
         scores: dict[str, float] = {}
         best_snippet: dict[str, str] = {}
@@ -349,6 +360,20 @@ def _retrieve_locomo_ranked(
 
         for dia, _ in sorted(scores.items(), key=lambda kv: kv[1], reverse=True)[:top_k]:
             _push_dia(dia, best_snippet.get(dia))
+    elif use_semantic:
+        res = store.search_context(
+            question,
+            limit=max(top_k * 2, 20),
+            agent=True,
+            max_tokens=24_000,
+            use_semantic=True,
+            embed_model=embed_model,
+            embed_cache=embed_cache,
+        )
+        for hit in res.get("raw_matches") or []:
+            dia = raw_to_dia.get(hit["id"])
+            if dia:
+                _push_dia(dia, hit.get("snippet") or dia_to_text.get(dia, ""))
     else:
         raw_hits = store.list_raw(q=question, limit=max(top_k, 15), agent=True)
         for hit in raw_hits:
@@ -367,12 +392,22 @@ def evaluate_locomo(
     top_k: int = 10,
     limit_convs: int | None = None,
     max_failures: int = 25,
+    use_semantic: bool = False,
+    embed_model: str | None = None,
+    embed_cache_path: Path | None = None,
 ) -> StandardBenchmarkReport:
     """Evaluate Raw Memory on LoCoMo (`locomo10.json` or schema-compatible fixture)."""
     t_wall0 = time.perf_counter()
     data = json.loads(Path(dataset_path).expanduser().read_text(encoding="utf-8"))
     if limit_convs is not None:
         data = data[:limit_convs]
+
+    embed_cache = None
+    if use_semantic:
+        from context_hub.semantic import PersistentEmbedCache
+
+        cache_db = embed_cache_path or (DEFAULT_BENCH_CACHE / "embed_cache.sqlite3")
+        embed_cache = PersistentEmbedCache(cache_db)
 
     all_rows: list[dict[str, float]] = []
     by_cat_rows: dict[str, list[dict[str, float]]] = defaultdict(list)
@@ -381,7 +416,8 @@ def evaluate_locomo(
     total_q = 0
     scored_q = 0
 
-    for conv_idx, sample in enumerate(data):
+    try:
+      for conv_idx, sample in enumerate(data):
         conv = sample["conversation"]
         session_nums = sorted(
             int(k.split("_")[1])
@@ -478,6 +514,12 @@ def evaluate_locomo(
                 memories=memories_payload if mode == "curated" else None,
                 project=f"locomo-{sample.get('sample_id', conv_idx)}",
             )
+            if use_semantic:
+                store.index_semantic(
+                    kinds=("raw", "episode", "memory") if mode == "curated" else ("raw",),
+                    model_name=embed_model,
+                    embed_cache=embed_cache,
+                )
 
             for qidx, qa in enumerate(sample.get("qa") or []):
                 total_q += 1
@@ -498,6 +540,9 @@ def evaluate_locomo(
                     raw_to_dia=raw_to_dia,
                     dia_to_text=dia_to_text,
                     ep_to_dias=ep_to_dias,
+                    use_semantic=use_semantic,
+                    embed_model=embed_model,
+                    embed_cache=embed_cache,
                 )
                 latencies.append((time.perf_counter() - t0) * 1000.0)
 
@@ -532,6 +577,9 @@ def evaluate_locomo(
                     )
         finally:
             store.close()
+    finally:
+        if embed_cache is not None:
+            embed_cache.close()
 
     by_category = {
         cat: {"count": len(rows), **_mean_metrics(rows)}
@@ -539,7 +587,7 @@ def evaluate_locomo(
     }
     return StandardBenchmarkReport(
         suite="locomo",
-        mode=mode,
+        mode=f"{mode}+semantic" if use_semantic else mode,
         engine_label=engine_label,
         dataset_path=str(dataset_path),
         evaluated_at_ms=now_ms(),
@@ -565,6 +613,9 @@ def evaluate_longmemeval(
     top_k: int = 10,
     limit_questions: int | None = None,
     max_failures: int = 25,
+    use_semantic: bool = False,
+    embed_model: str | None = None,
+    embed_cache_path: Path | None = None,
 ) -> StandardBenchmarkReport:
     """Evaluate Raw Memory on LongMemEval-S or LongMemEval-Oracle.
 
@@ -581,13 +632,21 @@ def evaluate_longmemeval(
     if limit_questions is not None:
         data = data[:limit_questions]
 
+    embed_cache = None
+    if use_semantic:
+        from context_hub.semantic import PersistentEmbedCache
+
+        cache_db = embed_cache_path or (DEFAULT_BENCH_CACHE / "embed_cache.sqlite3")
+        embed_cache = PersistentEmbedCache(cache_db)
+
     pos_rows: list[dict[str, float]] = []
     abs_rows: list[dict[str, float]] = []
     by_cat_rows: dict[str, list[dict[str, float]]] = defaultdict(list)
     latencies: list[float] = []
     failures: list[BenchmarkFailureSample] = []
 
-    for item in data:
+    try:
+      for item in data:
         qid = str(item["question_id"])
         qtype = str(item["question_type"])
         is_abs = qid.endswith("_abs")
@@ -603,6 +662,7 @@ def evaluate_longmemeval(
         raw_to_sess: dict[str, str] = {}
         raw_to_text: dict[str, str] = {}
         ep_to_sess: dict[str, str] = {}
+        sess_to_raw_ids: dict[str, list[str]] = defaultdict(list)
 
         for sidx, (sid, sdate, turns) in enumerate(
             zip(sess_ids, sess_dates, sessions_raw, strict=False)
@@ -619,6 +679,7 @@ def evaluate_longmemeval(
                 stamped = f"[{sdate}] {role}: {content}"
                 raw_to_sess[rid] = sid
                 raw_to_text[rid] = stamped
+                sess_to_raw_ids[sid].append(rid)
                 if turn.get("has_answer"):
                     gold_turn_ids.add(rid)
                 turns_payload.append(
@@ -647,6 +708,13 @@ def evaluate_longmemeval(
         store = HubStore(Path("/tmp/raw-memory-bench-unused"), in_memory=True)
         try:
             store.ingest_sessions_bulk(sessions_payload, project=f"lme-{qid}")
+            if use_semantic:
+                # Stage 1: Index episode-level embeddings (user-first text, content-hashed cache)
+                store.index_semantic(
+                    kinds=("episode",),
+                    model_name=embed_model,
+                    embed_cache=embed_cache,
+                )
 
             t0 = time.perf_counter()
             searched = store.search_context(
@@ -654,21 +722,22 @@ def evaluate_longmemeval(
                 limit=max(top_k * 2, 20),
                 agent=True,
                 max_tokens=32_000,
+                use_semantic=use_semantic,
+                embed_model=embed_model,
+                embed_cache=embed_cache,
             )
-            latencies.append((time.perf_counter() - t0) * 1000.0)
 
             raw_hits = searched.get("raw_matches") or []
             ep_hits = searched.get("episodes") or []
-
-            ranked_turns = [h["id"] for h in raw_hits][:top_k]
-            ranked_texts = [raw_to_text.get(rid, "") for rid in ranked_turns]
 
             # Derive session ranking via RRF fusion of session-level `episodes` and turn-level `raw_matches`
             sess_scores: dict[str, float] = {}
             rrf_k = 15.0
             for rank, ep in enumerate(ep_hits):
                 sid = ep_to_sess.get(ep["id"], ep["id"])
-                sess_scores[sid] = sess_scores.get(sid, 0.0) + 1.15 / (rrf_k + rank + 1)
+                sess_scores[sid] = sess_scores.get(sid, 0.0) + (1.30 if use_semantic else 1.15) / (
+                    rrf_k + rank + 1
+                )
             for rank, hit in enumerate(raw_hits):
                 sid = raw_to_sess.get(hit["id"])
                 if sid:
@@ -676,6 +745,57 @@ def evaluate_longmemeval(
             ranked_sessions = [
                 sid for sid, _ in sorted(sess_scores.items(), key=lambda kv: kv[1], reverse=True)
             ][:top_k]
+
+            bm25_turns = [h["id"] for h in raw_hits]
+            if use_semantic and embed_cache is not None:
+                # Stage 2: Turn-level dense semantic reranking inside top-8 candidate sessions
+                from context_hub.semantic import (
+                    DEFAULT_EMBED_MODEL,
+                    cosine_top_k,
+                    rrf_fuse_lists,
+                )
+
+                active_model = embed_model or DEFAULT_EMBED_MODEL
+                cand_rids: list[str] = []
+                seen_r: set[str] = set()
+                for sid in ranked_sessions[:8]:
+                    for rid in sess_to_raw_ids.get(sid, []):
+                        if rid not in seen_r:
+                            seen_r.add(rid)
+                            cand_rids.append(rid)
+                for rid in bm25_turns[:20]:
+                    if rid not in seen_r:
+                        seen_r.add(rid)
+                        cand_rids.append(rid)
+
+                if cand_rids:
+                    cand_texts = [raw_to_text.get(rid, "")[:1400] for rid in cand_rids]
+                    q_vec = embed_cache.embed_texts([question], model_name=active_model)[0]
+                    cand_mat = embed_cache.embed_texts(cand_texts, model_name=active_model)
+                    sem_turn_pairs = cosine_top_k(
+                        q_vec, cand_rids, cand_mat, top_k=max(top_k * 2, 20)
+                    )
+                    sem_turns = [rid for rid, _ in sem_turn_pairs]
+                    ranked_turns = rrf_fuse_lists(
+                        [(bm25_turns, 1.0), (sem_turns, 1.35)],
+                        k=20.0,
+                    )[:top_k]
+                    # Refine session ranking with fused turns
+                    for rank, rid in enumerate(sem_turns[:10]):
+                        sid = raw_to_sess.get(rid)
+                        if sid:
+                            sess_scores[sid] = sess_scores.get(sid, 0.0) + 0.65 / (rrf_k + rank + 1)
+                    ranked_sessions = [
+                        sid
+                        for sid, _ in sorted(sess_scores.items(), key=lambda kv: kv[1], reverse=True)
+                    ][:top_k]
+                else:
+                    ranked_turns = bm25_turns[:top_k]
+            else:
+                ranked_turns = bm25_turns[:top_k]
+
+            latencies.append((time.perf_counter() - t0) * 1000.0)
+            ranked_texts = [raw_to_text.get(rid, "") for rid in ranked_turns]
 
             sess_m = compute_ranking_metrics(ranked_sessions, gold_sess_ids, ks=(1, 5, 10))
             if is_abs:
@@ -726,6 +846,9 @@ def evaluate_longmemeval(
                 )
         finally:
             store.close()
+    finally:
+        if embed_cache is not None:
+            embed_cache.close()
 
     by_category = {
         cat: {"count": len(rows), **_mean_metrics(rows)}
@@ -733,7 +856,7 @@ def evaluate_longmemeval(
     }
     return StandardBenchmarkReport(
         suite=split_name,
-        mode="hub_retrieval",
+        mode="hub_retrieval+semantic" if use_semantic else "hub_retrieval",
         engine_label=engine_label,
         dataset_path=str(dataset_path),
         evaluated_at_ms=now_ms(),
@@ -742,6 +865,176 @@ def evaluate_longmemeval(
         abstention_questions=len(abs_rows),
         overall=_mean_metrics(pos_rows),
         by_category=by_category,
+        abstention_metrics=_mean_metrics(abs_rows),
+        latency_p50_ms=_percentile(latencies, 50),
+        latency_p95_ms=_percentile(latencies, 95),
+        total_elapsed_s=round(time.perf_counter() - t_wall0, 2),
+        sample_failures=failures,
+    )
+
+
+# ---------------------------------------------------------------------------
+# ConvoMem Adapter (6 Evidence Categories + Abstention)
+# ---------------------------------------------------------------------------
+def evaluate_convomem(
+    dataset_path: Path,
+    *,
+    engine_label: str = "raw-memory",
+    top_k: int = 5,
+    use_semantic: bool = False,
+    embed_model: str | None = None,
+    embed_cache_path: Path | None = None,
+) -> StandardBenchmarkReport:
+    """Evaluate Raw Memory retrieval on a ConvoMem-schema benchmark dataset."""
+    t_wall0 = time.perf_counter()
+    data = json.loads(Path(dataset_path).expanduser().read_text(encoding="utf-8"))
+
+    embed_cache = None
+    if use_semantic:
+        from context_hub.semantic import PersistentEmbedCache
+
+        cache_db = embed_cache_path or (DEFAULT_BENCH_CACHE / "embed_cache.sqlite3")
+        embed_cache = PersistentEmbedCache(cache_db)
+
+    pos_rows: list[dict[str, float]] = []
+    abs_rows: list[dict[str, float]] = []
+    by_cat_rows: dict[str, list[dict[str, float]]] = defaultdict(list)
+    latencies: list[float] = []
+    failures: list[BenchmarkFailureSample] = []
+
+    try:
+        for item in data:
+            iid = str(item["item_id"])
+            cat = str(item.get("category") or "general")
+            question = str(item["question"])
+            answer = item.get("answer")
+            is_abs = bool(item.get("is_abstention"))
+            gold_sids = set(item.get("gold_session_ids") or [])
+
+            sessions_payload: list[dict[str, Any]] = []
+            raw_to_sid: dict[str, str] = {}
+            raw_to_text: dict[str, str] = {}
+            ep_to_sid: dict[str, str] = {}
+            for sidx, sess in enumerate(item.get("sessions") or []):
+                sid = str(sess.get("session_id") or f"s{sidx + 1}")
+                sdate = str(sess.get("date") or f"2026-01-{sidx + 1:02d}")
+                t_base = 1_767_225_600_000 + sidx * 86_400_000
+                ep_id = f"ep_{iid}_{sid}"
+                ep_to_sid[ep_id] = sid
+                turns_payload: list[dict[str, Any]] = []
+                for tidx, turn in enumerate(sess.get("turns") or []):
+                    rid = f"{iid}_{sid}_t{tidx}"
+                    role = str(turn.get("role") or "user")
+                    actor = "self" if role == "user" else "assistant"
+                    txt = f"[{sdate}] {role}: {turn.get('content', '')}"
+                    raw_to_sid[rid] = sid
+                    raw_to_text[rid] = txt
+                    turns_payload.append(
+                        {
+                            "id": rid,
+                            "source_id": f"{sid}#t{tidx}",
+                            "t_start": t_base + tidx * 10_000,
+                            "actor": actor,
+                            "title": f"Session {sid} ({sdate})",
+                            "text": txt,
+                            "locator": f"convomem://{iid}/{sid}#t{tidx}",
+                        }
+                    )
+                sessions_payload.append(
+                    {
+                        "episode_id": ep_id,
+                        "title": f"Session {sid} ({sdate})",
+                        "summary": "",
+                        "status": "pending_curation",
+                        "t_start": t_base,
+                        "t_end": t_base + max(1, len(turns_payload)) * 10_000,
+                        "turns": turns_payload,
+                    }
+                )
+
+            store = HubStore(Path("/tmp/raw-memory-cm-unused"), in_memory=True)
+            try:
+                store.ingest_sessions_bulk(sessions_payload, project=f"cm-{iid}")
+                if use_semantic:
+                    store.index_semantic(
+                        kinds=("episode", "raw"),
+                        model_name=embed_model,
+                        embed_cache=embed_cache,
+                    )
+                t0 = time.perf_counter()
+                searched = store.search_context(
+                    question,
+                    limit=max(top_k * 2, 10),
+                    agent=True,
+                    max_tokens=16_000,
+                    use_semantic=use_semantic,
+                    embed_model=embed_model,
+                    embed_cache=embed_cache,
+                )
+                latencies.append((time.perf_counter() - t0) * 1000.0)
+                raw_hits = searched.get("raw_matches") or []
+                ep_hits = searched.get("episodes") or []
+                sess_scores: dict[str, float] = {}
+                for rank, ep in enumerate(ep_hits):
+                    sid = ep_to_sid.get(ep["id"], ep["id"])
+                    sess_scores[sid] = sess_scores.get(sid, 0.0) + 1.2 / (15.0 + rank + 1)
+                for rank, h in enumerate(raw_hits):
+                    sid = raw_to_sid.get(h["id"])
+                    if sid:
+                        sess_scores[sid] = sess_scores.get(sid, 0.0) + 1.0 / (15.0 + rank + 1)
+                ranked_sids = [
+                    sid for sid, _ in sorted(sess_scores.items(), key=lambda kv: kv[1], reverse=True)
+                ][:top_k]
+                ranked_texts = [raw_to_text.get(h["id"], "") for h in raw_hits[:top_k]]
+
+                if is_abs:
+                    abs_rows.append({"zero_hit_rate": 1.0 if not raw_hits else 0.0})
+                    continue
+
+                sess_m = compute_ranking_metrics(ranked_sids, gold_sids, ks=(1, 5))
+                row = {
+                    "sess_r@1": sess_m["r@1"],
+                    "sess_r@5": sess_m["r@5"],
+                    "sess_ndcg@5": sess_m["ndcg@5"],
+                    "sess_mrr": sess_m["mrr"],
+                    "ans_cov@5": 1.0 if answer_span_present(answer, ranked_texts[:5]) else 0.0,
+                }
+                pos_rows.append(row)
+                by_cat_rows[cat].append(row)
+                if row["sess_r@5"] == 0.0:
+                    failures.append(
+                        BenchmarkFailureSample(
+                            suite="convomem-smoke",
+                            item_id=iid,
+                            category=cat,
+                            question=question,
+                            expected_answer=str(answer or ""),
+                            gold_ids=sorted(gold_sids),
+                            retrieved_top_ids=ranked_sids[:5],
+                            retrieved_top_snippets=[t[:200] for t in ranked_texts[:3]],
+                            reason="miss_at_5",
+                        )
+                    )
+            finally:
+                store.close()
+    finally:
+        if embed_cache is not None:
+            embed_cache.close()
+
+    return StandardBenchmarkReport(
+        suite="convomem-smoke",
+        mode="hub_retrieval+semantic" if use_semantic else "hub_retrieval",
+        engine_label=engine_label,
+        dataset_path=str(dataset_path),
+        evaluated_at_ms=now_ms(),
+        total_questions=len(data),
+        scored_questions=len(pos_rows),
+        abstention_questions=len(abs_rows),
+        overall=_mean_metrics(pos_rows),
+        by_category={
+            cat: {"count": len(rows), **_mean_metrics(rows)}
+            for cat, rows in sorted(by_cat_rows.items())
+        },
         abstention_metrics=_mean_metrics(abs_rows),
         latency_p50_ms=_percentile(latencies, 50),
         latency_p95_ms=_percentile(latencies, 95),
@@ -786,6 +1079,29 @@ def render_benchmark_markdown(report: StandardBenchmarkReport) -> str:
                 f"| `{cat}` | {m['count']} | {m.get('r@1', 0)*100:.1f}% | {m.get('r@5', 0)*100:.1f}% | "
                 f"{m.get('r@10', 0)*100:.1f}% | {m.get('all_r@5', 0)*100:.1f}% | "
                 f"{m.get('ndcg@5', 0)*100:.1f}% | {m.get('mrr', 0)*100:.1f}% | {m.get('ans_cov@5', 0)*100:.1f}% |"
+            )
+    elif report.suite == "convomem-smoke":
+        o = report.overall
+        lines.extend(
+            [
+                "## Overall Metrics (ConvoMem 6-Category Retrieval)",
+                "",
+                "| Sess R@1 | Sess R@5 | Sess NDCG@5 | Sess MRR | Ans-Cov@5 |",
+                "| ---: | ---: | ---: | ---: | ---: |",
+                f"| {o.get('sess_r@1', 0)*100:.1f}% | {o.get('sess_r@5', 0)*100:.1f}% | "
+                f"{o.get('sess_ndcg@5', 0)*100:.1f}% | {o.get('sess_mrr', 0)*100:.1f}% | "
+                f"{o.get('ans_cov@5', 0)*100:.1f}% |",
+                "",
+                "## Breakdown by ConvoMem Evidence Category",
+                "",
+                "| Category | N | Sess R@1 | Sess R@5 | Sess NDCG@5 | Sess MRR | Ans-Cov@5 |",
+                "| :--- | ---: | ---: | ---: | ---: | ---: | ---: |",
+            ]
+        )
+        for cat, m in report.by_category.items():
+            lines.append(
+                f"| `{cat}` | {m['count']} | {m.get('sess_r@1', 0)*100:.1f}% | {m.get('sess_r@5', 0)*100:.1f}% | "
+                f"{m.get('sess_ndcg@5', 0)*100:.1f}% | {m.get('sess_mrr', 0)*100:.1f}% | {m.get('ans_cov@5', 0)*100:.1f}% |"
             )
     else:
         o = report.overall

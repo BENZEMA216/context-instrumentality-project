@@ -1,29 +1,29 @@
 {
   "suite": "longmemeval-s",
-  "mode": "hub_retrieval",
-  "engine_label": "raw-memory-v0.3.0-hybrid-bm25",
+  "mode": "hub_retrieval+semantic",
+  "engine_label": "raw-memory-v0.5.0-hybrid-bm25-semantic",
   "dataset_path": "/Users/benzema/.local/share/context-hub-v2/benchmarks/longmemeval_s_cleaned.json",
-  "evaluated_at_ms": 1795541076720,
+  "evaluated_at_ms": 1795776492204,
   "total_questions": 500,
   "scored_questions": 470,
   "abstention_questions": 30,
   "overall": {
-    "sess_r@1": 0.8064,
-    "sess_r@5": 0.966,
-    "sess_r@10": 0.9851,
-    "sess_all_r@5": 0.8532,
-    "sess_all_r@10": 0.917,
-    "sess_ndcg@5": 0.861,
-    "sess_ndcg@10": 0.8753,
-    "sess_mrr": 0.8756,
-    "turn_r@1": 0.4638,
-    "turn_r@5": 0.7702,
-    "turn_r@10": 0.8617,
-    "turn_ndcg@5": 0.5536,
-    "turn_ndcg@10": 0.602,
-    "turn_mrr": 0.6005,
-    "ans_cov@5": 0.6106,
-    "ans_cov@10": 0.6979
+    "sess_r@1": 0.8617,
+    "sess_r@5": 0.9766,
+    "sess_r@10": 0.9872,
+    "sess_all_r@5": 0.8723,
+    "sess_all_r@10": 0.9213,
+    "sess_ndcg@5": 0.8998,
+    "sess_ndcg@10": 0.9101,
+    "sess_mrr": 0.9143,
+    "turn_r@1": 0.4511,
+    "turn_r@5": 0.8511,
+    "turn_r@10": 0.9277,
+    "turn_ndcg@5": 0.5818,
+    "turn_ndcg@10": 0.6339,
+    "turn_mrr": 0.6169,
+    "ans_cov@5": 0.6277,
+    "ans_cov@10": 0.6851
   },
   "by_category": {
     "knowledge-update": {
@@ -33,149 +33,123 @@
       "sess_r@10": 1.0,
       "sess_all_r@5": 0.9861,
       "sess_all_r@10": 0.9861,
-      "sess_ndcg@5": 0.9602,
-      "sess_ndcg@10": 0.9602,
+      "sess_ndcg@5": 0.9703,
+      "sess_ndcg@10": 0.9703,
       "sess_mrr": 0.9722,
-      "turn_r@1": 0.5417,
-      "turn_r@5": 0.8889,
+      "turn_r@1": 0.4167,
+      "turn_r@5": 0.9167,
       "turn_r@10": 0.9722,
-      "turn_ndcg@5": 0.6529,
-      "turn_ndcg@10": 0.7014,
-      "turn_mrr": 0.6838,
-      "ans_cov@5": 0.8611,
-      "ans_cov@10": 0.9583
+      "turn_ndcg@5": 0.6108,
+      "turn_ndcg@10": 0.6593,
+      "turn_mrr": 0.6202,
+      "ans_cov@5": 0.8056,
+      "ans_cov@10": 0.9306
     },
     "multi-session": {
       "count": 121,
-      "sess_r@1": 0.8512,
-      "sess_r@5": 0.9835,
-      "sess_r@10": 0.9917,
-      "sess_all_r@5": 0.7355,
-      "sess_all_r@10": 0.843,
-      "sess_ndcg@5": 0.8551,
-      "sess_ndcg@10": 0.8774,
-      "sess_mrr": 0.9108,
-      "turn_r@1": 0.3719,
-      "turn_r@5": 0.7686,
-      "turn_r@10": 0.8843,
-      "turn_ndcg@5": 0.4251,
-      "turn_ndcg@10": 0.4972,
-      "turn_mrr": 0.5461,
-      "ans_cov@5": 0.5041,
-      "ans_cov@10": 0.595
+      "sess_r@1": 0.9091,
+      "sess_r@5": 1.0,
+      "sess_r@10": 1.0,
+      "sess_all_r@5": 0.7603,
+      "sess_all_r@10": 0.8678,
+      "sess_ndcg@5": 0.8985,
+      "sess_ndcg@10": 0.9185,
+      "sess_mrr": 0.9507,
+      "turn_r@1": 0.4628,
+      "turn_r@5": 0.876,
+      "turn_r@10": 0.9504,
+      "turn_ndcg@5": 0.4936,
+      "turn_ndcg@10": 0.5784,
+      "turn_mrr": 0.6281,
+      "ans_cov@5": 0.5455,
+      "ans_cov@10": 0.5785
     },
     "single-session-assistant": {
       "count": 56,
-      "sess_r@1": 0.875,
+      "sess_r@1": 0.8929,
       "sess_r@5": 1.0,
       "sess_r@10": 1.0,
       "sess_all_r@5": 1.0,
       "sess_all_r@10": 1.0,
-      "sess_ndcg@5": 0.9472,
-      "sess_ndcg@10": 0.9472,
-      "sess_mrr": 0.9292,
-      "turn_r@1": 0.6964,
+      "sess_ndcg@5": 0.9581,
+      "sess_ndcg@10": 0.9581,
+      "sess_mrr": 0.9435,
+      "turn_r@1": 0.4821,
       "turn_r@5": 0.875,
-      "turn_r@10": 0.9286,
-      "turn_ndcg@5": 0.7977,
-      "turn_ndcg@10": 0.8145,
-      "turn_mrr": 0.778,
+      "turn_r@10": 0.9821,
+      "turn_ndcg@5": 0.697,
+      "turn_ndcg@10": 0.7312,
+      "turn_mrr": 0.6511,
       "ans_cov@5": 0.9107,
-      "ans_cov@10": 0.9286
+      "ans_cov@10": 0.9464
     },
     "single-session-preference": {
       "count": 30,
-      "sess_r@1": 0.4333,
-      "sess_r@5": 0.8333,
+      "sess_r@1": 0.7667,
+      "sess_r@5": 0.9,
       "sess_r@10": 0.9333,
-      "sess_all_r@5": 0.8333,
+      "sess_all_r@5": 0.9,
       "sess_all_r@10": 0.9333,
-      "sess_ndcg@5": 0.6363,
-      "sess_ndcg@10": 0.6686,
-      "sess_mrr": 0.5849,
-      "turn_r@1": 0.0667,
-      "turn_r@5": 0.4,
-      "turn_r@10": 0.4667,
-      "turn_ndcg@5": 0.2003,
-      "turn_ndcg@10": 0.2426,
-      "turn_mrr": 0.1944,
-      "ans_cov@5": 0.0,
+      "sess_ndcg@5": 0.8427,
+      "sess_ndcg@10": 0.8538,
+      "sess_mrr": 0.8281,
+      "turn_r@1": 0.3,
+      "turn_r@5": 0.7,
+      "turn_r@10": 0.8667,
+      "turn_ndcg@5": 0.4707,
+      "turn_ndcg@10": 0.5418,
+      "turn_mrr": 0.4838,
+      "ans_cov@5": 0.0667,
       "ans_cov@10": 0.1
     },
     "single-session-user": {
       "count": 64,
-      "sess_r@1": 0.75,
+      "sess_r@1": 0.7969,
       "sess_r@5": 1.0,
       "sess_r@10": 1.0,
       "sess_all_r@5": 1.0,
       "sess_all_r@10": 1.0,
-      "sess_ndcg@5": 0.8964,
-      "sess_ndcg@10": 0.8964,
-      "sess_mrr": 0.8607,
-      "turn_r@1": 0.5156,
-      "turn_r@5": 0.8281,
-      "turn_r@10": 0.9062,
-      "turn_ndcg@5": 0.6964,
-      "turn_ndcg@10": 0.7229,
-      "turn_mrr": 0.6645,
-      "ans_cov@5": 0.9062,
+      "sess_ndcg@5": 0.9189,
+      "sess_ndcg@10": 0.9189,
+      "sess_mrr": 0.8906,
+      "turn_r@1": 0.6094,
+      "turn_r@5": 0.875,
+      "turn_r@10": 0.9531,
+      "turn_ndcg@5": 0.749,
+      "turn_ndcg@10": 0.7744,
+      "turn_mrr": 0.7252,
+      "ans_cov@5": 0.9375,
       "ans_cov@10": 0.9531
     },
     "temporal-reasoning": {
       "count": 127,
-      "sess_r@1": 0.7717,
-      "sess_r@5": 0.9291,
+      "sess_r@1": 0.811,
+      "sess_r@5": 0.937,
       "sess_r@10": 0.9685,
-      "sess_all_r@5": 0.7559,
-      "sess_all_r@10": 0.8661,
-      "sess_ndcg@5": 0.8074,
-      "sess_ndcg@10": 0.8317,
-      "sess_mrr": 0.8399,
-      "turn_r@1": 0.4724,
-      "turn_r@5": 0.7165,
-      "turn_r@10": 0.8189,
-      "turn_ndcg@5": 0.5234,
-      "turn_ndcg@10": 0.5759,
-      "turn_mrr": 0.5904,
-      "ans_cov@5": 0.4331,
-      "ans_cov@10": 0.5591
+      "sess_all_r@5": 0.7874,
+      "sess_all_r@10": 0.8583,
+      "sess_ndcg@5": 0.8394,
+      "sess_ndcg@10": 0.8558,
+      "sess_mrr": 0.8661,
+      "turn_r@1": 0.4016,
+      "turn_r@5": 0.8031,
+      "turn_r@10": 0.8583,
+      "turn_ndcg@5": 0.5404,
+      "turn_ndcg@10": 0.5806,
+      "turn_mrr": 0.5662,
+      "ans_cov@5": 0.4567,
+      "ans_cov@10": 0.5354
     }
   },
   "abstention_metrics": {
-    "refuting_sess_r@5": 0.9667,
-    "refuting_sess_r@10": 0.9667,
-    "zero_hit_rate": 0.0333
+    "refuting_sess_r@5": 1.0,
+    "refuting_sess_r@10": 1.0,
+    "zero_hit_rate": 0.0
   },
-  "latency_p50_ms": 1.929,
-  "latency_p95_ms": 3.26,
-  "total_elapsed_s": 49.36,
+  "latency_p50_ms": 5.845,
+  "latency_p95_ms": 8.813,
+  "total_elapsed_s": 60.72,
   "sample_failures": [
-    {
-      "suite": "longmemeval-s",
-      "item_id": "gpt4_d84a3211",
-      "category": "multi-session",
-      "question": "How much total money have I spent on bike-related expenses since the start of the year?",
-      "expected_answer": "$185",
-      "gold_ids": [
-        "answer_2880eb6c_1",
-        "answer_2880eb6c_2",
-        "answer_2880eb6c_3",
-        "answer_2880eb6c_4"
-      ],
-      "retrieved_top_ids": [
-        "sharegpt_OHd1RQ7_37",
-        "8f6b938d_4",
-        "4a32d58c_2",
-        "ultrachat_83526",
-        "31c3ae74"
-      ],
-      "retrieved_top_snippets": [
-        "[2023/05/05 (Fri) 04:02] assistant: Sure, here is a possible template that you can use for the \"Analysis of the rent roll, operating expenses, and vacancy rate\" sub-section of the Income Approach section, which allows th",
-        "[2023/05/05 (Fri) 04:02] assistant: Sure, here is a possible template that you can use for the \"Overview of the income approach and the capitalization rate used\" sub-section of the Income Approach section, which allows t",
-        "[2023/05/05 (Fri) 11:48] assistant: I'd be happy to help! However, I'm a large language model, I don't have direct access to your current location. But I can suggest a few ways to find coffee shops near you that offer lo"
-      ],
-      "reason": "miss_at_5"
-    },
     {
       "suite": "longmemeval-s",
       "item_id": "75832dbd",
@@ -186,39 +160,16 @@
         "answer_d87a6ef8"
       ],
       "retrieved_top_ids": [
+        "c51583cd_1",
+        "ultrachat_533748",
         "sharegpt_xni9yYO_6",
         "2bac8799_3",
-        "ultrachat_533748",
-        "47ec1674_2",
         "sharegpt_FYqt26U_0"
       ],
       "retrieved_top_snippets": [
-        "[2023/05/23 (Tue) 17:12] user: Rewrite the below Statement of purpose to increase my odds of getting an admission in University of edinburgh.\nFrom a younger age I was captivated by the world of Science Fiction and its po",
-        "[2023/05/28 (Sun) 16:33] assistant: Building relationships with like-minded individuals is a fantastic way to create a supportive online network. Finding and engaging with online communities related to your niche can be ",
-        "[2023/05/23 (Tue) 17:12] assistant: Here is a possible rewrite of your statement of purpose to increase your odds of getting an admission in the University of Edinburgh:\n\nSince a young age, I have been captivated by the "
-      ],
-      "reason": "miss_at_5"
-    },
-    {
-      "suite": "longmemeval-s",
-      "item_id": "195a1a1b",
-      "category": "single-session-preference",
-      "question": "Can you suggest some activities that I can do in the evening?",
-      "expected_answer": "The user would prefer suggestions that involve relaxing activities that can be done in the evening, preferably before 9:30 pm. They would not prefer suggestions that involve using their phone or watching TV, as these activities have been affecting their sleep quality.",
-      "gold_ids": [
-        "answer_6dc4305e"
-      ],
-      "retrieved_top_ids": [
-        "87fff4b4_1",
-        "sharegpt_DwfIyV9_0",
-        "9f12daa1_1",
-        "ultrachat_197034",
-        "ed9dad6c_2"
-      ],
-      "retrieved_top_snippets": [
-        "[2023/05/24 (Wed) 23:24] assistant: Luaus can be a fantastic way to experience Hawaiian culture, but yes, some can be quite touristy. Here are some suggestions for a more authentic and family-friendly luau experience:\n\n1",
-        "[2023/05/24 (Wed) 23:24] user: That's really helpful, thanks for the suggestions. I'm thinking of booking a snorkeling tour for my kids, but I'm not sure which company to choose. I've heard that some companies are better",
-        "[2023/05/23 (Tue) 09:15] assistant: There are a number of human activities that pose a threat to wildlife in South Georgia. Some of the main threats include:\n\n1. Overfishing: Overfishing can disrupt the food chain, affec"
+        "[2023/05/20 (Sat) 23:47] user: Hmm, most of these seem interesting, but can you recommend a Romance book for someone who wants a little more steamy, intimate scenes? I'm looking for a spicy read.",
+        "[2023/05/27 (Sat) 17:49] assistant: I totally understand the feeling! It's great that you're taking steps to break out of your shell and meet new people. Joining a hobby-based group or club is an excellent way to do so, ",
+        "[2023/05/20 (Sat) 23:47] user: Thanks for the recommendations, but I am really looking for a book with a strong female protagonist who isn't just focused on finding love. Can you help me out?"
       ],
       "reason": "miss_at_5"
     },
@@ -233,38 +184,15 @@
       ],
       "retrieved_top_ids": [
         "6e6fbb6b",
+        "91223fd5_1",
         "cf543226_2",
         "b459f888_3",
-        "91223fd5_1",
-        "sharegpt_h4ZC1fl_203"
+        "728deb4d_4"
       ],
       "retrieved_top_snippets": [
-        "[2023/05/27 (Sat) 15:58] user: I've been experimenting with some unique flavor profiles lately, like the Spicy Mango Margarita I served at a BBQ party last weekend. I used jalapeno peppers, mango puree, tequila, lime jui",
-        "[2023/05/25 (Thu) 00:06] assistant: To write a product profile description, start with the product name and describe what it is in a couple of words. Next, state what the product is used for, derived from approved indica",
-        "[2023/05/24 (Wed) 22:45] user: I'm trying to plan a family dinner for my mom's 60th birthday, which is coming up soon. Can you suggest some healthy meal ideas that would be suitable for a big family gathering?"
-      ],
-      "reason": "miss_at_5"
-    },
-    {
-      "suite": "longmemeval-s",
-      "item_id": "d6233ab6",
-      "category": "single-session-preference",
-      "question": "I've been feeling nostalgic lately. Do you think it would be a good idea to attend my high school reunion?",
-      "expected_answer": "The user would prefer responses that draw upon their personal experiences and memories, specifically their positive high school experiences such as being part of the debate team and taking advanced placement courses. They would prefer suggestions that highlight the potential benefits of attending the reunion, such as reconnecting with old friends and revisiting favorite subjects like history and economics. The user might not prefer generic or vague responses that do not take into account their individual experiences and interests.",
-      "gold_ids": [
-        "answer_b0fac439"
-      ],
-      "retrieved_top_ids": [
-        "f916c63a_2",
-        "87cfeb28_2",
-        "ultrachat_125013",
-        "ultrachat_457634",
-        "e419b7c3_4"
-      ],
-      "retrieved_top_snippets": [
-        "[2023/05/27 (Sat) 15:22] user: These are awesome ideas! I think I'll reward myself with a shopping spree if I stick to my cleaning routines for a whole month. Do you think that's a good idea?",
-        "[2023/05/24 (Wed) 07:11] user: I think I'll go with the Traditional Elegance font pairing idea. Times New Roman is a classic serif font that will provide good contrast with the Lobster Script font for the quote. I'll use",
-        "[2023/05/21 (Sun) 20:03] assistant: Yes, there are several innovative programs and initiatives that have been particularly successful in improving education in Houston. Here are a few examples:\n\n1. EMERGE: EMERGE is a co"
+        "[2023/05/24 (Wed) 22:45] user: I'm trying to plan a family dinner for my mom's 60th birthday, which is coming up soon. Can you suggest some healthy meal ideas that would be suitable for a big family gathering?",
+        "[2023/05/27 (Sat) 15:58] assistant: What an intriguing idea! Middle Eastern and Indian flavors can add a fascinating twist to the classic Old Fashioned. Here are some ingredients and flavor combinations that might work w",
+        "[2023/05/27 (Sat) 15:58] user: I've been playing around with different flavor profiles and ingredients in my Old Fashioned, and I'm thinking of trying a smoky flavor profile. Can you suggest some recipes or ingredients t"
       ],
       "reason": "miss_at_5"
     },
@@ -278,65 +206,16 @@
         "answer_8da8c7e0"
       ],
       "retrieved_top_ids": [
-        "b33e89b5_1",
         "2aa70c9c_1",
+        "b33e89b5_1",
         "a0aa5035",
-        "ultrachat_494933",
-        "sharegpt_ikJXzOG_0"
+        "sharegpt_ikJXzOG_0",
+        "ultrachat_494933"
       ],
       "retrieved_top_snippets": [
-        "[2023/05/23 (Tue) 01:06] assistant: I completely understand! Self-care is crucial, especially when you're dealing with anxiety. I'm happy to suggest some self-care activities that you can fit into your lunch break or oth",
-        "[2023/05/27 (Sat) 09:07] user: I'm excited to start working on building my confidence and meaningful relationships. Do you have any suggestions for specific activities I can try to step out of my comfort zone?",
-        "[2023/05/23 (Tue) 01:06] assistant: It sounds like you're facing a challenging situation, but with a proactive approach, we can work together to manage your workload and reduce your stress levels.\n\nLet's break down your "
-      ],
-      "reason": "miss_at_5"
-    },
-    {
-      "suite": "longmemeval-s",
-      "item_id": "8e91e7d9",
-      "category": "multi-session",
-      "question": "What is the total number of siblings I have?",
-      "expected_answer": "4",
-      "gold_ids": [
-        "answer_477ae455_1",
-        "answer_477ae455_2"
-      ],
-      "retrieved_top_ids": [
-        "sharegpt_8lpX5R7_19",
-        "sharegpt_PZrBCF2_0",
-        "2f980ae0_2",
-        "ultrachat_147574",
-        "4e3da326_1"
-      ],
-      "retrieved_top_snippets": [
-        "[2023/05/28 (Sun) 21:50] assistant: What a great experience that must have been! Denis Villeneuve is indeed a remarkable filmmaker. I'd be happy to provide you with a list of his notable films. Here's a rundown of his fi",
-        "[2023/05/29 (Mon) 04:53] assistant: I apologize for misunderstanding your request earlier. Here is the table showing the age-based demographics for the total, rural, and urban populations of China, the United States, and",
-        "[2023/05/27 (Sat) 07:55] assistant: As an AI language model, it is not within my capacity to provide personal opinions, beliefs, or attitudes since I lack subjective experiences. However, I can provide a general overview"
-      ],
-      "reason": "miss_at_5"
-    },
-    {
-      "suite": "longmemeval-s",
-      "item_id": "gpt4_7f6b06db",
-      "category": "temporal-reasoning",
-      "question": "What is the order of the three trips I took in the past three months, from earliest to latest?",
-      "expected_answer": "I went on a day hike to Muir Woods National Monument with my family, then I went on a road trip with friends to Big Sur and Monterey, and finally I started my solo camping trip to Yosemite National Park.",
-      "gold_ids": [
-        "answer_5d8c99d3_1",
-        "answer_5d8c99d3_2",
-        "answer_5d8c99d3_3"
-      ],
-      "retrieved_top_ids": [
-        "252715f8_2",
-        "d9ca4aca",
-        "39c1bf6a",
-        "6f051087_2",
-        "928890e4_3"
-      ],
-      "retrieved_top_snippets": [
-        "[2023/04/20 (Thu) 16:29] user: I've been taking fitness classes for recreation at my local gym for the past three months now, and I've noticed significant improvements in my flexibility and overall physical ability. Can ",
-        "[2023/04/20 (Thu) 16:29] user: I think a fitness tracker would be a great investment for me, especially since I've been taking fitness classes for recreation at my local gym for the past three months and have noticed sig",
-        "[2023/05/15 (Mon) 06:30] user: I've been collecting stamps for three months now, and I've already got over 200 unique stamps from different countries. Just last week, I received a package with 50 new stamps, including a "
+        "[2023/05/23 (Tue) 11:21] assistant: Rush hour traffic can indeed impact your commute time. To provide a more realistic estimate, I've taken into account the increased traffic volume and pedestrian activity during peak ho",
+        "[2023/05/23 (Tue) 23:05] user: Can you also suggest some games or activities we can do during the trip to make it more fun and memorable with my friends?",
+        "[2023/05/23 (Tue) 11:21] user: I think that revised time estimate sounds more realistic. By the way, I've also been thinking about my morning routine, and I've noticed that I've been wasting a lot of time checking my ema"
       ],
       "reason": "miss_at_5"
     },
@@ -352,16 +231,16 @@
         "answer_8c64ce25_3"
       ],
       "retrieved_top_ids": [
+        "9345f7dc_4",
         "0a6bf5e4_1",
         "4cc9270f",
-        "9345f7dc_4",
         "ultrachat_129606",
         "sharegpt_8ns7j9U_0"
       ],
       "retrieved_top_snippets": [
         "[2023/06/17 (Sat) 14:08] user: I'm looking for some new recipe ideas. I've been stuck in a rut lately, eating a lot of chicken and veggies. I did try out some food delivery services last month, though. Speaking of which,",
-        "[2023/05/17 (Wed) 20:44] assistant: Of course! Here are some events in Fremantle that are perfect for younger children:\n\n1. Little Creatures Daytime Disco: An afternoon dance party with a live DJ and family-friendly snac",
-        "[2023/05/12 (Fri) 22:09] user: I'm looking for some new book recommendations. I just finished \"Sapiens\" and loved it. Can you suggest something similar? By the way, I've been really into educational content lately, tryin"
+        "[2023/05/21 (Sun) 12:34] user: I'm thinking of trying to adjust my morning routine to get some exercise before work. Do you have any suggestions for a quick 20-minute workout that I can fit in before I head out the door?",
+        "[2023/05/21 (Sun) 12:34] user: I've been thinking about trying to adjust my morning routine to get some exercise before work. Do you have any suggestions for a quick 20-minute workout that I can fit in before I head out "
       ],
       "reason": "miss_at_5"
     },
@@ -376,15 +255,15 @@
         "answer_16bd5ea6_2"
       ],
       "retrieved_top_ids": [
-        "9f1f3bf4",
         "b34a52aa_3",
-        "1c662b7b_1",
+        "9f1f3bf4",
         "743b1fc3_2",
+        "1c662b7b_1",
         "e675c69a_1"
       ],
       "retrieved_top_snippets": [
-        "[2023/03/27 (Mon) 20:28] assistant: The \"Museum at Night\" event at the Natural History Museum sounds like a fascinating experience!\n\nLet's break down your visit into smaller details to help you craft a engaging paragraph",
-        "[2023/03/27 (Mon) 20:28] user: Let's start with the Natural History Museum. I remember attending the \"Museum at Night\" event there about a week after I visited the Modern Art Museum. It was a unique experience, as the mu",
+        "[2023/03/25 (Sat) 04:00] user: Since I'm visiting my sister, I'd like to plan some activities that she'll enjoy as well. Can you suggest some outdoor activities or attractions that are suitable for a birthday celebration",
+        "[2023/04/03 (Mon) 15:46] user: I'm looking for some new brunch ideas, I've been experimenting with different brunch recipes on weekends and I'd love some inspiration. Do you have any suggestions?",
         "[2023/04/21 (Fri) 22:47] assistant: Staying motivated and avoiding boredom is crucial to maintaining a consistent workout routine. Here are some tips to help you stay motivated and excited about your workouts:\n\n**Variety"
       ],
       "reason": "miss_at_5"
@@ -404,12 +283,12 @@
         "ultrachat_463998",
         "b2341a22",
         "9848a1e3_2",
-        "ultrachat_511575"
+        "sharegpt_GI6737T_2"
       ],
       "retrieved_top_snippets": [
         "[2023/01/14 (Sat) 19:01] user: I'm going to add my past museum visits to the calendar now. I remember attending the \"Impressionist Masterpieces\" exhibition at the City Art Museum on a Saturday, which was a week before I ",
-        "[2023/01/15 (Sun) 17:40] assistant: Yunnan Province is known for its rich cultural heritage and diverse ethnic groups, and as such, there are many traditional celebrations that take place throughout the year. Here are so",
-        "[2023/01/14 (Sat) 19:01] assistant: It sounds like you have a good memory for your museum visits.\n\nAs you add your past museum visits to Google Calendar, remember to include as much detail as you can recall. This will he"
+        "[2023/01/14 (Sat) 19:01] assistant: It sounds like you have a good memory for your museum visits.\n\nAs you add your past museum visits to Google Calendar, remember to include as much detail as you can recall. This will he",
+        "[2023/01/14 (Sat) 19:01] assistant: I'm glad you're thinking of attending another art museum event! As a friendly assistant, I don't have real-time access to specific museum schedules or upcoming events. However, I can s"
       ],
       "reason": "miss_at_5"
     },
@@ -424,16 +303,16 @@
         "answer_add9b013_2"
       ],
       "retrieved_top_ids": [
-        "sharegpt_rqvR1Ep_0",
         "bda611f6_3",
+        "sharegpt_rqvR1Ep_0",
+        "ultrachat_326769",
         "ultrachat_131730",
-        "78bab597_2",
-        "sharegpt_15lfOiQ_39"
+        "7fa98614_1"
       ],
       "retrieved_top_snippets": [
-        "[2023/06/07 (Wed) 03:32] assistant: I'm glad you're interested in learning more about these organizations! While I apologize for the confusion, I must correct myself - I made an error in my previous response. After furth",
-        "[2023/06/07 (Wed) 03:32] assistant: The Mixed Roots Foundation is a wonderful organization that supports and advocates for the mixed race community. Here's more information on their mission, programs, and ways to get inv",
-        "[2023/04/12 (Wed) 06:33] assistant: Sure, here is an updated action plan that starts in the spring semester and shows the amount of credits the student would be taking as they continue through college:\n\nFirst Three Month"
+        "[2023/04/12 (Wed) 06:33] assistant: Sure, here is an updated action plan that starts in the spring semester and shows the amount of credits the student would be taking as they continue through college:\n\nFirst Three Month",
+        "[2023/04/10 (Mon) 10:20] user: It's really fascinating to think about how Kassel's Enlightenment history might have influenced its response to the pandemic. Have there been any examples of how cultural institutions or ar",
+        "[2023/04/10 (Mon) 10:20] user: How has the COVID-19 pandemic impacted the cultural scene in Kassel, and what role has the city's Enlightenment history played in this context?"
       ],
       "reason": "miss_at_5"
     },
@@ -448,15 +327,15 @@
       ],
       "retrieved_top_ids": [
         "1e5bd28d_2",
+        "25e5b797_1",
         "cc3c5fa9_1",
         "a2f0054f",
-        "25e5b797_1",
         "ultrachat_59629"
       ],
       "retrieved_top_snippets": [
-        "[2023/04/03 (Mon) 22:41] assistant: September is a great time to visit Hawaii, and you should be able to find a good deal for a 5-day trip.\n\nAs an economy redemption, you'll need 35,000 miles for a round-trip ticket from",
-        "[2023/04/11 (Tue) 19:52] assistant: Enforcing boundaries with a boss can be challenging, but it is important to communicate your limits and advocate for yourself. Here are some tips for approaching this situation:\n\n1. Id",
-        "[2023/04/07 (Fri) 01:46] assistant: You've already found a bulb you like, which is a great starting point! Yes, it's a good idea to look for floor lamps that can accommodate similar bulb options or have a similar color t"
+        "[2023/04/11 (Tue) 20:41] assistant: Italian beef sandwiches are a quintessential Chicago classic! You'll find many spots serving them, but here are some iconic places to try:\n\n**Top Italian Beef Spots:**\n\n1. **Al's Beef*",
+        "[2023/04/11 (Tue) 20:41] user: I'm particularly interested in trying some of the classic Chicago eats. Can you recommend any good spots for Italian beef sandwiches? And do you have any tips on how to order it like a loca",
+        "[2023/04/11 (Tue) 20:41] user: I'm planning a trip to Chicago and I'm looking for some restaurant recommendations. I recently took a solo trip to New York City for 4 days and had an amazing time trying out different food"
       ],
       "reason": "miss_at_5"
     },
@@ -471,16 +350,16 @@
         "answer_dba89488_2"
       ],
       "retrieved_top_ids": [
-        "fab41c07",
-        "ultrachat_466884",
         "990f3ef9_2",
-        "sharegpt_bUaSM2v_0",
-        "8e78fa70_1"
+        "ultrachat_466884",
+        "fab41c07",
+        "e72739cd_1",
+        "sharegpt_bUaSM2v_0"
       ],
       "retrieved_top_snippets": [
-        "[2022/04/10 (Sun) 06:24] user: Can you help me find a good family-friendly restaurant near my house that serves good Italian food? We've been meaning to try something new, and my wife's cooking classes have inspired me t",
-        "[2022/04/10 (Sun) 06:24] assistant: What a wonderful gesture! Finding the perfect gift for your parents' 30th wedding anniversary can be a challenge, but considering their interests and preferences will make it more pers",
-        "[2022/04/10 (Sun) 10:03] user: Okay, I had been focusing on my breath for 30 minutes a day for couple of days and I think I am getting more comfortable. What should I do next?"
+        "[2022/04/10 (Sun) 19:28] assistant: You've got a great starting point with your Trader Joe's haul!\n\nI've got some quick, delicious, and healthy recipe ideas that incorporate your fruits and veggies. Since you mentioned y",
+        "[2022/04/10 (Sun) 11:55] user: It's reassuring to know that more restaurants are offering vegan options. I used to struggle finding something to eat whenever I went out to eat with my friends who aren't vegan. Do you hav",
+        "[2022/04/10 (Sun) 11:55] user: These are really helpful tips! I especially like the idea of suggesting sharing vegan dishes with my friends. I hope they'll be open to trying something different. I also just wanted to say"
       ],
       "reason": "miss_at_5"
     },
@@ -495,16 +374,16 @@
         "answer_0d4d0348_2"
       ],
       "retrieved_top_ids": [
-        "2ea6fda4_1",
         "7bb01253",
         "369695b4_2",
+        "2ea6fda4_1",
         "2946bf12",
-        "577da76d_2"
+        "28269633_2"
       ],
       "retrieved_top_snippets": [
-        "[2023/03/01 (Wed) 19:28] assistant: A checklist is an excellent way to track team members' progress during the onboarding process. Here are some tools and methods to help you create a checklist and track their progress:\n",
-        "[2023/02/16 (Thu) 17:38] assistant: Staying focused and avoiding procrastination are essential skills for productivity. Here are some tips to help you stay on track:\n\n1. **Prioritize your tasks**: Use the Eisenhower Matr",
-        "[2023/03/01 (Wed) 18:59] assistant: Bundling your home and auto insurance policies with State Farm is a great way to potentially save money and simplify your insurance management. Here's what you need to know:\n\n**What is"
+        "[2023/01/18 (Wed) 15:23] user: I'm glad you mentioned about cleaning the scale. I just organized my bathroom cabinet above the sink last Thursday, and I threw away some expired medications and cleaned the shelves with so",
+        "[2023/02/16 (Thu) 17:38] user: I'll try out some of those recipes. I've been pretty busy lately and I'm worried that I might forget some of my tasks. Can you help me set reminders for my upcoming events, like my breakfas",
+        "[2023/02/16 (Thu) 17:38] user: I'll make sure to set reminders for my upcoming events. By the way, do you have any tips on how to stay focused and avoid procrastination during work hours?"
       ],
       "reason": "miss_at_5"
     },
@@ -518,16 +397,16 @@
         "answer_56521e66_1"
       ],
       "retrieved_top_ids": [
+        "b357fb8b_2",
         "ultrachat_507878",
         "dea400f8_2",
-        "b357fb8b_2",
-        "864a563d_5",
-        "652c0717_3"
+        "652c0717_3",
+        "ba9f938b_1"
       ],
       "retrieved_top_snippets": [
-        "[2023/03/15 (Wed) 15:32] assistant: What a fantastic initiative! I'm more than happy to help you with tips on reducing waste, plastic use, and recycling. Here are some practical advice you can share with your workshop at",
         "[2023/02/23 (Thu) 19:39] assistant: You'll have a blast making okonomiyaki at home!\n\nAh, yes! Tokyo has plenty of amazing places to buy ingredients for Japanese cooking. Here are some popular options:\n\n1. **Tsukiji Outer",
-        "[2023/02/25 (Sat) 23:42] assistant: Yes, there are some initiatives in place to help first-time home buyers in Toronto. Here are a few examples:\n\n1. First-time home buyer incentives: Governments at the federal and provin"
+        "[2023/02/18 (Sat) 19:02] user: I've got a question about planning meals. Do you have any suggestions on how to meal prep on my days off, considering I have to eat lunch at the office on weekdays and usually grab somethin",
+        "[2023/02/18 (Sat) 19:02] assistant: Meal prep can be a game-changer for busy schedules. Given your constraints, here are some suggestions for meal prep on your days off to help you eat healthy and save time during the we"
       ],
       "reason": "miss_at_5"
     }

@@ -28,6 +28,11 @@ audio = [
     "sherpa-onnx>=1.10,<3",
     "numpy>=1.26,<3",
 ]
+semantic = [
+    "fastembed>=0.5,<1",
+    "numpy>=1.26,<3",
+    "socksio>=1,<2",
+]
 
 [project.scripts]
 raw-memory = "context_hub.cli:main"

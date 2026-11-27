@@ -8,7 +8,13 @@ from pathlib import Path
 from typing import Any
 
 from .curation_rules import build_curator_prompt, load_curation_rules
-from .models import CurationBatchIn, MemoryCurationIn, ProjectProfileIn
+from .models import (
+    CurationBatchIn,
+    DynamicFocusItem,
+    MemoryCurationIn,
+    ProjectProfileIn,
+    UserProfileIn,
+)
 from .store import HubStore
 
 MCP_INSTRUCTIONS = (
@@ -160,6 +166,31 @@ def build_mcp_server(
     def list_project_profiles() -> dict[str, Any]:
         """Return canonical Project Profiles (display names, repos, domains, live status lookup pointers, repo notes)."""
         return {"content_is_untrusted_data": True, "profiles": store.list_project_profiles()}
+
+    @mcp.tool(annotations=read_only)
+    def get_user_profile(profile_key: str = "self") -> dict[str, Any]:
+        """Return the User Static & Dynamic Profile (durable traits + non-expired active focus)."""
+        return {
+            "content_is_untrusted_data": True,
+            "profile": store.get_user_profile(profile_key),
+        }
+
+    @mcp.tool(annotations=write_safe)
+    def upsert_user_profile(
+        static_traits: list[str] | None = None,
+        dynamic_focus: list[dict[str, Any]] | None = None,
+        evidence_ids: list[str] | None = None,
+        profile_key: str = "self",
+    ) -> dict[str, Any]:
+        """Create or update User Static Traits and TTL-bounded Dynamic Focus items."""
+        prof = UserProfileIn(
+            profile_key=profile_key,
+            static_traits=static_traits or [],
+            dynamic_focus=[DynamicFocusItem.model_validate(item) for item in (dynamic_focus or [])],
+            evidence_ids=evidence_ids or [],
+            updated_by="mcp_agent",
+        )
+        return store.upsert_user_profile(prof)
 
     @mcp.tool(annotations=write_safe)
     def upsert_project_profile(

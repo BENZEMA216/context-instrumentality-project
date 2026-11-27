@@ -53,6 +53,26 @@
       "bundled": true,
       "cases": 18,
       "notes": "Tests causal H_<t time-travel isolation, bi-temporal supersession, cross-channel anchors, privacy boundaries, and 5-generation anti-echo stability."
+    },
+    "rawmemory-bench-v1": {
+      "name": "RawMemory-Bench v1.0 (Frozen 9-Pillar Suite)",
+      "venue": "Raw Memory Frozen Regression Suite (Bundled)",
+      "filename": "benchmarks/suites/rawmemory_bench_v1.json",
+      "sha256": "faaf53763019a000db7670b03ba4ee96cf2c55fb0ec540a3a53215cf8a0c5475",
+      "bundled": true,
+      "frozen": true,
+      "cases": 32,
+      "pillars": 9,
+      "notes": "SHA-256 locked regression suite testing cold-start, correction avoidance, 3-step supersession, cross-channel fusion, cross-project isolation, prompt-injection memory poisoning defense + cascade delete, ephemeral TTL, privacy/Vault boundary, and Prompt-Cache stable prefix determinism."
+    },
+    "convomem-smoke": {
+      "name": "ConvoMem Smoke Suite (6 Evidence Pillars + E2E Judge)",
+      "venue": "ConvoMem-compatible Bundled Fixture (ICLR 2026 schema)",
+      "filename": "benchmarks/fixtures/convomem_smoke.json",
+      "sha256": "872585bd27291035affcd16c1cb0ab51c084e4868da44603a2a8b8edd5e18df9",
+      "bundled": true,
+      "cases": 12,
+      "notes": "Evaluates user_facts, assistant_facts, changing_facts, preferences, implicit_connections, and abstention through both retrieval and 5-stage MemoryBench E2E Judge."
     }
   }
 }

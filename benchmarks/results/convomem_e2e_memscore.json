@@ -1,0 +1,207 @@
+{
+  "suite": "convomem-e2e",
+  "engine_label": "raw-memory-v0.5.0-hybrid-bm25-semantic",
+  "use_semantic": true,
+  "evaluated_at_ms": 1795767104011,
+  "total_items": 12,
+  "mem_score": {
+    "answer_accuracy": 0.8333,
+    "retrieval_recall_at_5": 1.0,
+    "abstention_accuracy": 1.0,
+    "evidence_grounding_rate": 1.0,
+    "p50_latency_ms": 23.48,
+    "avg_context_tokens": 704.7,
+    "cacheable_prefix_ratio": 0.1417,
+    "judge_backend": "extractive_offline"
+  },
+  "by_category": {
+    "abstention": {
+      "count": 2,
+      "retrieval_r@5": 1.0,
+      "answer_accuracy": 1.0
+    },
+    "assistant_facts": {
+      "count": 2,
+      "retrieval_r@5": 1.0,
+      "answer_accuracy": 0.5
+    },
+    "changing_facts": {
+      "count": 2,
+      "retrieval_r@5": 1.0,
+      "answer_accuracy": 1.0
+    },
+    "implicit_connections": {
+      "count": 2,
+      "retrieval_r@5": 1.0,
+      "answer_accuracy": 0.5
+    },
+    "preferences": {
+      "count": 2,
+      "retrieval_r@5": 1.0,
+      "answer_accuracy": 1.0
+    },
+    "user_facts": {
+      "count": 2,
+      "retrieval_r@5": 1.0,
+      "answer_accuracy": 1.0
+    }
+  },
+  "items": [
+    {
+      "item_id": "cm-uf-01",
+      "category": "user_facts",
+      "question": "Which city did the user relocate to for their new engineering role?",
+      "expected_answer": "Seattle",
+      "is_abstention": false,
+      "predicted_answer": "[2026-01-19] user: Just signed the lease and moved to Seattle for the systems role.",
+      "retrieval_hit_at_5": true,
+      "answer_correct": true,
+      "judge_reason": "exact_or_token_span_in_answer",
+      "latency_ms": 89.93,
+      "context_tokens": 977
+    },
+    {
+      "item_id": "cm-uf-02",
+      "category": "user_facts",
+      "question": "What dog breed does the user own?",
+      "expected_answer": "Border Collie",
+      "is_abstention": false,
+      "predicted_answer": "[2026-01-08] user: My Border Collie needs at least two hours of trail running every weekend.",
+      "retrieval_hit_at_5": true,
+      "answer_correct": true,
+      "judge_reason": "exact_or_token_span_in_answer",
+      "latency_ms": 18.58,
+      "context_tokens": 705
+    },
+    {
+      "item_id": "cm-af-01",
+      "category": "assistant_facts",
+      "question": "Which SQLite pragma did the assistant recommend to prevent busy lock errors?",
+      "expected_answer": "busy_timeout=5000",
+      "is_abstention": false,
+      "predicted_answer": "[2026-01-10] user: Should we use Postgres or SQLite for a local desktop tool?",
+      "retrieval_hit_at_5": true,
+      "answer_correct": false,
+      "judge_reason": "answer_span_missing",
+      "latency_ms": 42.29,
+      "context_tokens": 712
+    },
+    {
+      "item_id": "cm-af-02",
+      "category": "assistant_facts",
+      "question": "What HTTP header syntax did the assistant give for UTF-8 download filenames?",
+      "expected_answer": "RFC 5987 filename*",
+      "is_abstention": false,
+      "predicted_answer": "[2026-01-12] assistant: Use RFC 5987 filename*=UTF-8''<percent-encoded> alongside an ASCII fallback filename.",
+      "retrieval_hit_at_5": true,
+      "answer_correct": true,
+      "judge_reason": "exact_or_token_span_in_answer",
+      "latency_ms": 22.16,
+      "context_tokens": 439
+    },
+    {
+      "item_id": "cm-cf-01",
+      "category": "changing_facts",
+      "question": "What is the user's current primary code editor?",
+      "expected_answer": "Zed",
+      "is_abstention": false,
+      "predicted_answer": "[2026-02-14] assistant: Noted—Zed is now your primary code editor.",
+      "retrieval_hit_at_5": true,
+      "answer_correct": true,
+      "judge_reason": "exact_or_token_span_in_answer",
+      "latency_ms": 20.52,
+      "context_tokens": 979
+    },
+    {
+      "item_id": "cm-cf-02",
+      "category": "changing_facts",
+      "question": "What day of the week is the weekly architecture review held now?",
+      "expected_answer": "Thursday",
+      "is_abstention": false,
+      "predicted_answer": "[2026-02-01] user: We moved the weekly architecture review from Tuesday to Thursday at 2 PM starting this month.",
+      "retrieval_hit_at_5": true,
+      "answer_correct": true,
+      "judge_reason": "exact_or_token_span_in_answer",
+      "latency_ms": 23.72,
+      "context_tokens": 691
+    },
+    {
+      "item_id": "cm-pr-01",
+      "category": "preferences",
+      "question": "What kind of weekend relaxation activity would fit the user best?",
+      "expected_answer": "quiet jazz records and watercolor sketching",
+      "is_abstention": false,
+      "predicted_answer": "[2026-01-18] user: To unwind on weekends I really enjoy spinning quiet jazz records and doing watercolor sketching at home; I dislike crowded bars.",
+      "retrieval_hit_at_5": true,
+      "answer_correct": true,
+      "judge_reason": "exact_or_token_span_in_answer",
+      "latency_ms": 34.41,
+      "context_tokens": 1003
+    },
+    {
+      "item_id": "cm-pr-02",
+      "category": "preferences",
+      "question": "How does the user prefer technical explanations to be formatted?",
+      "expected_answer": "concise bullet points with runnable code first",
+      "is_abstention": false,
+      "predicted_answer": "[2026-01-09] user: Please always give me concise bullet points with runnable code first, and skip fluffy intros.",
+      "retrieval_hit_at_5": true,
+      "answer_correct": true,
+      "judge_reason": "exact_or_token_span_in_answer",
+      "latency_ms": 18.09,
+      "context_tokens": 714
+    },
+    {
+      "item_id": "cm-ic-01",
+      "category": "implicit_connections",
+      "question": "Should the user pick a dairy-heavy cheesecake recipe for their dinner party?",
+      "expected_answer": "No, the user is lactose intolerant",
+      "is_abstention": false,
+      "predicted_answer": "[2026-01-11] user: Ever since I found out I am lactose intolerant I stick to oat milk and dairy-free desserts.",
+      "retrieval_hit_at_5": true,
+      "answer_correct": true,
+      "judge_reason": "grounded_partial_inference",
+      "latency_ms": 23.48,
+      "context_tokens": 710
+    },
+    {
+      "item_id": "cm-ic-02",
+      "category": "implicit_connections",
+      "question": "Can the user run a 40GB CUDA-only model on their primary laptop?",
+      "expected_answer": "No, they use an Apple Silicon MacBook without NVIDIA CUDA",
+      "is_abstention": false,
+      "predicted_answer": "[2026-01-15] user: Which local embedding library runs fast without PyTorch?",
+      "retrieval_hit_at_5": true,
+      "answer_correct": false,
+      "judge_reason": "answer_span_missing",
+      "latency_ms": 32.4,
+      "context_tokens": 714
+    },
+    {
+      "item_id": "cm-ab-01",
+      "category": "abstention",
+      "question": "What is the license plate number of the user's car?",
+      "expected_answer": "",
+      "is_abstention": true,
+      "predicted_answer": "Not mentioned in the available memory context.",
+      "retrieval_hit_at_5": true,
+      "answer_correct": true,
+      "judge_reason": "abstained_cleanly",
+      "latency_ms": 18.01,
+      "context_tokens": 407
+    },
+    {
+      "item_id": "cm-ab-02",
+      "category": "abstention",
+      "question": "Which university did the user's brother graduate from?",
+      "expected_answer": "",
+      "is_abstention": true,
+      "predicted_answer": "Not mentioned in the available memory context.",
+      "retrieval_hit_at_5": true,
+      "answer_correct": true,
+      "judge_reason": "abstained_cleanly",
+      "latency_ms": 17.86,
+      "context_tokens": 405
+    }
+  ]
+}

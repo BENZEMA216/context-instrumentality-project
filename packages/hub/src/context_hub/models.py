@@ -16,6 +16,8 @@ DecisionStatus = Literal["active", "superseded", "retracted"]
 DecisionAuthority = Literal["user_confirmed", "assistant_suggested", "observed"]
 MemoryOrigin = Literal["curated", "manual"]
 MemoryKind = Literal["episode_note", "preference", "fact", "commitment", "manual"]
+MemoryScope = Literal["global", "project", "ephemeral"]
+TrustLevel = Literal["user_direct", "curated_verified", "untrusted_external"]
 RuleScope = Literal["source", "connector", "project", "domain"]
 
 PRIVACY_RANK: dict[PrivacyTier, int] = {
@@ -132,6 +134,9 @@ class MemoryCurationIn(BaseModel):
     body: str = Field(..., min_length=1, max_length=32000)
     kind: MemoryKind = "episode_note"
     project: str | None = None
+    scope: MemoryScope | None = None
+    expires_at: int | None = None
+    trust_level: TrustLevel | None = None
     tags: list[str] = Field(default_factory=list)
     evidence_ids: list[str] = Field(..., min_length=1, max_length=256)
     expected_revision: int | None = None
@@ -176,5 +181,20 @@ class ProjectProfileIn(BaseModel):
     domains: list[str] = Field(default_factory=list)
     status_pointers: list[StatusPointerIn] = Field(default_factory=list)
     tech_notes: list[str] = Field(default_factory=list)
+    evidence_ids: list[str] = Field(default_factory=list)
+    updated_by: str = Field(default="owner", max_length=120)
+
+
+class DynamicFocusItem(BaseModel):
+    text: str = Field(..., min_length=1, max_length=600)
+    project: str | None = None
+    expires_at: int | None = None
+    updated_at: int | None = None
+
+
+class UserProfileIn(BaseModel):
+    profile_key: str = Field(default="self", min_length=1, max_length=80)
+    static_traits: list[str] = Field(default_factory=list)
+    dynamic_focus: list[DynamicFocusItem] = Field(default_factory=list)
     evidence_ids: list[str] = Field(default_factory=list)
     updated_by: str = Field(default="owner", max_length=120)

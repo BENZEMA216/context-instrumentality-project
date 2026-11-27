@@ -1,0 +1,146 @@
+[
+  {
+    "item_id": "cm-uf-01",
+    "category": "user_facts",
+    "question": "Which city did the user relocate to for their new engineering role?",
+    "answer": "Seattle",
+    "is_abstention": false,
+    "gold_session_ids": ["s2"],
+    "sessions": [
+      {"session_id": "s1", "date": "2026-01-05", "turns": [{"role": "user", "content": "I am reviewing job offers from startups in Austin and Seattle."}, {"role": "assistant", "content": "Both have strong systems engineering ecosystems."}]},
+      {"session_id": "s2", "date": "2026-01-19", "turns": [{"role": "user", "content": "Just signed the lease and moved to Seattle for the systems role."}, {"role": "assistant", "content": "Congratulations on the move to Seattle!"}]},
+      {"session_id": "s3", "date": "2026-02-02", "turns": [{"role": "user", "content": "Can you recommend a good pour-over kettle?"}, {"role": "assistant", "content": "The Fellow Stagg EKG is popular for precision temperature control."}]}
+    ]
+  },
+  {
+    "item_id": "cm-uf-02",
+    "category": "user_facts",
+    "question": "What dog breed does the user own?",
+    "answer": "Border Collie",
+    "is_abstention": false,
+    "gold_session_ids": ["s1"],
+    "sessions": [
+      {"session_id": "s1", "date": "2026-01-08", "turns": [{"role": "user", "content": "My Border Collie needs at least two hours of trail running every weekend."}, {"role": "assistant", "content": "Border Collies thrive on endurance and agility work."}]},
+      {"session_id": "s2", "date": "2026-01-20", "turns": [{"role": "user", "content": "Help me debug a Python asyncio semaphore deadlock."}, {"role": "assistant", "content": "Check if a coroutine acquires the same semaphore recursively."}]}
+    ]
+  },
+  {
+    "item_id": "cm-af-01",
+    "category": "assistant_facts",
+    "question": "Which SQLite pragma did the assistant recommend to prevent busy lock errors?",
+    "answer": "busy_timeout=5000",
+    "is_abstention": false,
+    "gold_session_ids": ["s2"],
+    "sessions": [
+      {"session_id": "s1", "date": "2026-01-10", "turns": [{"role": "user", "content": "Should we use Postgres or SQLite for a local desktop tool?"}, {"role": "assistant", "content": "SQLite in WAL mode is ideal for single-user local-first apps."}]},
+      {"session_id": "s2", "date": "2026-01-14", "turns": [{"role": "user", "content": "Two local collectors hit database is locked intermittently."}, {"role": "assistant", "content": "Set PRAGMA journal_mode=WAL and PRAGMA busy_timeout=5000 on every connection."}]}
+    ]
+  },
+  {
+    "item_id": "cm-af-02",
+    "category": "assistant_facts",
+    "question": "What HTTP header syntax did the assistant give for UTF-8 download filenames?",
+    "answer": "RFC 5987 filename*",
+    "is_abstention": false,
+    "gold_session_ids": ["s1"],
+    "sessions": [
+      {"session_id": "s1", "date": "2026-01-12", "turns": [{"role": "user", "content": "Starlette threw a latin-1 encoding error on Chinese Content-Disposition filenames."}, {"role": "assistant", "content": "Use RFC 5987 filename*=UTF-8''<percent-encoded> alongside an ASCII fallback filename."}]}
+    ]
+  },
+  {
+    "item_id": "cm-cf-01",
+    "category": "changing_facts",
+    "question": "What is the user's current primary code editor?",
+    "answer": "Zed",
+    "is_abstention": false,
+    "gold_session_ids": ["s3"],
+    "sessions": [
+      {"session_id": "s1", "date": "2026-01-03", "turns": [{"role": "user", "content": "I use VS Code for all my Rust and Python work."}, {"role": "assistant", "content": "Got it, VS Code with rust-analyzer and Pylance."}]},
+      {"session_id": "s2", "date": "2026-01-25", "turns": [{"role": "user", "content": "Trying out Neovim this week to see if startup time feels snappier."}, {"role": "assistant", "content": "Let me know if you need LSP keybind tips."}]},
+      {"session_id": "s3", "date": "2026-02-14", "turns": [{"role": "user", "content": "Update: I switched permanently to Zed as my primary editor and uninstalled VS Code."}, {"role": "assistant", "content": "Noted—Zed is now your primary code editor."}]}
+    ]
+  },
+  {
+    "item_id": "cm-cf-02",
+    "category": "changing_facts",
+    "question": "What day of the week is the weekly architecture review held now?",
+    "answer": "Thursday",
+    "is_abstention": false,
+    "gold_session_ids": ["s2"],
+    "sessions": [
+      {"session_id": "s1", "date": "2026-01-06", "turns": [{"role": "user", "content": "Our weekly architecture review is every Tuesday at 10 AM."}, {"role": "assistant", "content": "Noted Tuesday 10 AM."}]},
+      {"session_id": "s2", "date": "2026-02-01", "turns": [{"role": "user", "content": "We moved the weekly architecture review from Tuesday to Thursday at 2 PM starting this month."}, {"role": "assistant", "content": "Updated to Thursday 2 PM."}]}
+    ]
+  },
+  {
+    "item_id": "cm-pr-01",
+    "category": "preferences",
+    "question": "What kind of weekend relaxation activity would fit the user best?",
+    "answer": "quiet jazz records and watercolor sketching",
+    "is_abstention": false,
+    "gold_session_ids": ["s2"],
+    "sessions": [
+      {"session_id": "s1", "date": "2026-01-04", "turns": [{"role": "user", "content": "Fix the Dockerfile multi-stage caching issue for our Go build."}, {"role": "assistant", "content": "Copy go.mod and go.sum first before go mod download."}]},
+      {"session_id": "s2", "date": "2026-01-18", "turns": [{"role": "user", "content": "To unwind on weekends I really enjoy spinning quiet jazz records and doing watercolor sketching at home; I dislike crowded bars."}, {"role": "assistant", "content": "That sounds like a wonderfully restorative routine."}]},
+      {"session_id": "s3", "date": "2026-02-05", "turns": [{"role": "user", "content": "Write a bash script to compress old SQLite backups."}, {"role": "assistant", "content": "Here is a zstd compression script with 14-day retention."}]}
+    ]
+  },
+  {
+    "item_id": "cm-pr-02",
+    "category": "preferences",
+    "question": "How does the user prefer technical explanations to be formatted?",
+    "answer": "concise bullet points with runnable code first",
+    "is_abstention": false,
+    "gold_session_ids": ["s1"],
+    "sessions": [
+      {"session_id": "s1", "date": "2026-01-09", "turns": [{"role": "user", "content": "Please always give me concise bullet points with runnable code first, and skip fluffy intros."}, {"role": "assistant", "content": "Will do—concise bullets and runnable code upfront."}]},
+      {"session_id": "s2", "date": "2026-01-28", "turns": [{"role": "user", "content": "Explain how ONNX Runtime quantizes int8 weights."}, {"role": "assistant", "content": "Dynamic int8 quantization maps FP32 activations per-tensor at inference."}]}
+    ]
+  },
+  {
+    "item_id": "cm-ic-01",
+    "category": "implicit_connections",
+    "question": "Should the user pick a dairy-heavy cheesecake recipe for their dinner party?",
+    "answer": "No, the user is lactose intolerant",
+    "is_abstention": false,
+    "gold_session_ids": ["s1"],
+    "sessions": [
+      {"session_id": "s1", "date": "2026-01-11", "turns": [{"role": "user", "content": "Ever since I found out I am lactose intolerant I stick to oat milk and dairy-free desserts."}, {"role": "assistant", "content": "Oat milk panna cotta and dark chocolate sorbet are great options."}]},
+      {"session_id": "s2", "date": "2026-02-09", "turns": [{"role": "user", "content": "Planning a small Saturday dinner menu for four friends."}, {"role": "assistant", "content": "What main course are you thinking of?"}]}
+    ]
+  },
+  {
+    "item_id": "cm-ic-02",
+    "category": "implicit_connections",
+    "question": "Can the user run a 40GB CUDA-only model on their primary laptop?",
+    "answer": "No, they use an Apple Silicon MacBook without NVIDIA CUDA",
+    "is_abstention": false,
+    "gold_session_ids": ["s2"],
+    "sessions": [
+      {"session_id": "s1", "date": "2026-01-15", "turns": [{"role": "user", "content": "Which local embedding library runs fast without PyTorch?"}, {"role": "assistant", "content": "fastembed on ONNX Runtime is lightweight and fast."}]},
+      {"session_id": "s2", "date": "2026-01-22", "turns": [{"role": "user", "content": "My daily dev machine is an Apple Silicon M3 MacBook with 24GB unified memory, no NVIDIA GPU."}, {"role": "assistant", "content": "Use CoreML, MLX, or quantized ONNX models for local inference."}]}
+    ]
+  },
+  {
+    "item_id": "cm-ab-01",
+    "category": "abstention",
+    "question": "What is the license plate number of the user's car?",
+    "answer": "",
+    "is_abstention": true,
+    "gold_session_ids": [],
+    "sessions": [
+      {"session_id": "s1", "date": "2026-01-07", "turns": [{"role": "user", "content": "I commute mostly by bike and subway."}, {"role": "assistant", "content": "That saves a lot of parking hassle."}]}
+    ]
+  },
+  {
+    "item_id": "cm-ab-02",
+    "category": "abstention",
+    "question": "Which university did the user's brother graduate from?",
+    "answer": "",
+    "is_abstention": true,
+    "gold_session_ids": [],
+    "sessions": [
+      {"session_id": "s1", "date": "2026-01-29", "turns": [{"role": "user", "content": "My sister is visiting from Tokyo next month."}, {"role": "assistant", "content": "Have fun catching up!"}]}
+    ]
+  }
+]

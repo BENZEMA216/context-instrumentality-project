@@ -33,6 +33,12 @@ from context_hub.store import HubStore
 from context_hub.tokenizer import fts_match_query
 
 from .fidelity import inspect_compression_fidelity
+from .frozen_bench import (
+    compute_benchmark_diff,
+    default_personal_bench_path,
+    evaluate_personal_golden_set,
+    evaluate_rawmemory_bench,
+)
 from .workbench_channels_vault import build_channels_and_vault_router
 
 VerdictType = Literal[
@@ -276,7 +282,64 @@ def create_workbench_app(
 
     @app.get("/api/debug/benchmarks")
     def get_benchmarks() -> dict[str, Any]:
-        return {"reports": _discover_benchmark_results(results_dir)}
+        all_reports = _discover_benchmark_results(results_dir)
+        frozen_saved = next(
+            (r for r in all_reports if r.get("_filename") == "rawmemory_bench_v1.json"),
+            None,
+        )
+        public_reports = [
+            r for r in all_reports if r.get("_filename") != "rawmemory_bench_v1.json"
+        ]
+        p_bench = default_personal_bench_path(root)
+        p_res_path = _eval_dir(root) / "personal_bench_v1_result.json"
+        personal_latest = None
+        if p_res_path.is_file():
+            try:
+                personal_latest = json.loads(p_res_path.read_text(encoding="utf-8"))
+            except Exception:
+                personal_latest = None
+        return {
+            "reports": public_reports,
+            "frozen": frozen_saved,
+            "personal": {
+                "configured": p_bench.is_file(),
+                "bench_path": str(p_bench),
+                "latest": personal_latest,
+            },
+        }
+
+    @app.post("/api/debug/benchmarks/run-frozen")
+    def post_run_frozen_benchmark() -> dict[str, Any]:
+        all_reports = _discover_benchmark_results(results_dir)
+        baseline = next(
+            (r for r in all_reports if r.get("_filename") == "rawmemory_bench_v1.json"),
+            None,
+        )
+        report = evaluate_rawmemory_bench(engine_label="raw-memory-v0.5.0-live")
+        data = report.model_dump()
+        diff = compute_benchmark_diff(data, baseline)
+        return {"report": data, "diff": diff}
+
+    @app.post("/api/debug/benchmarks/run-personal")
+    def post_run_personal_benchmark() -> dict[str, Any]:
+        p_bench = default_personal_bench_path(root)
+        if not p_bench.is_file():
+            return {
+                "error": f"Personal golden set not found at {p_bench}",
+                "configured": False,
+            }
+        p_res_path = _eval_dir(root) / "personal_bench_v1_result.json"
+        prev = None
+        if p_res_path.is_file():
+            try:
+                prev = json.loads(p_res_path.read_text(encoding="utf-8"))
+            except Exception:
+                prev = None
+        report = evaluate_personal_golden_set(root, bench_path=p_bench)
+        data = report.model_dump()
+        p_res_path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        diff = compute_benchmark_diff(data, prev)
+        return {"report": data, "diff": diff}
 
     return app
 
@@ -1678,6 +1741,7 @@ function renderQuery() {
             <strong>Agent 实际收到的 Context Pack</strong>
             <span class="chip mono">${res.latency_ms} ms</span>
             <span class="chip mono">${pack.approx_tokens}/${pack.max_tokens} tok</span>
+            <span class="chip accent mono">Cache Prefix ${pct(pack.cacheable_prefix_ratio)}</span>
             <span class="chip">Profiles ${(pack.project_profiles || []).length}</span>
             ${sup.length ? `<span class="chip amber">已拦截过时决策 ${sup.length}</span>` : ""}
           </div>
@@ -1757,13 +1821,157 @@ async function saveQueryRating(rating) {
 }
 
 // ==================== View 6: Benchmarks ====================
+function fmtDeltaChip(label, diff, invertGood) {
+  if (diff == null || Math.abs(diff) < 0.0005) return `<span class="chip mono">${esc(label)} ±0</span>`;
+  const good = invertGood ? diff < 0 : diff > 0;
+  const sign = diff > 0 ? "+" : "";
+  const val = label.includes("ms") ? `${sign}${diff.toFixed(1)}ms` : `${sign}${(diff * 100).toFixed(1)}%`;
+  return `<span class="chip mono ${good ? "ok" : "bad"}">${esc(label)} ${val}</span>`;
+}
+
+async function runFrozenRegression(btn) {
+  if (btn) { btn.disabled = true; btn.textContent = "运行中…"; }
+  try {
+    const res = await fetch("/api/debug/benchmarks/run-frozen", { method: "POST" }).then(r => r.json());
+    STATE.benchmarks = STATE.benchmarks || {};
+    STATE.benchmarks.frozen = res.report;
+    STATE.benchmarks.frozenDiff = res.diff;
+    renderBenchmarks();
+    showToast(`RawMemory-Bench v1.0 完成 · ${res.report.passed_cases}/${res.report.total_cases} (${pct(res.report.overall_pass_rate)})`);
+  } catch (e) {
+    showToast("运行失败: " + e);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = "运行固定回归"; }
+  }
+}
+
+async function runPersonalRegression(btn) {
+  if (btn) { btn.disabled = true; btn.textContent = "运行中…"; }
+  try {
+    const res = await fetch("/api/debug/benchmarks/run-personal", { method: "POST" }).then(r => r.json());
+    if (res.error) { showToast(res.error); return; }
+    STATE.benchmarks = STATE.benchmarks || {};
+    STATE.benchmarks.personal = { ...(STATE.benchmarks.personal || {}), configured: true, latest: res.report, diff: res.diff };
+    renderBenchmarks();
+    showToast(`Personal Golden Set 完成 · ${res.report.passed_cases}/${res.report.total_cases} (${pct(res.report.overall_pass_rate)})`);
+  } catch (e) {
+    showToast("运行失败: " + e);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = "运行本机私密回归"; }
+  }
+}
+
 function renderBenchmarks() {
   const el = document.getElementById("tab-benchmarks");
-  const reports = (STATE.benchmarks || {}).reports || [];
-  if (!reports.length) {
-    el.innerHTML = `<div class="list"><div class="empty">暂无已保存的 Benchmark 结果。</div></div>`;
-    return;
+  const bm = STATE.benchmarks || {};
+  const frozen = bm.frozen || null;
+  const frozenDiff = bm.frozenDiff || null;
+  const personal = bm.personal || {};
+  const pLatest = personal.latest || null;
+  const reports = bm.reports || [];
+
+  // ---- Tier 1: Frozen RawMemory-Bench v1.0 ----
+  let frozenHtml = "";
+  if (frozen) {
+    const pillarRows = (frozen.by_pillar || []).map(p =>
+      `<tr>
+        <td><code>${esc(p.pillar)}</code></td>
+        <td class="mono">${p.passed}/${p.total}</td>
+        <td><span class="chip ${p.pass_rate >= 0.999 ? "ok" : "bad"} mono">${pct(p.pass_rate)}</span></td>
+      </tr>`
+    ).join("");
+    const diffChips = frozenDiff && frozenDiff.has_baseline
+      ? `<div class="pill-row">${Object.entries(frozenDiff.deltas || {}).map(([k, v]) => fmtDeltaChip(k, v, k.includes("stale") || k.includes("latency"))).join("")}</div>`
+      : "";
+    frozenHtml = `
+      <div class="stat-strip">
+        <div class="stat-cell">
+          <div class="stat-num">${pct(frozen.overall_pass_rate)}</div>
+          <div class="stat-lbl">RawMemory-Bench v1</div>
+          <div class="stat-sub">${frozen.passed_cases}/${frozen.total_cases} cases · ${frozen.integrity_verified ? "SHA-256 LOCKED" : "MODIFIED"}</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-num">${frozen.cross_project_bleed_count} / ${frozen.privacy_leak_count}</div>
+          <div class="stat-lbl">Bleed / Privacy Leaks</div>
+          <div class="stat-sub">Stale ${pct(frozen.stale_leakage_rate)} · Poison Block ${pct(frozen.poisoning_block_rate)}</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-num">${pct(frozen.avg_cacheable_prefix_ratio)}</div>
+          <div class="stat-lbl">Prompt Cache Prefix</div>
+          <div class="stat-sub">TTL Pass ${pct(frozen.ttl_expiry_pass_rate)} · ${Math.round(frozen.avg_tokens || 0)} tok</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-num">${Number(frozen.p50_latency_ms || 0).toFixed(1)} ms</div>
+          <div class="stat-lbl">p50 Latency</div>
+          <div class="stat-sub">p95 ${Number(frozen.p95_latency_ms || 0).toFixed(1)} ms</div>
+        </div>
+      </div>
+      <div class="list">
+        <div class="list-pad">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;">
+              <strong style="font-size:13.5px;">Tier 1 · RawMemory-Bench v${esc(frozen.suite_version || "1.0.0")} (固定回归集)</strong>
+              <span class="chip ${frozen.integrity_verified ? "ok" : "bad"} mono">SHA256:${esc((frozen.suite_sha256 || "").slice(0, 10))}</span>
+              <span class="chip mono">${esc(frozen.engine_label || "")}</span>
+            </div>
+            <button class="pill primary sm" onclick="runFrozenRegression(this)">运行固定回归</button>
+          </div>
+          ${diffChips}
+        </div>
+        <table class="clean">
+          <thead><tr><th>能力维度 (9 Pillars)</th><th>通过数</th><th>通过率</th></tr></thead>
+          <tbody>${pillarRows}</tbody>
+        </table>
+      </div>
+    `;
+  } else {
+    frozenHtml = `
+      <div class="list"><div class="list-pad" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <div><strong>Tier 1 · RawMemory-Bench v1.0 (32 项固定回归)</strong><div style="font-size:12px;color:var(--muted);margin-top:2px;">覆盖跨项目隔离、防投毒、级联删除、TTL 过期、隐私边界与 Prompt Cache 前缀稳定性。</div></div>
+        <button class="pill primary sm" onclick="runFrozenRegression(this)">运行固定回归</button>
+      </div></div>
+    `;
   }
+
+  // ---- Tier 2: Private Local Personal Golden Set ----
+  let personalHtml = "";
+  if (pLatest) {
+    const catRows = Object.entries(pLatest.by_category || {}).map(([cat, m]) =>
+      `<tr><td><code>${esc(cat)}</code></td><td class="mono">${m.passed}/${m.total}</td><td><span class="chip ${m.pass_rate >= 0.999 ? "ok" : "amber"} mono">${pct(m.pass_rate)}</span></td></tr>`
+    ).join("");
+    const failCases = (pLatest.cases || []).filter(c => !c.passed).slice(0, 6).map(c =>
+      `<div class="turn"><span class="chip bad">${esc(c.case_id)}</span> ${esc(c.query)} · 缺: ${esc((c.missing_all||[]).concat(c.missing_any||[]).join(",") || "-")} · 禁: ${esc((c.forbidden_hits||[]).join(",") || "-")}</div>`
+    ).join("");
+    personalHtml = `
+      <div class="list">
+        <div class="list-pad">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;">
+              <strong style="font-size:13.5px;">Tier 2 · Personal Golden Set (本机私密回归集 · 不进 Git)</strong>
+              <span class="chip ${pLatest.overall_pass_rate >= 0.95 ? "ok" : "amber"} mono">${pLatest.passed_cases}/${pLatest.total_cases} (${pct(pLatest.overall_pass_rate)})</span>
+              <span class="chip ${pLatest.pii_leak_count === 0 ? "ok" : "bad"} mono">PII 泄露 ${pLatest.pii_leak_count}</span>
+              <span class="chip mono">p50 ${Number(pLatest.p50_latency_ms || 0).toFixed(1)} ms · ${Math.round(pLatest.avg_tokens || 0)} tok</span>
+            </div>
+            <button class="pill outline sm" onclick="runPersonalRegression(this)">运行本机私密回归</button>
+          </div>
+          ${failCases ? `<div class="exchange" style="margin-top:10px;">${failCases}</div>` : ""}
+        </div>
+        <table class="clean">
+          <thead><tr><th>个人记忆维度</th><th>通过数</th><th>通过率</th></tr></thead>
+          <tbody>${catRows}</tbody>
+        </table>
+      </div>
+    `;
+  } else if (personal.configured) {
+    personalHtml = `
+      <div class="list"><div class="list-pad" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <div><strong>Tier 2 · Personal Golden Set (本机私密回归集)</strong><div style="font-size:12px;color:var(--muted);margin-top:2px;">已配置于 <code>${esc(personal.bench_path || "")}</code>，点击右侧按钮针对真实本机记忆库跑一遍只读回归。</div></div>
+        <button class="pill outline sm" onclick="runPersonalRegression(this)">运行本机私密回归</button>
+      </div></div>
+    `;
+  }
+
+  // ---- Tier 3: Public Academic & Reflexive Meta Benchmarks ----
   const cards = reports.map(r => {
     // Shape A: Reflexive Meta Benchmark (`baselines` array)
     if (Array.isArray(r.baselines)) {
@@ -1793,7 +2001,7 @@ function renderBenchmarks() {
         </table>
       </div>`;
     }
-    // Shape B: Pre-upgrade Baseline Summary (`suites` dict)
+    // Shape B: Baseline Summary (`suites` dict)
     if (r.suites && !r.overall) {
       const rows = Object.entries(r.suites).map(([name, m]) =>
         `<tr>
@@ -1807,10 +2015,10 @@ function renderBenchmarks() {
         <div class="list-pad">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
             <div style="display:flex;align-items:center;gap:7px;">
-              <strong style="font-size:13.5px;">Pre-Upgrade Baseline</strong>
+              <strong style="font-size:13.5px;">Historical Baseline</strong>
               <span class="chip mono">${esc(r.engine_label || r._filename)}</span>
             </div>
-            <span class="chip amber">v0.2.0 升级前对照基线</span>
+            <span class="chip amber">历史对照基线</span>
           </div>
           ${r.description ? `<div style="font-size:12px;color:var(--muted);margin-top:6px;">${esc(r.description)}</div>` : ""}
         </div>
@@ -1820,10 +2028,10 @@ function renderBenchmarks() {
         </table>
       </div>`;
     }
-    // Shape C: Standard LoCoMo / LongMemEval Report
+    // Shape C: Standard LoCoMo / LongMemEval / ConvoMem Report
     const o = r.overall || {};
     const metrics = Object.entries(o).map(([k, v]) => `<span class="chip ok mono">${esc(k)} ${pct(v)}</span>`).join("");
-    const failures = (r.sample_failures || []).slice(0, 8).map(f =>
+    const failures = (r.sample_failures || []).slice(0, 6).map(f =>
       `<tr><td><span class="chip">${esc(f.category)}</span></td><td>${esc(f.question)}</td><td>${esc(f.expected_answer)}</td><td><code>${esc((f.gold_ids||[]).join(","))}</code></td><td><code>${esc((f.retrieved_top_ids||[]).slice(0,3).join(",") || "∅")}</code></td></tr>`
     ).join("");
     return `<div class="list">
@@ -1831,7 +2039,7 @@ function renderBenchmarks() {
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
           <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;">
             <strong style="font-size:13.5px;">${esc(r.suite || r._filename)}</strong>
-            ${r.mode ? `<span class="chip">${esc(r.mode)}</span>` : ""}
+            ${r.mode ? `<span class="chip accent">${esc(r.mode)}</span>` : ""}
             <span class="chip mono">${esc(r.engine_label || "")}</span>
           </div>
           <span class="chip mono">N=${r.scored_questions ?? "-"}/${r.total_questions ?? "-"} · p50 ${r.latency_p50_ms ?? "-"}ms</span>
@@ -1841,9 +2049,13 @@ function renderBenchmarks() {
       ${failures ? `<table class="clean"><thead><tr><th>类别</th><th>问题</th><th>标准答案</th><th>Gold</th><th>Top-3 命中</th></tr></thead><tbody>${failures}</tbody></table>` : ""}
     </div>`;
   }).join("");
+
   el.innerHTML = `
-    <div class="lead"><span>公开记忆基准测试（LoCoMo · LongMemEval-S · LongMemEval-Oracle）与 Reflexive Meta 基准本地成绩。</span></div>
-    ${cards}
+    <div class="lead"><span>三层固定基准体系：<strong>Tier 1 RawMemory-Bench v1.0</strong>（SHA-256 锁定）· <strong>Tier 2 Personal Golden Set</strong>（本机私密）· <strong>Tier 3 公开学术基准</strong>（LoCoMo / LongMemEval / ConvoMem）。</span></div>
+    ${frozenHtml}
+    ${personalHtml}
+    <div class="sec-head"><span class="sec-title">Tier 3 · Public Academic & Reflexive Meta Benchmarks</span></div>
+    ${cards || `<div class="list"><div class="empty">暂无已保存的公开 Benchmark 结果。</div></div>`}
   `;
 }
 

@@ -9,7 +9,17 @@ from pathlib import Path
 
 from context_hub.mcp_server import default_data_dir
 
+from .e2e_judge import evaluate_e2e_convomem
 from .fidelity import inspect_compression_fidelity, render_fidelity_markdown
+from .frozen_bench import (
+    compute_benchmark_diff,
+    default_frozen_suite_path,
+    default_personal_bench_path,
+    evaluate_personal_golden_set,
+    evaluate_rawmemory_bench,
+    render_frozen_markdown,
+    render_personal_markdown,
+)
 from .memory_judge import audit_curated_memory, render_memory_audit_markdown
 from .miner import default_eval_dir, mine_candidates
 from .raw_audit import audit_raw_data, render_raw_audit_markdown
@@ -17,7 +27,9 @@ from .runner import default_dataset_path, evaluate_dataset, load_dataset, render
 from .schema import ALL_BASELINES, BaselineName
 from .standard_benchmarks import (
     DEFAULT_BENCH_CACHE,
+    default_manifest_path,
     download_benchmark_datasets,
+    evaluate_convomem,
     evaluate_locomo,
     evaluate_longmemeval,
     load_manifest,
@@ -178,7 +190,7 @@ def main(argv: list[str] | None = None) -> int:
     bench_run = bench_sub.add_parser("run", help="Run Raw Memory on a standard public benchmark suite")
     bench_run.add_argument(
         "--suite",
-        choices=("locomo", "longmemeval-oracle", "longmemeval-s"),
+        choices=("locomo", "longmemeval-oracle", "longmemeval-s", "convomem-smoke"),
         required=True,
     )
     bench_run.add_argument(
@@ -190,10 +202,45 @@ def main(argv: list[str] | None = None) -> int:
     bench_run.add_argument("--dataset", type=Path, default=None, help="Optional explicit dataset JSON path")
     bench_run.add_argument("--cache-dir", type=Path, default=DEFAULT_BENCH_CACHE)
     bench_run.add_argument("--engine-label", type=str, default="raw-memory")
+    bench_run.add_argument("--semantic", action="store_true", help="Enable Hybrid BM25 + Local fastembed Semantic Vector RRF")
+    bench_run.add_argument("--embed-model", type=str, default=None, help="Optional fastembed ONNX model name")
     bench_run.add_argument("--limit", type=int, default=None, help="Optional limit (conversations for LoCoMo, questions for LongMemEval)")
     bench_run.add_argument("--format", choices=("markdown", "json"), default="markdown")
     bench_run.add_argument("--out", type=Path, default=None)
     bench_run.add_argument("--json-out", type=Path, default=None)
+
+    frozen_cmd = sub.add_parser(
+        "bench-frozen",
+        help="Run frozen SHA-256 locked RawMemory-Bench v1.0 (9 pillars, 32 cases)",
+    )
+    frozen_cmd.add_argument("--suite", type=Path, default=default_frozen_suite_path())
+    frozen_cmd.add_argument("--engine-label", type=str, default="raw-memory-v0.5.0")
+    frozen_cmd.add_argument("--baseline", type=Path, default=None, help="Optional saved baseline JSON for diff")
+    frozen_cmd.add_argument("--format", choices=("markdown", "json"), default="markdown")
+    frozen_cmd.add_argument("--out", type=Path, default=None)
+    frozen_cmd.add_argument("--json-out", type=Path, default=None)
+
+    pers_cmd = sub.add_parser(
+        "bench-personal",
+        help="Run private local Personal Golden Set against live HubStore (never committed to Git)",
+    )
+    pers_cmd.add_argument("--data-dir", type=Path, default=default_data_dir())
+    pers_cmd.add_argument("--bench", type=Path, default=None)
+    pers_cmd.add_argument("--engine-label", type=str, default="raw-memory-v0.5.0-live")
+    pers_cmd.add_argument("--format", choices=("markdown", "json"), default="markdown")
+    pers_cmd.add_argument("--out", type=Path, default=None)
+    pers_cmd.add_argument("--json-out", type=Path, default=None)
+
+    e2e_cmd = sub.add_parser(
+        "bench-e2e",
+        help="Run 5-stage MemoryBench E2E Judge pipeline (ConvoMem schema) and emit MemScore",
+    )
+    e2e_cmd.add_argument("--dataset", type=Path, default=None)
+    e2e_cmd.add_argument("--engine-label", type=str, default="raw-memory-v0.5.0")
+    e2e_cmd.add_argument("--semantic", action="store_true")
+    e2e_cmd.add_argument("--embed-model", type=str, default=None)
+    e2e_cmd.add_argument("--no-llm-judge", action="store_true")
+    e2e_cmd.add_argument("--json-out", type=Path, default=None)
 
     wb_cmd = sub.add_parser(
         "workbench",
@@ -295,7 +342,12 @@ def main(argv: list[str] | None = None) -> int:
         if args.bench_action == "run":
             manifest = load_manifest()
             info = manifest["suites"][args.suite]
-            ds_path = args.dataset or (Path(args.cache_dir).expanduser() / info["filename"])
+            if args.dataset is not None:
+                ds_path = args.dataset
+            elif info.get("bundled"):
+                ds_path = default_manifest_path().parent.parent / info["filename"]
+            else:
+                ds_path = Path(args.cache_dir).expanduser() / info["filename"]
             if not ds_path.is_file():
                 sys.stderr.write(
                     f"Dataset not found at {ds_path}. Run `raw-memory-eval bench download --suite {args.suite}` first.\n"
@@ -307,6 +359,15 @@ def main(argv: list[str] | None = None) -> int:
                     mode=args.mode,
                     engine_label=args.engine_label,
                     limit_convs=args.limit,
+                    use_semantic=args.semantic,
+                    embed_model=args.embed_model,
+                )
+            elif args.suite == "convomem-smoke":
+                report = evaluate_convomem(
+                    ds_path,
+                    engine_label=args.engine_label,
+                    use_semantic=args.semantic,
+                    embed_model=args.embed_model,
                 )
             else:
                 report = evaluate_longmemeval(
@@ -314,6 +375,8 @@ def main(argv: list[str] | None = None) -> int:
                     split_name=args.suite,
                     engine_label=args.engine_label,
                     limit_questions=args.limit,
+                    use_semantic=args.semantic,
+                    embed_model=args.embed_model,
                 )
             rendered = (
                 render_benchmark_markdown(report)
@@ -328,6 +391,65 @@ def main(argv: list[str] | None = None) -> int:
                 args.json_out.expanduser().write_text(report.model_dump_json(indent=2) + "\n", encoding="utf-8")
             sys.stdout.write(rendered)
             return 0
+
+    if args.command == "bench-frozen":
+        report = evaluate_rawmemory_bench(args.suite, engine_label=args.engine_label)
+        rendered = (
+            render_frozen_markdown(report)
+            if args.format == "markdown"
+            else report.model_dump_json(indent=2) + "\n"
+        )
+        if args.out is not None:
+            args.out.expanduser().parent.mkdir(parents=True, exist_ok=True)
+            args.out.expanduser().write_text(rendered, encoding="utf-8")
+        if args.json_out is not None:
+            args.json_out.expanduser().parent.mkdir(parents=True, exist_ok=True)
+            args.json_out.expanduser().write_text(report.model_dump_json(indent=2) + "\n", encoding="utf-8")
+        if args.baseline is not None and args.baseline.expanduser().is_file():
+            base = json.loads(args.baseline.expanduser().read_text(encoding="utf-8"))
+            diff = compute_benchmark_diff(report.model_dump(), base)
+            sys.stderr.write(f"Baseline diff: {json.dumps(diff)}\n")
+        sys.stdout.write(rendered)
+        return 0 if report.overall_pass_rate >= 1.0 and report.integrity_verified else 1
+
+    if args.command == "bench-personal":
+        bpath = args.bench or default_personal_bench_path(args.data_dir)
+        report = evaluate_personal_golden_set(
+            args.data_dir,
+            bench_path=bpath,
+            engine_label=args.engine_label,
+        )
+        rendered = (
+            render_personal_markdown(report)
+            if args.format == "markdown"
+            else report.model_dump_json(indent=2) + "\n"
+        )
+        if args.out is not None:
+            args.out.expanduser().parent.mkdir(parents=True, exist_ok=True)
+            args.out.expanduser().write_text(rendered, encoding="utf-8")
+        if args.json_out is not None:
+            args.json_out.expanduser().parent.mkdir(parents=True, exist_ok=True)
+            args.json_out.expanduser().write_text(report.model_dump_json(indent=2) + "\n", encoding="utf-8")
+        sys.stdout.write(rendered)
+        return 0 if report.pii_leak_count == 0 else 1
+
+    if args.command == "bench-e2e":
+        ds_path = args.dataset or (
+            default_manifest_path().parent / "fixtures" / "convomem_smoke.json"
+        )
+        e2e_report = evaluate_e2e_convomem(
+            ds_path,
+            engine_label=args.engine_label,
+            use_semantic=args.semantic,
+            embed_model=args.embed_model,
+            allow_llm_judge=not args.no_llm_judge,
+        )
+        payload = e2e_report.model_dump_json(indent=2) + "\n"
+        if args.json_out is not None:
+            args.json_out.expanduser().parent.mkdir(parents=True, exist_ok=True)
+            args.json_out.expanduser().write_text(payload, encoding="utf-8")
+        sys.stdout.write(payload)
+        return 0
 
     if args.command == "workbench":
         import uvicorn

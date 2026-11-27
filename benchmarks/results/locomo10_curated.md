@@ -1,32 +1,32 @@
-# Raw Memory Benchmark Report — `locomo` (curated)
+# Raw Memory Benchmark Report — `locomo` (curated+semantic)
 
-- **Engine**: `raw-memory-v0.3.0-hybrid-bm25`
+- **Engine**: `raw-memory-v0.5.0-hybrid-bm25-semantic`
 - **Questions**: `1982` scored / `1986` total
-- **Latency**: p50=`2.04 ms`, p95=`2.74 ms`, wall=`4.47 s`
+- **Latency**: p50=`8.44 ms`, p95=`23.49 ms`, wall=`111.40 s`
 
 ## Overall Metrics
 
 | R@1 | R@5 | R@10 | All-R@5 | All-R@10 | NDCG@5 | NDCG@10 | MRR | Ans-Cov@5 | Ans-Cov@10 |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 34.2% | 61.3% | 72.5% | 50.9% | 61.5% | 45.4% | 49.1% | 46.2% | 46.4% | 56.1% |
+| 35.5% | 67.1% | 77.0% | 56.5% | 66.1% | 49.2% | 52.7% | 49.3% | 50.2% | 59.9% |
 
 ## Breakdown by Category
 
 | Category | N | R@1 | R@5 | R@10 | All-R@5 | NDCG@5 | MRR | Ans-Cov@5 |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| `adversarial` | 446 | 33.2% | 62.3% | 73.5% | 60.8% | 48.6% | 45.9% | 62.3% |
-| `multi_hop` | 841 | 33.1% | 61.5% | 73.5% | 58.6% | 47.8% | 45.8% | 54.5% |
-| `open_domain` | 92 | 20.6% | 39.1% | 47.8% | 17.4% | 22.4% | 28.1% | 2.2% |
-| `single_hop` | 282 | 29.8% | 57.1% | 69.2% | 9.9% | 27.8% | 41.7% | 15.6% |
-| `temporal` | 321 | 46.4% | 69.2% | 78.5% | 62.6% | 56.8% | 57.0% | 43.0% |
+| `adversarial` | 446 | 27.4% | 59.9% | 71.5% | 59.2% | 44.5% | 41.2% | 59.9% |
+| `multi_hop` | 841 | 34.6% | 68.5% | 79.2% | 66.2% | 52.5% | 49.4% | 61.1% |
+| `open_domain` | 92 | 27.2% | 45.6% | 58.7% | 25.0% | 29.7% | 35.1% | 7.6% |
+| `single_hop` | 282 | 39.4% | 69.5% | 79.1% | 16.7% | 38.4% | 52.7% | 20.9% |
+| `temporal` | 321 | 48.3% | 77.6% | 82.5% | 71.3% | 62.4% | 61.1% | 46.1% |
 
 ## Sample Failure Cases (Top 8 for Debugging)
 
-- **`[temporal]` `conv-26#q1`** (`miss_at_5`): *When did Melanie paint a sunrise?* (gold=['D1:12'], got=['D1:14', 'D14:30', 'D8:6'])
-- **`[open_domain]` `conv-26#q2`** (`miss_at_5`): *What fields would Caroline be likely to pursue in her educaton?* (gold=['D1:11', 'D1:9'], got=['D7:8', 'D13:7', 'D13:3'])
-- **`[single_hop]` `conv-26#q4`** (`miss_at_5`): *What is Caroline's identity?* (gold=['D1:5'], got=['D13:13', 'D11:12', 'D16:9'])
-- **`[single_hop]` `conv-26#q7`** (`miss_at_5`): *What is Caroline's relationship status?* (gold=['D2:14', 'D3:13'], got=['D16:15', 'D13:3', 'D3:1'])
-- **`[temporal]` `conv-26#q10`** (`miss_at_5`): *How long has Caroline had her current group of friends for?* (gold=['D3:13'], got=['D6:11', 'D12:15', 'D16:15'])
-- **`[single_hop]` `conv-26#q13`** (`miss_at_5`): *What career path has Caroline decided to persue?* (gold=['D1:11', 'D4:13'], got=['D1:9', 'D4:11', 'D5:3'])
-- **`[single_hop]` `conv-26#q19`** (`miss_at_5`): *What do Melanie's kids like?* (gold=['D4:8', 'D6:6'], got=['D1:2', 'D6:4', 'D1:18'])
-- **`[temporal]` `conv-26#q21`** (`miss_at_5`): *When did Caroline have a picnic?* (gold=['D6:11'], got=['D13:3', 'D3:1', 'D5:5'])
+- **`[temporal]` `conv-26#q1`** (`miss_at_5`): *When did Melanie paint a sunrise?* (gold=['D1:12'], got=['D1:14', 'D8:6', 'D14:30'])
+- **`[single_hop]` `conv-26#q4`** (`miss_at_5`): *What is Caroline's identity?* (gold=['D1:5'], got=['D11:12', 'D17:23', 'D16:9'])
+- **`[single_hop]` `conv-26#q13`** (`miss_at_5`): *What career path has Caroline decided to persue?* (gold=['D1:11', 'D4:13'], got=['D4:11', 'D1:9', 'D7:5'])
+- **`[single_hop]` `conv-26#q19`** (`miss_at_5`): *What do Melanie's kids like?* (gold=['D4:8', 'D6:6'], got=['D6:4', 'D1:2', 'D9:1'])
+- **`[temporal]` `conv-26#q21`** (`miss_at_5`): *When did Caroline have a picnic?* (gold=['D6:11'], got=['D13:7', 'D16:1', 'D14:7'])
+- **`[single_hop]` `conv-26#q24`** (`miss_at_5`): *What does Melanie do to destress?* (gold=['D5:4', 'D7:22'], got=['D7:20', 'D7:24', 'D18:21'])
+- **`[single_hop]` `conv-26#q34`** (`miss_at_5`): *What events has Caroline participated in to help children?* (gold=['D3:3', 'D9:2'], got=['D10:5', 'D3:5', 'D5:3'])
+- **`[open_domain]` `conv-26#q42`** (`miss_at_5`): *Would Melanie be more interested in going to a national park or a theme park?* (gold=['D10:12', 'D10:14'], got=['D15:2', 'D9:1', 'D11:13'])
