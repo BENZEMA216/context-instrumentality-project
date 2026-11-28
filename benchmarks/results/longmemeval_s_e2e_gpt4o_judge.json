@@ -1,0 +1,335 @@
+{
+  "suite": "longmemeval-s",
+  "engine_label": "raw-memory-v0.9.0-top10-agentic-2turn",
+  "reader_model": "openai/gpt-4o-mini",
+  "judge_model": "openai/gpt-4o (ICLR-2025 official judge)",
+  "evaluated_at_ms": 1795890903957,
+  "total_questions": 500,
+  "scored_questions": 470,
+  "abstention_questions": 30,
+  "overall_accuracy": 0.682,
+  "positive_accuracy": 0.6851,
+  "abstention_accuracy": 0.6333,
+  "avg_token_f1": null,
+  "retrieval_r5": 0.9915,
+  "retrieval_r10": 0.9915,
+  "avg_context_tokens": 9629.7,
+  "avg_full_history_tokens": 124791.6,
+  "token_reduction_pct": 92.3,
+  "by_category": {
+    "abstention": {
+      "count": 30,
+      "accuracy": 0.6333,
+      "retrieval_r5": 1.0,
+      "retrieval_r10": 1.0
+    },
+    "knowledge-update": {
+      "count": 72,
+      "accuracy": 0.8056,
+      "retrieval_r5": 1.0,
+      "retrieval_r10": 1.0
+    },
+    "multi-session": {
+      "count": 121,
+      "accuracy": 0.562,
+      "retrieval_r5": 1.0,
+      "retrieval_r10": 1.0
+    },
+    "single-session-assistant": {
+      "count": 56,
+      "accuracy": 0.9643,
+      "retrieval_r5": 1.0,
+      "retrieval_r10": 1.0
+    },
+    "single-session-preference": {
+      "count": 30,
+      "accuracy": 0.4,
+      "retrieval_r5": 0.9333,
+      "retrieval_r10": 0.9333
+    },
+    "single-session-user": {
+      "count": 64,
+      "accuracy": 0.9844,
+      "retrieval_r5": 1.0,
+      "retrieval_r10": 1.0
+    },
+    "temporal-reasoning": {
+      "count": 127,
+      "accuracy": 0.5276,
+      "retrieval_r5": 0.9843,
+      "retrieval_r10": 0.9843
+    }
+  },
+  "sample_errors": [
+    {
+      "item_id": "b86304ba",
+      "category": "single-session-user",
+      "question": "How much is the painting of a sunset worth in terms of the amount I paid for it?",
+      "gold_answer": "The painting is worth triple what I paid for it.",
+      "predicted_answer": "The value of the painting of a sunset is not mentioned in the provided memory excerpts, so I cannot determine how much it is worth in relation to the amount you paid for it.",
+      "judge_reason": "The model response does not provide the correct answer or any equivalent information.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "f4f1d8a4_abs",
+      "category": "abstention",
+      "question": "What did my dad gave me as a birthday gift?",
+      "gold_answer": "You did not mention this information. You mentioned receiving a birthday gift from your sister, but not your dad.",
+      "predicted_answer": "Your dad gave you a new stand mixer as a birthday gift last month.",
+      "judge_reason": "The model incorrectly provided a specific answer instead of identifying the question as unanswerable due to missing information.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "0a995998",
+      "category": "multi-session",
+      "question": "How many items of clothing do I need to pick up or return from a store?",
+      "gold_answer": "3",
+      "predicted_answer": "You need to pick up one pair of boots from Zara that you exchanged.",
+      "judge_reason": "The response mentions only one item, a pair of boots, which does not match the correct answer of 3 items.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "6d550036",
+      "category": "multi-session",
+      "question": "How many projects have I led or am currently leading?",
+      "gold_answer": "2",
+      "predicted_answer": "You have led one project as a senior software engineer, and you are currently leading that project with your team of five engineers.",
+      "judge_reason": "The response indicates only one project being led, not two as required by the correct answer.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "b5ef892d",
+      "category": "multi-session",
+      "question": "How many days did I spend on camping trips in the United States this year?",
+      "gold_answer": "8 days.",
+      "predicted_answer": "6 days",
+      "judge_reason": "The model response states 6 days, which does not match the correct answer of 8 days.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "3a704032",
+      "category": "multi-session",
+      "question": "How many plants did I acquire in the last month?",
+      "gold_answer": "3",
+      "predicted_answer": "You acquired two plants in the last month: a peace lily and a succulent, both from the nursery two weeks ago.",
+      "judge_reason": "The model response states that only two plants were acquired, not three as required by the correct answer.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "gpt4_d84a3211",
+      "category": "multi-session",
+      "question": "How much total money have I spent on bike-related expenses since the start of the year?",
+      "gold_answer": "$185",
+      "predicted_answer": "You have spent a total of $65 on bike-related expenses since the start of the year, which includes $25 for a chain replacement and $40 for a new set of bike lights.",
+      "judge_reason": "The model response states $65, which does not match the correct answer of $185.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "aae3761f",
+      "category": "multi-session",
+      "question": "How many hours in total did I spend driving to my three road trip destinations combined?",
+      "gold_answer": "15 hours for getting to the three destinations (or 30 hours for the round trip)",
+      "predicted_answer": "You spent a total of 18 hours driving to your three road trip destinations combined: 4 hours to the Outer Banks, 7-8 hours to Tybee Island, and 6 hours to Washington D.C.",
+      "judge_reason": "The model response states 18 hours, which does not match the correct answer of 15 hours.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "c4a1ceb8",
+      "category": "multi-session",
+      "question": "How many different types of citrus fruits have I used in my cocktail recipes?",
+      "gold_answer": "3",
+      "predicted_answer": "You have mentioned using orange and lemon in your cocktail recipes, specifically in the Sangria. Therefore, you have used 2 types of citrus fruits.",
+      "judge_reason": "The model response only mentions 2 types of citrus fruits, while the correct answer is 3.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "gpt4_a56e767c",
+      "category": "multi-session",
+      "question": "How many movie festivals that I attended?",
+      "gold_answer": "I attended four movie festivals.",
+      "predicted_answer": "You attended two film festivals: the Austin Film Festival and AFI Fest.",
+      "judge_reason": "The model response states two film festivals, while the correct answer is four.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "36b9f61e",
+      "category": "multi-session",
+      "question": "What is the total amount I spent on luxury items in the past few months?",
+      "gold_answer": "$2,500",
+      "predicted_answer": "The total amount you spent on luxury items in the past few months includes:\n\n1. Gucci handbag: $1,200\n2. Leather boots from a high-end Italian designer: $500\n\nAdding these amounts together, you spent a total of **$1,700** on luxury items.",
+      "judge_reason": "The model response calculates a total of $1,700, which does not match the correct answer of $2,500.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "28dc39ac",
+      "category": "multi-session",
+      "question": "How many hours have I spent playing games in total?",
+      "gold_answer": "140 hours",
+      "predicted_answer": "You have spent a total of 135 hours playing games: 70 hours on Assassin's Creed Odyssey, 30 hours on The Last of Us Part II (normal difficulty), 25 hours on The Last of Us Part II (hard difficulty), and 10 hours on Celeste.",
+      "judge_reason": "The model response states a total of 135 hours, which is not equal to the correct answer of 140 hours.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "gpt4_2f8be40d",
+      "category": "multi-session",
+      "question": "How many weddings have I attended in this year?",
+      "gold_answer": "I attended three weddings. The couples were Rachel and Mike, Emily and Sarah, and Jen and Tom.",
+      "predicted_answer": "You have attended two weddings this year: your college roommate's wedding in the city and your cousin Rachel's wedding at the vineyard in August.",
+      "judge_reason": "The model response states two weddings, while the correct answer is three weddings with specific couples mentioned.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "2e6d26dc",
+      "category": "multi-session",
+      "question": "How many babies were born to friends and family members in the last few months?",
+      "gold_answer": "5",
+      "predicted_answer": "Three babies were mentioned: David's son Jasper, Rachel's son Max, and Mike and Emma's daughter Charlotte.",
+      "judge_reason": "The model response lists only three babies, which is fewer than the correct answer of five.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "gpt4_15e38248",
+      "category": "multi-session",
+      "question": "How many pieces of furniture did I buy, assemble, sell, or fix in the past few months?",
+      "gold_answer": "4",
+      "predicted_answer": "You bought and assembled one coffee table from West Elm and fixed one wobbly leg on your kitchen table. Total: 2 pieces of furniture.",
+      "judge_reason": "The model response only accounts for 2 pieces of furniture, while the correct answer is 4.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "88432d0a",
+      "category": "multi-session",
+      "question": "How many times did I bake something in the past two weeks?",
+      "gold_answer": "4",
+      "predicted_answer": "You baked three times in the past two weeks: a chocolate cake for your sister's birthday party last weekend, a whole wheat baguette last Saturday, and a batch of cookies last Thursday.",
+      "judge_reason": "The model response states you baked three times, not four as the correct answer indicates.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "d23cf73b",
+      "category": "multi-session",
+      "question": "How many different cuisines have I learned to cook or tried out in the past few months?",
+      "gold_answer": "4",
+      "predicted_answer": "You have learned to cook or tried out three different cuisines: Indian (chicken tikka masala, naan, saag paneer), Ethiopian (misir wot, injera), and Korean (bibimbap, kimchi).",
+      "judge_reason": "The model response lists only three cuisines, whereas the correct answer is four.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "gpt4_7fce9456",
+      "category": "multi-session",
+      "question": "How many properties did I view before making an offer on the townhouse in the Brookside neighborhood?",
+      "gold_answer": "I viewed four properties before making an offer on the townhouse in the Brookside neighborhood. The reasons I didn't make an offer on them were: the kitchen of the bungalow needed serious renovation, the property in Cedar Creek was out of my budget, the noise from the highway was a deal-breaker for the 1-bedroom condo, and my offer on the 2-bedroom condo was rejected due to a higher bid.",
+      "predicted_answer": "You viewed two properties before making an offer on the townhouse in Brookside: a 2-bedroom condo on February 15th and a 1-bedroom condo on February 10th.",
+      "judge_reason": "The model response states that only two properties were viewed, while the correct answer indicates four properties were viewed.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "d682f1a2",
+      "category": "multi-session",
+      "question": "How many different types of food delivery services have I used recently?",
+      "gold_answer": "3",
+      "predicted_answer": "You mentioned using Uber Eats and a new service called Fresh Fusion.",
+      "judge_reason": "The response only mentions two services, which is less than the correct answer of three.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "gpt4_2ba83207",
+      "category": "multi-session",
+      "question": "Which grocery store did I spend the most money at in the past month?",
+      "gold_answer": "Thrive Market",
+      "predicted_answer": "You spent around $120 at Walmart, which is the most money spent at a grocery store in the past month.",
+      "judge_reason": "The model response states Walmart as the store with the most money spent, which contradicts the correct answer, Thrive Market.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "2ce6a0f2",
+      "category": "multi-session",
+      "question": "How many different art-related events did I attend in the past month?",
+      "gold_answer": "4",
+      "predicted_answer": "You attended two art-related events in the past month: the \"Art Afternoon\" event at the Children's Museum on February 17th and the guided tour at the History Museum on February 24th.",
+      "judge_reason": "The model response states that only two art-related events were attended, which does not match the correct answer of four events.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "gpt4_31ff4165",
+      "category": "multi-session",
+      "question": "How many health-related devices do I use in a day?",
+      "gold_answer": "4",
+      "predicted_answer": "You use at least two health-related devices in a day: your Fitbit Versa 3 for tracking activity levels and sleep patterns, and your nebulizer machine for inhalation treatments.",
+      "judge_reason": "The response only mentions two health-related devices, which is less than the correct answer of four.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "2788b940",
+      "category": "multi-session",
+      "question": "How many fitness classes do I attend in a typical week?",
+      "gold_answer": "5",
+      "predicted_answer": "You attend 3 fitness classes in a typical week: Zumba on Tuesdays and Thursdays at 7:00 PM, BodyPump on Mondays at 6:30 PM, and Hip Hop Abs on Saturdays at 10:00 AM.",
+      "judge_reason": "The model response states you attend 3 fitness classes, which does not match the correct answer of 5.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "9d25d4e0",
+      "category": "multi-session",
+      "question": "How many pieces of jewelry did I acquire in the last two months?",
+      "gold_answer": "3",
+      "predicted_answer": "You acquired two pieces of jewelry in the last two months: a pair of emerald earrings mentioned on 2023/05/21 and a silver necklace with a small pendant mentioned on 2023/05/28.",
+      "judge_reason": "The model response states two pieces of jewelry, not three as required by the correct answer.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "gpt4_194be4b3",
+      "category": "multi-session",
+      "question": "How many musical instruments do I currently own?",
+      "gold_answer": "I currently own 4 musical instruments. I've had the Fender Stratocaster electric guitar for 5 years, the Yamaha FG800 acoustic guitar for 8 years, the 5-piece Pearl Export drum set for an unspecified amount of time, and the Korg B1 piano for 3 years.",
+      "predicted_answer": "You currently own at least two musical instruments: a Korg B1 piano and a black Fender Stratocaster electric guitar. You also mentioned considering getting a new ukulele, but it hasn't been confirmed as purchased yet.",
+      "judge_reason": "The response only mentions two of the four instruments owned and does not account for all the instruments listed in the correct answer.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "d851d5ba",
+      "category": "multi-session",
+      "question": "How much money did I raise for charity in total?",
+      "gold_answer": "$3,750",
+      "predicted_answer": "$3,250",
+      "judge_reason": "The model response does not match the correct answer of $3,750.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "5a7937c8",
+      "category": "multi-session",
+      "question": "How many days did I spend participating in faith-related activities in December?",
+      "gold_answer": "3 days.",
+      "predicted_answer": "You participated in faith-related activities on December 17th for your Bible study group and on December 24th for midnight mass, totaling 2 days.",
+      "judge_reason": "The model response states 2 days, which is not the correct answer of 3 days.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "gpt4_ab202e7f",
+      "category": "multi-session",
+      "question": "How many kitchen items did I replace or fix?",
+      "gold_answer": "I replaced or fixed five items: the kitchen faucet, the kitchen mat, the toaster, the coffee maker, and the kitchen shelves.",
+      "predicted_answer": "You replaced or fixed three kitchen items: your kitchen shelves, your old coffee maker (with a new espresso machine), and your old toaster (with a toaster oven).",
+      "judge_reason": "The model response lists only three items, while the correct answer includes five items.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "gpt4_e05b82a6",
+      "category": "multi-session",
+      "question": "How many times did I ride rollercoasters across all the events I attended from July to October?",
+      "gold_answer": "10 times",
+      "predicted_answer": "You rode rollercoasters 6 times across the events from July to October: 3 times on Mako, Kraken, and Manta at SeaWorld San Diego in July, and 3 times on the Revenge of the Mummy rollercoaster at Universal Studios Hollywood on October 15th.",
+      "judge_reason": "The model response states 6 rides, which does not match the correct answer of 10 rides.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "gpt4_731e37d7",
+      "category": "multi-session",
+      "question": "How much total money did I spend on attending workshops in the last four months?",
+      "gold_answer": "$720",
+      "predicted_answer": "You spent a total of $700 on attending workshops in the last four months: $200 for the writing workshop in November and $500 for the digital marketing workshop on March 15-16.",
+      "judge_reason": "The model response states a total of $700, which does not match the correct answer of $720.",
+      "retrieval_hit_at_5": true
+    }
+  ]
+}

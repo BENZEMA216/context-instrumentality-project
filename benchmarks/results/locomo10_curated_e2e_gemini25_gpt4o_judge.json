@@ -1,0 +1,327 @@
+{
+  "suite": "locomo-curated",
+  "engine_label": "raw-memory-v0.9.0-agentic-2turn-graph",
+  "reader_model": "google/gemini-2.5-flash",
+  "judge_model": "openai/gpt-4o (ACL-2024 / Mem0 official judge)",
+  "evaluated_at_ms": 1795889843025,
+  "total_questions": 492,
+  "scored_questions": 392,
+  "abstention_questions": 100,
+  "overall_accuracy": 0.7378,
+  "positive_accuracy": 0.6888,
+  "abstention_accuracy": 0.93,
+  "avg_token_f1": 0.199,
+  "retrieval_r5": 0.7679,
+  "retrieval_r10": 0.8418,
+  "avg_context_tokens": 1395.1,
+  "avg_full_history_tokens": 26537.0,
+  "token_reduction_pct": 94.7,
+  "by_category": {
+    "adversarial": {
+      "count": 100,
+      "accuracy": 0.93,
+      "retrieval_r5": 0.91,
+      "retrieval_r10": 0.95
+    },
+    "multi_hop": {
+      "count": 100,
+      "accuracy": 0.48,
+      "retrieval_r5": 0.81,
+      "retrieval_r10": 0.88,
+      "token_f1": 0.2042
+    },
+    "open_domain": {
+      "count": 92,
+      "accuracy": 0.6087,
+      "retrieval_r5": 0.5435,
+      "retrieval_r10": 0.6522,
+      "token_f1": 0.1063
+    },
+    "single_hop": {
+      "count": 100,
+      "accuracy": 0.88,
+      "retrieval_r5": 0.86,
+      "retrieval_r10": 0.92,
+      "token_f1": 0.2791
+    },
+    "temporal": {
+      "count": 100,
+      "accuracy": 0.78,
+      "retrieval_r5": 0.84,
+      "retrieval_r10": 0.9,
+      "token_f1": 0.199
+    }
+  },
+  "sample_errors": [
+    {
+      "item_id": "conv-26#q7",
+      "category": "multi_hop",
+      "question": "What is Caroline's relationship status?",
+      "gold_answer": "Single",
+      "predicted_answer": "Caroline experienced a tough breakup in the past and has since focused on having genuine relationships with friends who accept and love her. She is also looking into adoption to become a mother.",
+      "judge_reason": "The generated answer does not directly address Caroline's current relationship status as 'Single'.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-26#q15",
+      "category": "multi_hop",
+      "question": "What activities does Melanie partake in?",
+      "gold_answer": "pottery, camping, painting, swimming",
+      "predicted_answer": "Melanie partakes in running, reading, playing the violin, pottery, camping, hiking, exploring forests, visiting museums, going to parks, attending concerts, and doing nature-inspired painting projects with her kids.",
+      "judge_reason": "The generated answer includes pottery, camping, and painting, but it does not mention swimming, which is a key activity in the gold answer.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-26#q17",
+      "category": "temporal",
+      "question": "When is Caroline going to the transgender conference?",
+      "gold_answer": "July 2023",
+      "predicted_answer": "Caroline attended an LGBTQ conference two days before July 12, 2023, which would be July 10, 2023. She had previously mentioned looking forward to a transgender conference \"this month\" on July 3, 2023.",
+      "judge_reason": "The generated answer provides a specific date in July 2023, but it does not clearly state that Caroline is going to the transgender conference in July 2023. It implies past attendance rather than a future event.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-26#q23",
+      "category": "multi_hop",
+      "question": "What books has Melanie read?",
+      "gold_answer": "\"Nothing is Impossible\", \"Charlotte's Web\"",
+      "predicted_answer": "Melanie loved reading \"Charlotte's Web\" as a child and mentioned reading a book last year that reminded her to pursue her dreams. She also stated she was reading a book Caroline recommended on October 13, 2023.",
+      "judge_reason": "The generated answer does not mention 'Nothing is Impossible', which is part of the gold answer.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-26#q34",
+      "category": "multi_hop",
+      "question": "What events has Caroline participated in to help children?",
+      "gold_answer": "Mentoring program, school speech",
+      "predicted_answer": "Caroline has participated in several events to help children, including organizing a talent show for kids at an LGBTQ+ youth center, mentoring a transgender teen, joining a mentorship program for LGBTQ youth, and giving a talk at a school event about her transgender journey to encourage students to get involved in the LGBTQ community. She also applied to adoption agencies and attended an adoption advice/assistance group.",
+      "judge_reason": "The generated answer includes additional events not mentioned in the gold answer, such as organizing a talent show and adoption-related activities, which are not relevant to the question.",
+      "retrieval_hit_at_5": false
+    },
+    {
+      "item_id": "conv-26#q39",
+      "category": "multi_hop",
+      "question": "In what ways is Caroline participating in the LGBTQ community?",
+      "gold_answer": "Joining activist group, going to pride parades, participating in an art show, mentoring program",
+      "predicted_answer": "Caroline participates in the LGBTQ community by attending support groups and conferences, joining an activist group called 'Connected LGBTQ Activists', volunteering for a mentorship program for LGBTQ youth, giving talks about her transgender journey, and advocating for the community through her art.",
+      "judge_reason": "The generated answer includes attending support groups, conferences, and giving talks, which are not mentioned in the gold answer. It also omits attending pride parades and participating in an art show.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-26#q43",
+      "category": "multi_hop",
+      "question": "What kind of art does Caroline make?",
+      "gold_answer": "abstract art",
+      "predicted_answer": "Caroline primarily creates paintings and drawings. Her art focuses on expressing her trans experience, exploring her gender identity, and educating others about the trans community, often with themes of self-acceptance and love.",
+      "judge_reason": "The generated answer does not specify the type of art as 'abstract art', which is the key factual content of the gold answer.",
+      "retrieval_hit_at_5": false
+    },
+    {
+      "item_id": "conv-26#q45",
+      "category": "temporal",
+      "question": "When did Caroline attend a pride parade in August?",
+      "gold_answer": "The Friday before 14 August 2023",
+      "predicted_answer": "Caroline attended a pride parade on Friday, August 9th, 2023, as mentioned on August 14th, 2023.",
+      "judge_reason": "The generated answer states August 9th, 2023, which is incorrect as August 9th, 2023, is a Wednesday. The correct date should be the Friday before August 14th, 2023, which is August 11th, 2023.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-26#q51",
+      "category": "multi_hop",
+      "question": "What has Melanie painted?",
+      "gold_answer": "Horse, sunset, sunrise",
+      "predicted_answer": "Melanie has painted a sunflower, a lake sunrise, a sunset with a palm tree (with her kids), another painting similar to the sunset with a palm tree (with her kids), a sunset with a pink sky, and an abstract painting with blue streaks.",
+      "judge_reason": "The generated answer does not mention a horse, which is a key item in the gold answer.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-26#q56",
+      "category": "multi_hop",
+      "question": "What symbols are important to Caroline?",
+      "gold_answer": "Rainbow flag, transgender symbol",
+      "predicted_answer": "The rainbow flag mural symbolizes the courage and strength of the trans community, and the eagle represents freedom and pride. A necklace from her grandmother symbolizes love, faith, and strength. She also created a stained glass window to symbolize the key to discovering true potential and living one's best life, and a design for a painted sidewalk as a symbol of togetherness to celebrate differences.",
+      "judge_reason": "The generated answer does not mention the rainbow flag or transgender symbol, which are the key symbols in the gold answer.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-26#q69",
+      "category": "open_domain",
+      "question": "What personality traits might Melanie say Caroline has?",
+      "gold_answer": "Thoughtful, authentic, driven",
+      "predicted_answer": "Melanie would likely describe Caroline as supportive, inspiring, strong, brave, passionate, and someone who makes life's struggles more bearable. She also appreciates Caroline's dedication to helping others and her ability to promote inclusivity and acceptance.",
+      "judge_reason": "The generated answer does not include the key traits 'thoughtful', 'authentic', or 'driven' mentioned in the gold answer.",
+      "retrieval_hit_at_5": false
+    },
+    {
+      "item_id": "conv-26#q78",
+      "category": "multi_hop",
+      "question": "What items has Melanie bought?",
+      "gold_answer": "Figurines, shoes",
+      "predicted_answer": "Melanie bought figurines that remind her of family love. She also made a black and white bowl and a plate in pottery classes, and took her kids to a pottery workshop where they made their own pots.",
+      "judge_reason": "The generated answer mentions figurines but does not mention shoes, which are part of the gold answer.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-26#q149",
+      "category": "single_hop",
+      "question": "What do Melanie's family give her?",
+      "gold_answer": "Strength and motivation",
+      "predicted_answer": "Melanie's family gives her love, support, motivation, and joy. They help her through tough times and make her feel alive and happy.",
+      "judge_reason": "The generated answer includes 'love, support, and joy' which are not mentioned in the gold answer. The core factual content does not match exactly.",
+      "retrieval_hit_at_5": false
+    },
+    {
+      "item_id": "conv-26#q196",
+      "category": "adversarial",
+      "question": "What was Caroline's reaction to her children enjoying the Grand Canyon?",
+      "gold_answer": "UNANSWERABLE / FALSE PREMISE (adversarial trap: She was happy and thankful)",
+      "predicted_answer": "Caroline responded to Melanie's children enjoying the Grand Canyon by saying, \"The kids look so cute, Mel! I bet they bring lots of joy.\"",
+      "judge_reason": "The generated answer assumes a reaction from Caroline that is not supported by the gold answer, which indicates the premise is false or unanswerable.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-30#q5",
+      "category": "multi_hop",
+      "question": "What Jon thinks the ideal dance studio should look like?",
+      "gold_answer": "By the water, with natural light and Marley flooring",
+      "predicted_answer": "Jon's ideal dance studio should have good natural light, be located downtown for easy access, have a good size, and feature Marley flooring for grip, movement, durability, and cleanliness, with enough bounce for safe dancing. He also envisions a studio by the water.",
+      "judge_reason": "The generated answer includes additional details not present in the gold answer, such as being located downtown and having a good size.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-30#q25",
+      "category": "multi_hop",
+      "question": "What does Jon's dance studio offer?",
+      "gold_answer": "one-on-one metoring and training to dancers,  workshops and classes to local schools and centers",
+      "predicted_answer": "Jon's dance studio offers dance classes, workshops, and one-on-one mentoring and training. He also hosts dance competitions and aims to provide a place of support and encouragement for dancers of all ages and backgrounds.",
+      "judge_reason": "The generated answer includes additional information about hosting dance competitions and providing support, which is not mentioned in the gold answer.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-30#q31",
+      "category": "multi_hop",
+      "question": "How long did it take for Jon to open his studio?",
+      "gold_answer": "six months",
+      "predicted_answer": "Jon began searching for a place to open his dance studio on February 1, 2023, and the official opening night was June 20, 2023. Therefore, it took him approximately 4 months and 19 days to open his studio.",
+      "judge_reason": "The generated answer states it took approximately 4 months and 19 days, which does not match the gold answer of six months.",
+      "retrieval_hit_at_5": false
+    },
+    {
+      "item_id": "conv-41#q8",
+      "category": "open_domain",
+      "question": "What might John's financial status be?",
+      "gold_answer": "Middle-class or wealthy",
+      "predicted_answer": "John's financial status appears to be unstable. He experienced financial strain due to his car breaking down on April 10, 2023, and subsequently lost his job by August 5, 2023, leading him to look for opportunities in the tech industry.",
+      "judge_reason": "The generated answer describes John's financial status as unstable, which does not align with the gold answer of middle-class or wealthy.",
+      "retrieval_hit_at_5": false
+    },
+    {
+      "item_id": "conv-41#q17",
+      "category": "open_domain",
+      "question": "What might John's degree be in?",
+      "gold_answer": "Political science, Public administration, Public affairs",
+      "predicted_answer": "John recently graduated and is considering going into policymaking, with a particular interest in improving education and infrastructure. He also found a job at a tech company that needs his mechanical skills for their hardware team. Therefore, his degree might be in a field related to public policy, education, infrastructure, or mechanical engineering.",
+      "judge_reason": "The generated answer suggests multiple fields, including mechanical engineering, which is not mentioned in the gold answer. The gold answer specifies political science, public administration, or public affairs, which are not clearly identified in the generated answer.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-41#q21",
+      "category": "multi_hop",
+      "question": "What areas of the U.S. has John been to or is planning to go to?",
+      "gold_answer": "Pacific northwest, east coast",
+      "predicted_answer": "John has explored the Pacific Northwest coast and is planning a trip to the East Coast. He also wants to improve his old area, West County.",
+      "judge_reason": "The generated answer includes an additional area, West County, which is not mentioned in the gold answer.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-41#q27",
+      "category": "temporal",
+      "question": "When did John have a party with veterans?",
+      "gold_answer": "The Friday before 20 May 2023",
+      "predicted_answer": "John had a party with veterans on May 20, 2023, where they shared stories and made connections.",
+      "judge_reason": "The generated answer states the party was on May 20, 2023, while the gold answer specifies it was the Friday before May 20, 2023.",
+      "retrieval_hit_at_5": false
+    },
+    {
+      "item_id": "conv-41#q30",
+      "category": "multi_hop",
+      "question": "What shelters does Maria volunteer at?",
+      "gold_answer": "The homeless shelter, the dog shelter",
+      "predicted_answer": "Maria volunteers at a homeless shelter.",
+      "judge_reason": "The generated answer only mentions the homeless shelter, missing the dog shelter.",
+      "retrieval_hit_at_5": false
+    },
+    {
+      "item_id": "conv-41#q37",
+      "category": "multi_hop",
+      "question": "What events for veterans has John participated in?",
+      "gold_answer": "Petition, march, party, visiting veterans hospital, 5K charity run",
+      "predicted_answer": "John has participated in a marching event for veterans' rights, organized a 5K charity run to help veterans and their families, and hosted a small party for veterans to share their stories and connect.",
+      "judge_reason": "The generated answer is missing 'petition' and 'visiting veterans hospital' from the gold answer.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-41#q41",
+      "category": "open_domain",
+      "question": "Does John live close to a beach or the mountains?",
+      "gold_answer": "beach",
+      "predicted_answer": "John has shared memories of being at the beach, including taking pictures as a kid and a recent family photo, and has also been on a mountaineering trip and enjoys camping and hiking. However, the excerpts do not specify if he lives close to either a beach or the mountains. He did mention helping renovate a community center \"back home\" and wanting to improve his \"old area, West County,\" but these locations are not described in relation to beaches or mountains.",
+      "judge_reason": "The generated answer does not specify that John lives close to a beach, which is the core factual content of the gold answer.",
+      "retrieval_hit_at_5": false
+    },
+    {
+      "item_id": "conv-41#q50",
+      "category": "open_domain",
+      "question": "What attributes describe John?",
+      "gold_answer": "Selfless, family-oriented, passionate, rational",
+      "predicted_answer": "John is described as passionate, empathetic, aware, and someone who values friendship, family, kindness, optimism, and standing up for his beliefs. He is inspired by his family, exercise, and friends, and finds hope and motivation in the little moments of life. He also respects the military and is part of an organization where he works with people he considers family, though he sometimes doubts if he is making a difference.",
+      "judge_reason": "The generated answer does not match the core attributes of the gold answer. It introduces new attributes and lacks 'selfless' and 'rational'.",
+      "retrieval_hit_at_5": false
+    },
+    {
+      "item_id": "conv-41#q59",
+      "category": "temporal",
+      "question": "When did John go on a camping trip with Max?",
+      "gold_answer": "The summer of 2022",
+      "predicted_answer": "John went on a camping trip with his pet Max last summer, as mentioned on August 11, 2023.",
+      "judge_reason": "The generated answer incorrectly states the camping trip occurred last summer, which would be 2023, not the summer of 2022 as per the gold answer.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-41#q62",
+      "category": "multi_hop",
+      "question": "How many dogs has Maria adopted from the dog shelter she volunteers at?",
+      "gold_answer": "two",
+      "predicted_answer": "Maria has adopted one dog named Shadow from a shelter.",
+      "judge_reason": "The generated answer states Maria adopted one dog, while the gold answer states she adopted two.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-41#q64",
+      "category": "open_domain",
+      "question": "What job might Maria pursue in the future?",
+      "gold_answer": "Shelter coordinator, Counselor",
+      "predicted_answer": "Maria has expressed interest in volunteering and charity work, finding it rewarding and fulfilling. She has volunteered at a homeless shelter and offered to help with a community food drive, suggesting a future path in non-profit, community service, or social work.",
+      "judge_reason": "The generated answer does not specifically mention 'Shelter coordinator' or 'Counselor', which are the key jobs in the gold answer.",
+      "retrieval_hit_at_5": false
+    },
+    {
+      "item_id": "conv-41#q68",
+      "category": "single_hop",
+      "question": "What type of workout class did Maria start doing in December 2023?",
+      "gold_answer": "aerial yoga",
+      "predicted_answer": "The provided excerpts do not mention Maria starting any new workout classes in December 2023. In December 2022, she started aerial yoga, and in June 2023, she was trying kundalini yoga.",
+      "judge_reason": "The generated answer incorrectly states that the provided excerpts do not mention Maria starting any new workout classes in December 2023, while the gold answer specifies aerial yoga.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-41#q85",
+      "category": "single_hop",
+      "question": "What event did John volunteer at last weekend?",
+      "gold_answer": "career fair at a local school",
+      "predicted_answer": "Last weekend (August 5-6, 2023), John organized and participated in a 5K charity run in his neighborhood to raise funds for veterans and their families.",
+      "judge_reason": "The generated answer mentions a 5K charity run, which does not match the gold answer of a career fair at a local school.",
+      "retrieval_hit_at_5": false
+    }
+  ]
+}

@@ -1,0 +1,327 @@
+{
+  "suite": "locomo-curated",
+  "engine_label": "raw-memory-v0.9.0-agentic-2turn-graph",
+  "reader_model": "openai/gpt-4o-mini",
+  "judge_model": "openai/gpt-4o (ACL-2024 / Mem0 official judge)",
+  "evaluated_at_ms": 1795889720847,
+  "total_questions": 492,
+  "scored_questions": 392,
+  "abstention_questions": 100,
+  "overall_accuracy": 0.6423,
+  "positive_accuracy": 0.6531,
+  "abstention_accuracy": 0.6,
+  "avg_token_f1": 0.2182,
+  "retrieval_r5": 0.7679,
+  "retrieval_r10": 0.8418,
+  "avg_context_tokens": 1395.1,
+  "avg_full_history_tokens": 26537.0,
+  "token_reduction_pct": 94.7,
+  "by_category": {
+    "adversarial": {
+      "count": 100,
+      "accuracy": 0.6,
+      "retrieval_r5": 0.91,
+      "retrieval_r10": 0.95
+    },
+    "multi_hop": {
+      "count": 100,
+      "accuracy": 0.46,
+      "retrieval_r5": 0.81,
+      "retrieval_r10": 0.88,
+      "token_f1": 0.2081
+    },
+    "open_domain": {
+      "count": 92,
+      "accuracy": 0.5109,
+      "retrieval_r5": 0.5435,
+      "retrieval_r10": 0.6522,
+      "token_f1": 0.12
+    },
+    "single_hop": {
+      "count": 100,
+      "accuracy": 0.9,
+      "retrieval_r5": 0.86,
+      "retrieval_r10": 0.92,
+      "token_f1": 0.2975
+    },
+    "temporal": {
+      "count": 100,
+      "accuracy": 0.73,
+      "retrieval_r5": 0.84,
+      "retrieval_r10": 0.9,
+      "token_f1": 0.2395
+    }
+  },
+  "sample_errors": [
+    {
+      "item_id": "conv-26#q3",
+      "category": "multi_hop",
+      "question": "What did Caroline research?",
+      "gold_answer": "Adoption agencies",
+      "predicted_answer": "Caroline is researching adoption agencies to fulfill her dream of having a family and providing a loving home to children in need. Additionally, she is looking into counseling and mental health work to help others, particularly focusing on supporting trans individuals.",
+      "judge_reason": "The generated answer includes additional topics (counseling and mental health work) not mentioned in the gold answer.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-26#q7",
+      "category": "multi_hop",
+      "question": "What is Caroline's relationship status?",
+      "gold_answer": "Single",
+      "predicted_answer": "Caroline's relationship status is not explicitly mentioned in the excerpts. However, she has experienced changes in her relationships, particularly after a tough breakup, and values the support of friends who accept her. She is currently focused on her journey of self-acceptance and is considering adoption, indicating a desire to build a family.",
+      "judge_reason": "The generated answer does not explicitly state that Caroline is single, which is the core factual content of the gold answer.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-26#q15",
+      "category": "multi_hop",
+      "question": "What activities does Melanie partake in?",
+      "gold_answer": "pottery, camping, painting, swimming",
+      "predicted_answer": "Melanie partakes in running, reading, playing the violin, pottery, camping, hiking, exploring nature, and nature-inspired painting projects with her kids.",
+      "judge_reason": "The generated answer includes pottery, camping, and painting, but it does not mention swimming, which is a key activity in the gold answer.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-26#q23",
+      "category": "multi_hop",
+      "question": "What books has Melanie read?",
+      "gold_answer": "\"Nothing is Impossible\", \"Charlotte's Web\"",
+      "predicted_answer": "Melanie has mentioned reading \"Charlotte's Web\" as a favorite from her childhood. Additionally, she referred to a book she read last year that inspired her to pursue her dreams, although the title is not specified. She is currently reading a book recommended by Caroline, but the title of that book is also not mentioned.",
+      "judge_reason": "The generated answer does not mention 'Nothing is Impossible', which is part of the gold answer.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-26#q34",
+      "category": "multi_hop",
+      "question": "What events has Caroline participated in to help children?",
+      "gold_answer": "Mentoring program, school speech",
+      "predicted_answer": "Caroline has participated in organizing a talent show for kids at a youth center, volunteered at an LGBTQ+ youth center, mentored a transgender teen, and gave a talk at a school event about her transgender journey to encourage student involvement in the LGBTQ community.",
+      "judge_reason": "The generated answer includes events not mentioned in the gold answer and does not mention the mentoring program or school speech.",
+      "retrieval_hit_at_5": false
+    },
+    {
+      "item_id": "conv-26#q39",
+      "category": "multi_hop",
+      "question": "In what ways is Caroline participating in the LGBTQ community?",
+      "gold_answer": "Joining activist group, going to pride parades, participating in an art show, mentoring program",
+      "predicted_answer": "Caroline participates in the LGBTQ community by joining the 'Connected LGBTQ Activists' group, giving talks about her transgender journey to inspire students, attending LGBTQ conferences and pride parades, joining a mentorship program for LGBTQ youth, and using her art to advocate for inclusivity and diversity.",
+      "judge_reason": "The generated answer includes additional activities not mentioned in the gold answer, such as giving talks and attending LGBTQ conferences, which are not part of the gold answer.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-26#q43",
+      "category": "multi_hop",
+      "question": "What kind of art does Caroline make?",
+      "gold_answer": "abstract art",
+      "predicted_answer": "Caroline creates art primarily through painting, focusing on expressing her trans experience, exploring her gender identity, and promoting self-acceptance and love. Her art serves as a therapeutic outlet and a means to educate others about the trans community.",
+      "judge_reason": "The generated answer does not specify the type of art as 'abstract art'.",
+      "retrieval_hit_at_5": false
+    },
+    {
+      "item_id": "conv-26#q51",
+      "category": "multi_hop",
+      "question": "What has Melanie painted?",
+      "gold_answer": "Horse, sunset, sunrise",
+      "predicted_answer": "Melanie has painted landscapes, still life, a lake sunrise, nature-inspired projects with her kids, and abstract art inspired by sunsets. Recently, she created a painting inspired by autumn and another with calming blue streaks to convey tranquility.",
+      "judge_reason": "The generated answer does not mention 'horse' and only indirectly references 'sunset' and 'sunrise' without clearly stating them as subjects of Melanie's paintings.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-26#q56",
+      "category": "multi_hop",
+      "question": "What symbols are important to Caroline?",
+      "gold_answer": "Rainbow flag, transgender symbol",
+      "predicted_answer": "Important symbols to Caroline include the rainbow flag, which represents courage and strength of the trans community; an eagle, symbolizing freedom and pride; and a necklace from her grandmother, symbolizing love, faith, and strength. Additionally, her art reflects inclusivity and diversity, celebrating differences and togetherness.",
+      "judge_reason": "The generated answer does not mention the transgender symbol, which is a key item in the gold answer.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-26#q59",
+      "category": "open_domain",
+      "question": "Would Caroline be considered religious?",
+      "gold_answer": "Somewhat, but not extremely religious",
+      "predicted_answer": "Caroline's experiences suggest she may not identify as religious, especially given her negative encounter with religious conservatives and her focus on LGBTQ rights and inclusivity. However, she does value symbols of faith and love, as seen in the necklace from her grandmother, which indicates a complex relationship with spirituality rather than strict religious adherence.",
+      "judge_reason": "The generated answer suggests Caroline may not identify as religious, which contradicts the gold answer indicating she is somewhat religious.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-26#q65",
+      "category": "multi_hop",
+      "question": "What are some changes Caroline has faced during her transition journey?",
+      "gold_answer": "Changes to her body, losing unsupportive friends",
+      "predicted_answer": "Caroline has faced changes in her relationships, with some friends unable to handle her transition while others have provided support. She has also experienced personal growth and joy in helping others, finding freedom in expressing her authentic self through art and community involvement.",
+      "judge_reason": "The generated answer does not mention changes to her body, which is a key part of the gold answer.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-26#q69",
+      "category": "open_domain",
+      "question": "What personality traits might Melanie say Caroline has?",
+      "gold_answer": "Thoughtful, authentic, driven",
+      "predicted_answer": "Melanie might describe Caroline as supportive, strong, inspiring, and passionate about helping others, particularly in the context of acceptance and self-discovery.",
+      "judge_reason": "The generated answer does not include the key traits 'thoughtful, authentic, driven' mentioned in the gold answer.",
+      "retrieval_hit_at_5": false
+    },
+    {
+      "item_id": "conv-26#q71",
+      "category": "multi_hop",
+      "question": "What book did Melanie read from Caroline's suggestion?",
+      "gold_answer": "\"Becoming Nicole\"",
+      "predicted_answer": "Melanie read the book that Caroline recommended, although the specific title of that book is not mentioned in the excerpts. However, Caroline's favorite guiding book is \"Becoming Nicole\" by Amy Ellis Nutt, which she highly recommends.",
+      "judge_reason": "The generated answer does not explicitly state that Melanie read 'Becoming Nicole', only that it is Caroline's favorite guiding book.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-26#q78",
+      "category": "multi_hop",
+      "question": "What items has Melanie bought?",
+      "gold_answer": "Figurines, shoes",
+      "predicted_answer": "Melanie bought figurines that remind her of family love and made pottery items, including a plate and a black and white bowl.",
+      "judge_reason": "The generated answer mentions figurines but does not mention shoes, which are part of the gold answer. It also incorrectly adds pottery items that are not in the gold answer.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-26#q149",
+      "category": "single_hop",
+      "question": "What do Melanie's family give her?",
+      "gold_answer": "Strength and motivation",
+      "predicted_answer": "Melanie's family gives her love, support, and motivation, especially during tough times. They also create cherished memories together, such as camping trips and visits to places like the Grand Canyon.",
+      "judge_reason": "The generated answer includes 'love, support, and motivation' instead of 'strength and motivation'. 'Strength' is not mentioned in the generated answer.",
+      "retrieval_hit_at_5": false
+    },
+    {
+      "item_id": "conv-26#q152",
+      "category": "adversarial",
+      "question": "What did Caroline realize after her charity race?",
+      "gold_answer": "UNANSWERABLE / FALSE PREMISE (adversarial trap: self-care is important)",
+      "predicted_answer": "Caroline realized the importance of self-acceptance, finding support, and that tough times don't last, as hope and love exist.",
+      "judge_reason": "The generated answer provides a different realization than the gold answer, which is about self-care.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-26#q156",
+      "category": "adversarial",
+      "question": "What is Melanie excited about in her adoption process?",
+      "gold_answer": "UNANSWERABLE / FALSE PREMISE (adversarial trap: creating a family for kids who need one)",
+      "predicted_answer": "Melanie is excited about Caroline's adoption journey and expresses happiness for her, emphasizing the importance of creating a loving family for kids in need. She also mentions that seeing her friend's journey inspires her to consider adoption as well.",
+      "judge_reason": "The generated answer incorrectly assumes Melanie is excited about adoption, while the gold answer indicates the premise is false or unanswerable.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-26#q165",
+      "category": "adversarial",
+      "question": "What motivated Melanie to pursue counseling?",
+      "gold_answer": "UNANSWERABLE / FALSE PREMISE (adversarial trap: her own journey and the support she received, and how counseling improved her life)",
+      "predicted_answer": "Melanie's motivation to pursue counseling stems from her own struggles with mental health and the support she received, which made her realize the importance of having a support system for others. She wants to help people on their journeys, similar to how she was helped.",
+      "judge_reason": "The generated answer provides a specific motivation for Melanie, which contradicts the gold answer indicating the premise is false or unanswerable.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-26#q187",
+      "category": "adversarial",
+      "question": "What precautionary sign did Caroline see at the café?",
+      "gold_answer": "UNANSWERABLE / FALSE PREMISE (adversarial trap: A sign stating that someone is not being able to leave)",
+      "predicted_answer": "Caroline saw a precautionary sign at the café stating that someone is not being able to leave.",
+      "judge_reason": "The generated answer incorrectly affirms the false premise by stating that Caroline saw a sign about someone not being able to leave, which contradicts the gold answer indicating the premise is false.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-26#q192",
+      "category": "adversarial",
+      "question": "How did Caroline's son handle the accident?",
+      "gold_answer": "UNANSWERABLE / FALSE PREMISE (adversarial trap: He was scared but reassured by his family)",
+      "predicted_answer": "Caroline's son was scared after the accident, but they reassured him and explained that he would be okay. Melanie described him and his siblings as tough kids who handled the situation well.",
+      "judge_reason": "The generated answer provides specific details about Caroline's son's reaction to the accident, which contradicts the gold answer indicating the premise is false or unanswerable.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-26#q196",
+      "category": "adversarial",
+      "question": "What was Caroline's reaction to her children enjoying the Grand Canyon?",
+      "gold_answer": "UNANSWERABLE / FALSE PREMISE (adversarial trap: She was happy and thankful)",
+      "predicted_answer": "Caroline expressed joy about Melanie's kids enjoying the Grand Canyon, commenting that they looked cute and brought lots of joy. She also reflected on the importance of family moments, especially after the recent accident.",
+      "judge_reason": "The generated answer provides a specific reaction from Caroline, which contradicts the gold answer indicating the premise is false or unanswerable.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-30#q1",
+      "category": "temporal",
+      "question": "When Gina has lost her job at Door Dash?",
+      "gold_answer": "January, 2023",
+      "predicted_answer": "Gina lost her job at Door Dash on 16 March 2023.",
+      "judge_reason": "The generated answer provides a different date (16 March 2023) than the gold answer (January, 2023).",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-30#q25",
+      "category": "multi_hop",
+      "question": "What does Jon's dance studio offer?",
+      "gold_answer": "one-on-one metoring and training to dancers,  workshops and classes to local schools and centers",
+      "predicted_answer": "Jon's dance studio offers workshops, classes, one-on-one mentoring, and training for dancers of all ages and backgrounds, along with hosting dance competitions to showcase local talent.",
+      "judge_reason": "The generated answer includes hosting dance competitions, which is not mentioned in the gold answer.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-30#q31",
+      "category": "multi_hop",
+      "question": "How long did it take for Jon to open his studio?",
+      "gold_answer": "six months",
+      "predicted_answer": "Jon opened his dance studio on 20 June 2023, after starting the search for a location on 1 February 2023. Therefore, it took him approximately 4 months and 19 days to open the studio.",
+      "judge_reason": "The generated answer states it took approximately 4 months and 19 days, which does not match the gold answer of six months.",
+      "retrieval_hit_at_5": false
+    },
+    {
+      "item_id": "conv-41#q8",
+      "category": "open_domain",
+      "question": "What might John's financial status be?",
+      "gold_answer": "Middle-class or wealthy",
+      "predicted_answer": "John's financial status appears strained due to his car breakdown and losing his job, which has led him to seek new opportunities in the tech industry. He is trying to stay positive despite these challenges.",
+      "judge_reason": "The generated answer suggests John's financial status is strained, which contradicts the gold answer indicating he is middle-class or wealthy.",
+      "retrieval_hit_at_5": false
+    },
+    {
+      "item_id": "conv-41#q17",
+      "category": "open_domain",
+      "question": "What might John's degree be in?",
+      "gold_answer": "Political science, Public administration, Public affairs",
+      "predicted_answer": "John recently graduated and is considering going into policymaking, which suggests his degree may be related to public policy, education, or infrastructure. His passion for improving education and infrastructure in the community aligns with these fields. However, the specific subject of his degree is not explicitly mentioned in the excerpts.",
+      "judge_reason": "The generated answer speculates on possible fields related to policymaking but does not mention political science, public administration, or public affairs, which are the key items in the gold answer.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-41#q20",
+      "category": "temporal",
+      "question": "When did John take a road trip to the Pacific Northwest?",
+      "gold_answer": "2022",
+      "predicted_answer": "John took a road trip to the Pacific Northwest on 10 April 2023.",
+      "judge_reason": "The generated answer provides a different year (2023) than the gold answer (2022).",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-41#q27",
+      "category": "temporal",
+      "question": "When did John have a party with veterans?",
+      "gold_answer": "The Friday before 20 May 2023",
+      "predicted_answer": "John had a party with veterans on 20 May, 2023.",
+      "judge_reason": "The generated answer states the party was on 20 May 2023, while the gold answer specifies it was the Friday before 20 May 2023.",
+      "retrieval_hit_at_5": false
+    },
+    {
+      "item_id": "conv-41#q30",
+      "category": "multi_hop",
+      "question": "What shelters does Maria volunteer at?",
+      "gold_answer": "The homeless shelter, the dog shelter",
+      "predicted_answer": "Maria volunteers at a homeless shelter.",
+      "judge_reason": "The generated answer only mentions the homeless shelter, missing the dog shelter.",
+      "retrieval_hit_at_5": false
+    },
+    {
+      "item_id": "conv-41#q35",
+      "category": "multi_hop",
+      "question": "What states has Maria vacationed at?",
+      "gold_answer": "Oregon, Florida",
+      "predicted_answer": "Maria has vacationed in Florida, Spain, and Oregon.",
+      "judge_reason": "The generated answer includes an incorrect location, Spain, which is not in the gold answer.",
+      "retrieval_hit_at_5": true
+    }
+  ]
+}

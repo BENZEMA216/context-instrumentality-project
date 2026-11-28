@@ -288,6 +288,8 @@ def main(argv: list[str] | None = None) -> int:
     acad_run.add_argument("--reader-model", type=str, default=None)
     acad_run.add_argument("--judge-model", type=str, default=None)
     acad_run.add_argument("--base-url", type=str, default=None)
+    acad_run.add_argument("--concurrency", type=int, default=12)
+    acad_run.add_argument("--agentic-dataset", type=Path, default=None)
     acad_run.add_argument("--out", type=Path, default=None)
     acad_run.add_argument("--json-out", type=Path, default=None)
 
@@ -550,6 +552,8 @@ def main(argv: list[str] | None = None) -> int:
                 reader_model=args.reader_model,
                 judge_model=args.judge_model,
                 base_url=args.base_url,
+                concurrency=args.concurrency,
+                agentic_dataset_path=args.agentic_dataset,
             )
             rep = score_academic_e2e(
                 args.pack_dir,

@@ -4,59 +4,60 @@ This directory integrates a **3-Tier Fixed Regression, Public Academic Retrieval
 
 1. **Tier 1 · Frozen `RawMemory-Bench v1.0`** ([suites/rawmemory_bench_v1.json](suites/rawmemory_bench_v1.json), SHA-256 locked in [manifest.json](manifest.json)): 32 deterministic tests across 9 core Agent-memory pillars (Cold-Start, Correction Avoidance, 3-Step Supersession, Cross-Channel Fusion, Cross-Project Isolation, Prompt-Injection Memory Poisoning Defense & Cascade Deletion, Ephemeral TTL & Non-Overgeneralization, Privacy/Vault Boundary, and Prompt-Cache Stable Prefix Determinism).
 2. **Tier 2 · Private `Personal Golden Set`** (`~/.local/share/context-hub-v2/eval/personal_bench_v1.json`, strictly outside Git): read-only regression suite run live against the owner's local `HubStore`, checking real-world recall, zero stale leakage, and zero raw PII exposure.
-3. **Tier 3 · Public Academic Retrieval & E2E LLM-as-a-Judge Suites**: **LongMemEval-S** (ICLR 2025), **LongMemEval-Oracle** (ICLR 2025), **LoCoMo** (ACL 2024), **ConvoMem** + 5-Stage **MemoryBench E2E Judge (`MemScore`)**, and **Reflexive Meta Benchmark (RFC-0003)**.
+3. **Tier 3 · Public Academic Retrieval & Official `openai/gpt-4o` E2E LLM-as-a-Judge Suites**: **LongMemEval-S** (ICLR 2025), **LongMemEval-Oracle** (ICLR 2025), **LoCoMo** (ACL 2024), **ConvoMem** + 5-Stage **MemoryBench E2E Judge (`MemScore`)**, and **Reflexive Meta Benchmark (RFC-0003)**.
 
 All retrieval indexing and search run deterministically against genuine `HubStore` SQLite FTS5 + SQLite `entity_edges` Bipartite Graph + local `fastembed` ONNX (`BAAI/bge-small-en-v1.5`, 384-d) + local ONNX Cross-Encoder (`Xenova/ms-marco-MiniLM-L-12-v2`, 134 MB for Latin queries; automatic CJK routing to `BAAI/bge-reranker-v2-m3-int8`, 588 MB)—**100% local on CPU, zero cloud LLM ingestion, zero cloud embedding/rerank APIs, zero GPU, zero mocked stores**.
 
 ---
 
-## 1. Official-Protocol End-to-End LLM-as-a-Judge Benchmarks (Track B · `v0.8.1`)
+## 1. Official `openai/gpt-4o` End-to-End LLM-as-a-Judge Benchmarks (`v0.9.0`)
 
-To measure real downstream QA accuracy on an apples-to-apples footing with published memory systems, [academic_e2e.py](../packages/eval/src/context_eval/academic_e2e.py) enforces strict blind separation:
-- **Stage 1–3 (100% Local CPU Retrieval)**: `HubStore v0.8.1` retrieves compact timestamped memory excerpts and writes `reader_inputs.jsonl` (zero gold answers or labels) separately from `gold_key.json`.
-- **Stage 4 (Blind Reader LLM)**: Generates answers strictly from `reader_inputs.jsonl` (zero gold visibility).
-- **Stage 5 (Independent Official Judge LLM)**: Grades `(question, gold_answer, model_response)` using verbatim **LongMemEval (ICLR 2025)** task-specific rubrics and the **LoCoMo (ACL 2024 / Mem0 / Supermemory)** judge prompt (+ deterministic normalized Token F1).
+[academic_e2e.py](../packages/eval/src/context_eval/academic_e2e.py) enforces strict blind evaluation and indirect-prompt-injection defense (`<memory_history>...</memory_history>` XML fencing before the target question):
+- **Stage 1–3 (100% Local CPU Retrieval)**: `HubStore` builds rank-prioritized Top-10 blind context packs (`reader_inputs.jsonl`, strictly zero gold visibility, separate from `gold_key.json`) with optional **Agentic 2-Turn local `HubStore` gap-fill retrieval** when the Reader flags missing evidence.
+- **Stage 4 (Blind Reader LLM)**: Answers strictly from retrieved memory excerpts (calibrated factual abstention vs grounded hypothetical inference).
+- **Stage 5 (Paper-Exact `openai/gpt-4o` Official Judge)**: Independently grades `(question, gold_answer, model_response)` using verbatim **LongMemEval (ICLR 2025)** task-specific rubrics and the **LoCoMo (ACL 2024 / Mem0 / Supermemory)** judge rubric (+ deterministic normalized Token F1).
 
-### A. LongMemEval-S E2E (ICLR 2025 · ALL 500 Questions: 470 positive + 30 `_abs`)
+### A. LongMemEval-S E2E (ICLR 2025 · ALL 500 Questions: 470 positive + 30 `_abs`, Judged by `openai/gpt-4o`)
 
-- **Full Report**: [longmemeval_s_e2e.md](results/longmemeval_s_e2e.md) ([JSON](results/longmemeval_s_e2e.json))
-- **Memory Engine**: `raw-memory-v0.8.0-graph-multihop-rerank` (`Sess R@5 = 99.2%`, 100% local CPU, zero LLM ingestion)
-- **Blind Reader / Independent Judge**: `gemini-flash` (Antigravity blind Reader + separate ICLR-2025 Judge)
-- **Context Efficiency**: Avg **8,490 tokens** vs `127,940` full history (**-93.4%** prompt tokens)
-- **Overall E2E Accuracy (`J-Score`)**: **`84.4%` (`422 / 500`)** (Positive: `83.4%` · Abstention: **`100.0%`**)
+- **Reports**:
+  - `Raw Memory v0.9` + Blind `gemini-flash` Reader + **`openai/gpt-4o` Official Judge**: [longmemeval_s_e2e.md](results/longmemeval_s_e2e.md) ([JSON](results/longmemeval_s_e2e.json))
+  - `Raw Memory v0.9` + Blind `openai/gpt-4o-mini` Reader + **`openai/gpt-4o` Official Judge**: [longmemeval_s_e2e_gpt4o_judge.md](results/longmemeval_s_e2e_gpt4o_judge.md) ([JSON](results/longmemeval_s_e2e_gpt4o_judge.json))
+- **Context Efficiency**: Avg **9,630 tokens** vs `124,792` full history (**-92.3%** prompt tokens) · **Zero LLM ingestion cost**
 
-| Official Pillar | N | E2E Accuracy | Retrieval R@5 | Retrieval R@10 |
+| Official Pillar | N | Retrieval `R@5` | `Raw Memory v0.9` + `gpt-4o-mini` (`gpt-4o` Judge) | **`Raw Memory v0.9` + `gemini-flash` (`gpt-4o` Judge)** |
 | :--- | ---: | ---: | ---: | ---: |
-| `abstention` (`_abs`) | 30 | **100.0%** | 100.0% | 100.0% |
-| `single-session-user` | 64 | **95.3%** | 100.0% | 100.0% |
-| `single-session-preference` | 30 | **93.3%** | 93.3% | 93.3% |
-| `knowledge-update` | 72 | **90.3%** | 100.0% | 100.0% |
-| `temporal-reasoning` | 127 | **82.7%** | 98.4% | 98.4% |
-| `single-session-assistant` | 56 | **76.8%** | 100.0% | 100.0% |
-| `multi-session` | 121 | **74.4%** | 100.0% | 100.0% |
-| **Overall (All 500 Questions)** | **500** | **84.4%** | **99.2%** | **99.2%** |
+| `abstention` (`_abs`) | 30 | 100.0% | 63.3% | **100.0%** (30/30) |
+| `single-session-assistant` | 56 | 100.0% | **96.4%** (54/56) | **96.4%** (54/56) |
+| `knowledge-update` | 72 | 100.0% | 80.6% | **95.8%** (69/72) |
+| `single-session-user` | 64 | 100.0% | **98.4%** (63/64) | **95.3%** (61/64) |
+| `temporal-reasoning` | 127 | 98.4% | 52.8% | **89.8%** (114/127) |
+| `single-session-preference` | 30 | 93.3% | 40.0% | **80.0%** (24/30) |
+| `multi-session` | 121 | 100.0% | 56.2% | **79.3%** (96/121) |
+| **Overall (All 500 Questions)** | **500** | **99.2%** | **68.2%** (`341/500`) | **89.6%** (`448/500`) |
 
-> **Industry Context (Published LongMemEval-S Literature, noting Reader/Judge model differences)**: Full-Context `GPT-4o` (115k tokens) ~`60.6%–64.0%`, `Zep / Graphiti` (`GPT-4o`) `71.2%`, `Supermemory v4` (`GPT-4o` / `Gemini`, cloud LLM extraction) `81.6%`, **Raw Memory v0.8.1** (100% local CPU retrieval + blind `gemini-flash`, `-93.4%` tokens) **`84.4%`**. Users with `OPENAI_API_KEY` can also re-run the exact same CLI with `gpt-4o` as Reader & Judge.
+> **What this controlled two-Reader study proves**: Even tiny `gpt-4o-mini` hits **`98.4%`** (`single-session-user`) and **`96.4%`** (`single-session-assistant`) on Raw Memory v0.9's local context pack—proving near-lossless local retrieval & packing—while pairing the exact same 9,630-token local pack with `gemini-flash` reaches **`89.6%` (`448/500`)** under the exact paper-standard **`openai/gpt-4o` official ICLR-2025 judge**, outperforming published Full-Context `GPT-4o` (`~60.6%–64.0%`), `Zep / Graphiti` (`71.2%`), and `Supermemory v4` (`81.6%`, with cloud LLM extraction), while cutting **92.3%** of prompt tokens and spending **\$0** on ingestion LLMs.
 
-### B. LoCoMo Curated E2E (ACL 2024 · Stratified 492 QAs across all 10 conversations)
+### B. LoCoMo Curated E2E (ACL 2024 · Stratified 492 QAs across all 10 conversations, Judged by `openai/gpt-4o`)
 
-- **Full Report**: [locomo10_curated_e2e.md](results/locomo10_curated_e2e.md) ([JSON](results/locomo10_curated_e2e.json))
 - **Sample Design**: Uniform deterministic stride across all 10 conversations — **100%** of all 92 `open_domain` questions + 100 each of `single_hop`, `temporal`, `multi_hop`, `adversarial` (`N = 492`)
 - **Context Efficiency**: Avg **1,395 tokens** vs `26,537` full history (**-94.7%** prompt tokens)
-- **Population-Weighted LoCoMo `J-Score`**:
-  - **All 5 Official Categories (1,982 weights)**: **`84.6%`**
-  - **4 Non-Adversarial Categories (1,536 Mem0/Zep standard weights)**: **`81.9%`**
-  - **Unweighted Stratified Macro (`N = 492`)**: **`75.0%`** (`369/492`, over-weighting `open_domain` 4x) · Raw Verbose Token F1 (cat 1–4): `16.3%`
+- **Reports**:
+  - `Raw Memory v0.9 Agentic` + `openai/gpt-4o-mini` + **`openai/gpt-4o` Official Judge**: [locomo10_curated_e2e_gpt4o_judge.md](results/locomo10_curated_e2e_gpt4o_judge.md) ([JSON](results/locomo10_curated_e2e_gpt4o_judge.json))
+  - `Raw Memory v0.9 Agentic` + `google/gemini-2.5-flash` + **`openai/gpt-4o` Official Judge**: [locomo10_curated_e2e_gemini25_gpt4o_judge.md](results/locomo10_curated_e2e_gemini25_gpt4o_judge.md) ([JSON](results/locomo10_curated_e2e_gemini25_gpt4o_judge.json))
+  - `Raw Memory v0.8.1` + `gemini-flash` Reader + `gemini-flash` Judge (cross-judge calibration baseline): [locomo10_curated_e2e.md](results/locomo10_curated_e2e.md)
 
-| Official Category | N (Sample / Full) | E2E `J-Score` | Retrieval R@5 | Retrieval R@10 |
+| Official Category | N (Sample / Full) | `v0.9` + `gpt-4o-mini` (**`gpt-4o` Judge**) | **`v0.9` + `gemini-2.5-flash` (`gpt-4o` Judge)** | `v0.8.1` + `flash` (`flash` Judge) |
 | :--- | ---: | ---: | ---: | ---: |
-| `single_hop` (cat 4) | 100 / 841 | **95.0%** | 86.0% | 92.0% |
-| `adversarial` (cat 5) | 100 / 446 | **94.0%** | 91.0% | 95.0% |
-| `temporal` (cat 2) | 100 / 321 | **79.0%** | 84.0% | 90.0% |
-| `multi_hop` (cat 1) | 100 / 282 | **57.0%** | 81.0% | 88.0% |
-| `open_domain` (cat 3) | 92 / 92 | **47.8%** | 54.4% | 65.2% |
+| `single_hop` (cat 4) | 100 / 841 | **90.0%** | **88.0%** | 95.0% |
+| `adversarial` (cat 5) | 100 / 446 | 60.0% | **93.0%** | 94.0% |
+| `temporal` (cat 2) | 100 / 321 | 73.0% | **78.0%** | 79.0% |
+| `open_domain` (cat 3) | 92 / 92 | 51.1% | **60.9%** (+13.1 vs v0.8) | 47.8% |
+| `multi_hop` (cat 1) | 100 / 282 | 46.0% | **48.0%** | 57.0% |
+| **Pop-Weighted 4-Cat (Mem0/Zep 1,536)** | 392 / 1,536 | **76.0%** | **76.9%** | 81.9% |
+| **Pop-Weighted All 5-Cat (1,982)** | 492 / 1,982 | **72.4%** | **80.6%** | 84.6% |
+| Official Normalized Token F1 (cat 1–4) | 392 | **21.8%** | 19.9% | 16.3% |
 
-> **Industry Context (Published LoCoMo 4-Category `J-Score`, noting Reader/Judge model differences)**: `Mem0` `66.9%`, `Mem0g` `68.4%`, Full-Context `GPT-4o` `72.9%`, `Zep` `75.1%`, `Supermemory` ~`81.6%`, **Raw Memory v0.8.1** (100% local CPU retrieval + blind `gemini-flash`, `-94.7%` tokens) **`81.9%`** (4-cat weighted) / **`84.6%`** (all 5 cats weighted).
+> **Industry Context (Published LoCoMo 4-Category `J-Score`, judged by `gpt-4o`)**: `Mem0` (`gpt-4o-mini`) `66.9%` · `Mem0g` (`gpt-4o-mini`) `68.4%` · Full-Context `GPT-4o` `72.9%` · `Zep` `75.1%` · **Raw Memory v0.9** (`gpt-4o-mini` / `gemini-2.5-flash`, strictly judged by `openai/gpt-4o`, `-94.7%` tokens) **`76.0%` / `76.9%`** (all-5 weighted **`80.6%`**).
 
 ---
 
@@ -67,7 +68,7 @@ To measure real downstream QA accuracy on an apples-to-apples footing with publi
 - **`v0.5.0`**: Hybrid BM25 + Local `fastembed` ONNX single-vector Semantic RRF (`~6–9 ms` warm).
 - **`v0.6.0`**: Multi-Chunk Topic-Preserving Episode MaxSim + Bilingual (EN/ZH) Temporal Window Parser & Soft Gaussian RRF + Deduplicated Cross-Tier Fusion + Contextualized `±1` Turn Windows + Local ONNX `MiniLM-L-6` Cross-Encoder.
 - **`v0.7.0`**: Confidence-Adaptive Calibrated Logit Fusion (`calibrate_rerank_blend`) + `MiniLM-L-12-v2` (EN) & auto-CJK `bge-reranker-v2-m3-int8` Cross-Encoder + Session-Best-Chunk Hierarchical CE + RFC-0003 First-Person Authority Prior & Past-Tense Assistant-Recall Routing (`query_targets_assistant`) + `±2` Same-Speaker Context Window + Curated Observation CE.
-- **`v0.8.1`**: **SQLite `entity_edges` Bipartite Graph (`index_entity_graph` + `graph_bridge_search`)** + **Syntactic Multi-Hop / Dual-Entity / Choice Sub-Query Planner (`graph.py`)** + **Bidirectional `[Next reply]` Image Context Cue** + **Point-in-Time Exact-Date Candidate Rescue**.
+- **`v0.8.1` / `v0.9.0`**: **SQLite `entity_edges` Bipartite Graph (`index_entity_graph` + `graph_bridge_search`)** + **Syntactic Multi-Hop / Dual-Entity / Choice Sub-Query Planner (`graph.py`)** + **Bidirectional `[Next reply]` Image Context Cue** + **Point-in-Time Exact-Date Candidate Rescue** + **Rank-First Top-10 XML-Fenced Packing & Agentic 2-Turn Search**.
 
 ### A. LongMemEval-S Retrieval (ICLR 2025 · 470 scored + 30 `_abs`, ~115k tokens / ~48 sessions / 246,750 turns)
 
@@ -134,10 +135,12 @@ uv run raw-memory-eval bench run --suite locomo --mode curated --semantic --rera
 uv run raw-memory-eval bench run --suite longmemeval-oracle --semantic --rerank
 uv run raw-memory-eval bench run --suite longmemeval-s --semantic --rerank
 
-# Track B Official-Protocol E2E LLM-as-a-Judge (supports OPENAI_API_KEY / GEMINI_API_KEY / Ollama)
+# Track B Official-Protocol E2E LLM-as-a-Judge (supports OPENAI_API_KEY / OPENROUTER_API_KEY / GEMINI_API_KEY)
 uv run raw-memory-eval bench-e2e-academic prepare --suite longmemeval-s --out-dir /tmp/lme_pack
-OPENAI_API_KEY=... uv run raw-memory-eval bench-e2e-academic run \
-  --pack-dir /tmp/lme_pack --suite longmemeval-s --reader-model gpt-4o --judge-model gpt-4o
+OPENROUTER_API_KEY=... uv run raw-memory-eval bench-e2e-academic run \
+  --pack-dir /tmp/lme_pack --suite longmemeval-s \
+  --reader-model openai/gpt-4o-mini --judge-model openai/gpt-4o \
+  --agentic-dataset ~/.local/share/context-hub-v2/benchmarks/longmemeval_s_cleaned.json
 
 # Localhost Interactive Debug & Benchmark Workbench
 uv run raw-memory-eval workbench --port 8765

@@ -1,21 +1,21 @@
 {
   "suite": "longmemeval-s",
-  "engine_label": "raw-memory-v0.8.0-graph-multihop-rerank",
+  "engine_label": "raw-memory-v0.9.0-top10-rankfirst",
   "reader_model": "gemini-flash (Antigravity blind worker)",
-  "judge_model": "gemini-flash (ICLR-2025 official judge prompt)",
-  "evaluated_at_ms": 1795880105445,
+  "judge_model": "openai/gpt-4o (ICLR-2025 official judge)",
+  "evaluated_at_ms": 1795890873143,
   "total_questions": 500,
   "scored_questions": 470,
   "abstention_questions": 30,
-  "overall_accuracy": 0.844,
-  "positive_accuracy": 0.834,
+  "overall_accuracy": 0.896,
+  "positive_accuracy": 0.8894,
   "abstention_accuracy": 1.0,
   "avg_token_f1": null,
   "retrieval_r5": 0.9915,
   "retrieval_r10": 0.9915,
-  "avg_context_tokens": 8490.0,
-  "avg_full_history_tokens": 127940.0,
-  "token_reduction_pct": 93.4,
+  "avg_context_tokens": 9629.7,
+  "avg_full_history_tokens": 124791.6,
+  "token_reduction_pct": 92.3,
   "by_category": {
     "abstention": {
       "count": 30,
@@ -25,25 +25,25 @@
     },
     "knowledge-update": {
       "count": 72,
-      "accuracy": 0.9028,
+      "accuracy": 0.9583,
       "retrieval_r5": 1.0,
       "retrieval_r10": 1.0
     },
     "multi-session": {
       "count": 121,
-      "accuracy": 0.7438,
+      "accuracy": 0.7934,
       "retrieval_r5": 1.0,
       "retrieval_r10": 1.0
     },
     "single-session-assistant": {
       "count": 56,
-      "accuracy": 0.7679,
+      "accuracy": 0.9643,
       "retrieval_r5": 1.0,
       "retrieval_r10": 1.0
     },
     "single-session-preference": {
       "count": 30,
-      "accuracy": 0.9333,
+      "accuracy": 0.8,
       "retrieval_r5": 0.9333,
       "retrieval_r10": 0.9333
     },
@@ -55,28 +55,28 @@
     },
     "temporal-reasoning": {
       "count": 127,
-      "accuracy": 0.8268,
+      "accuracy": 0.8976,
       "retrieval_r5": 0.9843,
       "retrieval_r10": 0.9843
     }
   },
   "sample_errors": [
     {
-      "item_id": "e47becba",
-      "category": "single-session-user",
-      "question": "What degree did I graduate with?",
-      "gold_answer": "Business Administration",
-      "predicted_answer": "Your past conversations do not mention what degree you graduated with, so this cannot be answered from the provided history.",
-      "judge_reason": "The model abstained and failed to provide the correct answer (Business Administration).",
-      "retrieval_hit_at_5": true
-    },
-    {
       "item_id": "51a45a95",
       "category": "single-session-user",
       "question": "Where did I redeem a $5 coupon on coffee creamer?",
       "gold_answer": "Target",
-      "predicted_answer": "The excerpts do not explicitly state which store you redeemed the $5 coffee creamer coupon at. In the May 29, 2023 session, you only mentioned finding the coupon in your email inbox and redeeming it the previous Sunday, while also discussing shopping at Target and using the Cartwheel app.",
-      "judge_reason": "The model claimed the excerpts do not state which store the coupon was redeemed at instead of answering Target.",
+      "predicted_answer": "The conversation history does not mention where you redeemed the $5 coupon on coffee creamer. You only stated that you found it in your email inbox and redeemed it last Sunday, while separately discussing shopping at Target and using its Cartwheel app.",
+      "judge_reason": "The model response does not explicitly state that the coupon was redeemed at Target.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "ec81a493",
+      "category": "single-session-user",
+      "question": "How many copies of my favorite artist's debut album were released worldwide?",
+      "gold_answer": "500",
+      "predicted_answer": "The conversation history does not mention how many copies of your favorite artist's debut album were released worldwide; it only states that the signed poster from your favorite artist's debut album is a limited edition of 500 copies worldwide.",
+      "judge_reason": "The model response does not provide the number of copies released worldwide; it only mentions the number of signed posters.",
       "retrieval_hit_at_5": true
     },
     {
@@ -84,8 +84,8 @@
       "category": "single-session-user",
       "question": "What type of bulb did I replace in my bedside lamp?",
       "gold_answer": "Philips LED bulb",
-      "predicted_answer": "The memory excerpts do not mention replacing a bulb in your bedside lamp or what type of bulb was replaced. They only state that you currently have and use a warm-toned Philips LED bulb in your bedside lamp.",
-      "judge_reason": "Model response explicitly abstains/denies knowing what bulb was replaced ('do not mention replacing a bulb in your bedside lamp or what type of bulb was replaced'), only mentioning current usage of a Philips LED bulb rather than answering the question.",
+      "predicted_answer": "In the visible excerpts from May 22, 2023, you mentioned using a Philips LED bulb in your bedside lamp (while discussing replacing harsh overhead lighting in your kitchen with warm white smart bulbs). The excerpts do not mention replacing a bulb in your bedside lamp or what type of bulb was replaced there.",
+      "judge_reason": "The response does not confirm the replacement of a bulb in the bedside lamp with a Philips LED bulb.",
       "retrieval_hit_at_5": true
     },
     {
@@ -93,26 +93,8 @@
       "category": "multi-session",
       "question": "How many items of clothing do I need to pick up or return from a store?",
       "gold_answer": "3",
-      "predicted_answer": "You have 1 item to pick up from a store: the replacement pair of boots at Zara that you exchanged on February 5th (mentioned on 2023/02/15 at 11:13 and 16:19; while at 11:13 you mentioned needing to return the too-small pair, at 16:19 you stated you already exchanged them and just need to pick up the new pair). Earlier on 2023/02/15 at 06:30, you also needed to pick up a navy blue blazer from the dry cleaner, though you said you were taking a break at the end of that session to go pick it up.",
-      "judge_reason": "Model response states 1 item (and mentions a dry cleaner item already being picked up), whereas the correct answer is 3.",
-      "retrieval_hit_at_5": true
-    },
-    {
-      "item_id": "6d550036",
-      "category": "multi-session",
-      "question": "How many projects have I led or am currently leading?",
-      "gold_answer": "2",
-      "predicted_answer": "You have led or are currently leading 3 clearly stated projects: (1) your Marketing Research class project, where you led the data analysis team (2023/05/21), (2) a high-priority project completed two months ahead of schedule while leading your team of five engineers (2023/05/28), and (3) a new product feature launching in June that you are currently planning with your team (2023/05/28). You also mentioned planning a rural water project in Nigeria (2023/05/21), working on a customer data analysis project (2023/05/21), and participating in the Ethereum México Community Team's event project (2023/05/27), though you did not explicitly state whether you led those.",
-      "judge_reason": "Model response states 3 projects, whereas the correct answer is 2.",
-      "retrieval_hit_at_5": true
-    },
-    {
-      "item_id": "gpt4_59c863d7",
-      "category": "multi-session",
-      "question": "How many model kits have I worked on or bought?",
-      "gold_answer": "I have worked on or bought five model kits. The scales of the models are: Revell F-15 Eagle (scale not mentioned), Tamiya 1/48 scale Spitfire Mk.V, 1/16 scale German Tiger I tank, 1/72 scale B-29 bomber, and 1/24 scale '69 Camaro.",
-      "predicted_answer": "You have specifically mentioned 4 model kits that you bought or worked on: (1) a Revell F-15 Eagle kit bought in late April and finished (2023/05/27), (2) a 1/72 scale B-29 bomber kit bought at a model show (2023/05/20, 2023/05/27), (3) a 1/24 scale '69 Camaro kit bought at the same model show (2023/05/20), and (4) a 1/16 scale German Tiger I tank started for a diorama (2023/05/29). On 2023/05/29, you also mentioned \"my model tanks\" generally without specifying an exact count.",
-      "judge_reason": "Model response states 4 model kits and misses the Tamiya 1/48 scale Spitfire Mk.V, whereas the correct answer is 5.",
+      "predicted_answer": "You have 1 item of clothing to pick up from a store: the new pair of boots from Zara after exchanging the pair you bought on February 5 (mentioned in the 2023/02/15 11:13 and 16:19 sessions). (Note: in the 2023/02/15 06:30 session, you also mentioned needing to pick up your navy blue blazer from dry cleaning, though at the end of that session you said you were taking a break to go pick it up.)",
+      "judge_reason": "The model response only mentions 1 item to pick up, while the correct answer is 3 items.",
       "retrieval_hit_at_5": true
     },
     {
@@ -120,8 +102,8 @@
       "category": "multi-session",
       "question": "How many plants did I acquire in the last month?",
       "gold_answer": "3",
-      "predicted_answer": "You acquired 2 plants in the last month as of May 30, 2023: a peace lily and a succulent, which you got from the nursery two weeks before your May 20, 2023 session (around May 6, 2023). (Although you mentioned on May 25, 2023 that you got a snake plant from your sister \"last month,\" that refers to April 2023—more than a month before May 30—and no acquisition dates were mentioned for your other plants.)",
-      "judge_reason": "Model response states 2 plants and excludes the snake plant, whereas the correct answer is 3.",
+      "predicted_answer": "You acquired 2 plants in the past month (relative to May 30, 2023): a peace lily and a succulent, which you mentioned on May 20, 2023 as having gotten from the nursery two weeks earlier (around May 6, 2023). You also mentioned on May 25, 2023 that you got a snake plant from your sister \"last month\" (April 2023, exact date unspecified), which falls in the previous calendar month.",
+      "judge_reason": "The model response states that 2 plants were acquired in the past month, which does not match the correct answer of 3 plants.",
       "retrieval_hit_at_5": true
     },
     {
@@ -129,17 +111,17 @@
       "category": "multi-session",
       "question": "What time did I go to bed on the day before I had a doctor's appointment?",
       "gold_answer": "2 AM",
-      "predicted_answer": "This cannot be answered from your conversation history. Although your May 24, 2023 session notes that you had a doctor's appointment at 10:00 AM on Thursday, May 18, 2023 (\"last Thursday\"), the excerpts do not mention what time you went to bed the day before (May 17, 2023) or on any other day.",
-      "judge_reason": "Model response incorrectly claims the question cannot be answered, whereas the correct answer is 2 AM.",
+      "predicted_answer": "The excerpts do not state what time you went to bed on the day before your doctor's appointment. On May 24, 2023 (Wed), you mentioned having a 10 AM doctor's appointment \"last Thursday\" (May 18, 2023, making the day before it Wednesday, May 17, 2023), whereas the only bedtime mentioned is 2 AM on \"last Wednesday\" in your May 29, 2023 (Mon) session, which refers to Wednesday, May 24, 2023.",
+      "judge_reason": "The model response does not state the correct bedtime of 2 AM for the day before the doctor's appointment.",
       "retrieval_hit_at_5": true
     },
     {
-      "item_id": "28dc39ac",
+      "item_id": "36b9f61e",
       "category": "multi-session",
-      "question": "How many hours have I spent playing games in total?",
-      "gold_answer": "140 hours",
-      "predicted_answer": "You have spent a total of 115 hours playing games based on your stated playtimes: ~70 hours on Assassin's Creed Odyssey (2023/05/20), 5 hours on Hyper Light Drifter (2023/05/23), 30 hours on The Last of Us Part II on hard difficulty (2023/05/25), and 10 hours on Celeste (2023/05/27). Note that you also mentioned completing The Last of Us Part II on normal difficulty (2023/05/23), though no playtime was specified for that playthrough.",
-      "judge_reason": "The model response states 115 hours instead of the correct answer of 140 hours.",
+      "question": "What is the total amount I spent on luxury items in the past few months?",
+      "gold_answer": "$2,500",
+      "predicted_answer": "Based on the visible excerpts, you spent a total of $2,000 on luxury items: $800 on a luxury evening gown for a wedding (2023/05/24) and $1,200 on a Gucci designer handbag (2023/05/25). Note that the final 5,675 bytes of this item's excerpts (starting at the 2023/05/27 ergonomic chairs session) were truncated in the prompt, so any additional purchases there cannot be verified.",
+      "judge_reason": "The model response only accounts for $2,000 in luxury spending, which is less than the correct answer of $2,500.",
       "retrieval_hit_at_5": true
     },
     {
@@ -147,8 +129,8 @@
       "category": "multi-session",
       "question": "How many weddings have I attended in this year?",
       "gold_answer": "I attended three weddings. The couples were Rachel and Mike, Emily and Sarah, and Jen and Tom.",
-      "predicted_answer": "You have attended 4 weddings in 2023: your cousin Rachel's vineyard wedding in August (2023/10/15 05:48); your sister's wedding, where you were maid of honor (2023/10/15 10:57); your book club friend Jen's rustic barn wedding \"last weekend\" (2023/10/15 19:23); and Emily's rooftop garden wedding in the city (2023/10/15 04:44 and 05:48, referred to both as your college roommate/friend Emily marrying Sarah and as your cousin Emily).",
-      "judge_reason": "The model response states 4 weddings instead of the correct answer of 3 weddings.",
+      "predicted_answer": "In 2023 (up to October 15, 2023), you attended 4 distinct named weddings: Emily and Sarah's city rooftop garden wedding (referred to as both your friend/college roommate Emily and cousin Emily), your cousin Rachel's vineyard wedding in August, your sister's wedding (where you were maid of honor), and your friend Jen and Tom's rustic barn wedding last weekend (around October 7–8). Note that you also mentioned wearing your grandmother's silver locket to \"my cousin's wedding last month,\" which would make 5 if it refers to a different cousin rather than Rachel or Emily.",
+      "judge_reason": "The model response lists four weddings, which is inconsistent with the correct answer of three weddings.",
       "retrieval_hit_at_5": true
     },
     {
@@ -156,8 +138,8 @@
       "category": "multi-session",
       "question": "How many pieces of furniture did I buy, assemble, sell, or fix in the past few months?",
       "gold_answer": "4",
-      "predicted_answer": "You bought, assembled, or fixed 3 pieces of furniture in the past few months: you assembled an IKEA bookshelf for your home office about two months before 2023/05/29 (late March 2023), bought a wooden West Elm coffee table with metal legs about three weeks before 2023/05/26 (delivered on 2023/05/18), and fixed a wobbly leg on your kitchen table on the weekend of 2023/05/20–21 (2023/05/26). Scratch guards from IKEA (2023/05/23) are furniture-protection accessories rather than furniture, and display cases or throw pillows were only under consideration.",
-      "judge_reason": "The model response states 3 pieces of furniture instead of the correct answer of 4.",
+      "predicted_answer": "You bought, assembled, or fixed 3 pieces of furniture in the past few months: you assembled an IKEA bookshelf for your home office (about two months before May 29, ~late March 2023), bought a wooden West Elm coffee table with metal legs (about three weeks before May 26 / delivered May 18), and fixed the wobbly leg on your kitchen table (the weekend of May 20–21). You did not sell any furniture, and the IKEA scratch guards were pet accessories rather than furniture.",
+      "judge_reason": "The model response lists only 3 pieces of furniture, not 4 as required by the correct answer.",
       "retrieval_hit_at_5": true
     },
     {
@@ -165,17 +147,17 @@
       "category": "multi-session",
       "question": "How many hours of jogging and yoga did I do last week?",
       "gold_answer": "0.5 hours",
-      "predicted_answer": "This cannot be answered from your conversation history because no completed jogging or yoga hours are recorded for last week (May 22–28, 2023). The excerpts only mention a 30-minute (0.5-hour) jog on Saturday, May 20, 2023, and note on May 22–23 that you had been slacking off on yoga that month and were only planning or hoping to resume without logging any completed sessions.",
-      "judge_reason": "The model response abstains, claiming the question cannot be answered for last week, rather than giving the correct answer of 0.5 hours.",
+      "predicted_answer": "It is not mentioned in the conversation history how many hours of jogging or yoga you actually did last week (the week prior to May 30, 2023). The only logged workout is a 30-minute jog on Saturday, May 20, and on May 22–23 you stated you had been slacking off on yoga that month and were only planning to start again, with no later update confirming any completed sessions.",
+      "judge_reason": "The response does not provide the correct answer of 0.5 hours.",
       "retrieval_hit_at_5": true
     },
     {
-      "item_id": "gpt4_2ba83207",
+      "item_id": "2318644b",
       "category": "multi-session",
-      "question": "Which grocery store did I spend the most money at in the past month?",
-      "gold_answer": "Thrive Market",
-      "predicted_answer": "Within the past month (May 2023), you spent the most at Walmart, at around $120 on May 20 (compared to around $80 split with your sister at Trader Joe's and around $60 plus a $10 delivery fee at Publix). You also spent around $150 on an online order from Thrive Market, though on May 26 you described that order as being placed \"last month\" (April 2023), placing it likely outside the past-month window as of May 30.",
-      "judge_reason": "The model response answers Walmart instead of the correct answer, Thrive Market.",
+      "question": "How much more did I spend on accommodations per night in Hawaii compared to Tokyo?",
+      "gold_answer": "$270",
+      "predicted_answer": "You spent over $270 more per night on accommodations in Hawaii compared to Tokyo. You mentioned booking a resort in Maui, Hawaii that costs over $300 per night, whereas you stayed at a hostel in Tokyo that cost around $30 per night (an exact figure isn't possible because the Maui rate is only given as \"over $300\").",
+      "judge_reason": "The model response does not provide an exact figure of $270, only stating 'over $270'.",
       "retrieval_hit_at_5": true
     },
     {
@@ -183,8 +165,8 @@
       "category": "multi-session",
       "question": "What is the average age of me, my parents, and my grandparents?",
       "gold_answer": "59.6",
-      "predicted_answer": "This cannot be answered exactly because your exact age is not mentioned—you only described yourself as being in your \"early thirties.\" The ages provided are your mom (55), your dad (58), your grandma (75, though on May 20 you also mentioned a grandma passing away in March), and your grandpa (78), with no ages mentioned for any other grandparents.",
-      "judge_reason": "The model response abstains and does not provide the correct answer of 59.6.",
+      "predicted_answer": "The exact average age cannot be calculated from the provided excerpts because your exact age is not mentioned—you only described yourself as being in your \"early thirties\" on May 22, 2023, and the end of the excerpt is truncated. Your stated relatives' ages are 55 (mom), 58 (dad), 75 (grandma), and 78 (grandpa), which average 66.5 across those four (note also that on May 20, 2023 you mentioned a grandma passing away in March).",
+      "judge_reason": "The model response does not provide the correct average age of 59.6, and it states that the average cannot be calculated due to missing information.",
       "retrieval_hit_at_5": true
     },
     {
@@ -192,8 +174,8 @@
       "category": "multi-session",
       "question": "How many fitness classes do I attend in a typical week?",
       "gold_answer": "5",
-      "predicted_answer": "You attend 4 regularly scheduled fitness classes in a typical week: BodyPump on Mondays at 6:30 PM (May 20, May 30), Zumba on Tuesdays and Thursdays at 7:00 PM (May 20), and yoga on Sundays at 6:00 PM (May 29). You also mentioned on May 20 attending Hip Hop Abs to mix up your routine, though no weekly schedule or frequency was specified for it.",
-      "judge_reason": "The model states 4 regularly scheduled fitness classes instead of the correct answer of 5.",
+      "predicted_answer": "There are 17 fish in total across both aquariums: 16 in your 20-gallon tank (10 neon tetras, 5 golden honey gouramis, and 1 small pleco catfish) and 1 betta fish (Bubbles) in your 10-gallon tank.",
+      "judge_reason": "The model response does not address the question about fitness classes and provides unrelated information about fish.",
       "retrieval_hit_at_5": true
     },
     {
@@ -201,17 +183,17 @@
       "category": "multi-session",
       "question": "How much money did I raise for charity in total?",
       "gold_answer": "$3,750",
-      "predicted_answer": "You raised $8,750 in total (with some amounts described as \"over\" the stated figure) across five charity efforts: $2,000 (also stated as over $2,000) for a local animal shelter on January 20, $500 for the American Cancer Society in a February fitness challenge, $250 for a local food bank in the Run for Hunger on March 12, $1,000 (also stated as over $1,000) for a local children's hospital at a charity bake sale, and over $5,000 for a local music education program at an April benefit concert.",
-      "judge_reason": "The model states $8,750 in total instead of the correct answer of $3,750.",
+      "predicted_answer": "Across the five charity events mentioned, you helped raise a total of **$8,750** (described as over $8,750): **$2,000** (over $2,000) for a local animal shelter on January 20th, **$500** for the American Cancer Society in a February charity fitness challenge, **$250** for a local food bank in the \"Run for Hunger\" on March 12th, **$1,000** (over $1,000) for a local children's hospital at a charity bake sale, and **over $5,000** for a local music education program at a benefit concert at the Independent in April.",
+      "judge_reason": "The model response states a total of $8,750, which does not match the correct answer of $3,750.",
       "retrieval_hit_at_5": true
     },
     {
-      "item_id": "5a7937c8",
+      "item_id": "gpt4_e05b82a6",
       "category": "multi-session",
-      "question": "How many days did I spend participating in faith-related activities in December?",
-      "gold_answer": "3 days.",
-      "predicted_answer": "You spent 2 days participating in faith-related activities in December: December 10 (helping at your church's annual holiday food drive) and December 24 (attending midnight mass on Christmas Eve at St. Mary's Church).",
-      "judge_reason": "The model states 2 days spent participating in faith-related activities in December instead of the correct answer of 3 days.",
+      "question": "How many times did I ride rollercoasters across all the events I attended from July to October?",
+      "gold_answer": "10 times",
+      "predicted_answer": "Based on the visible excerpts, you rode rollercoasters **7 times** between July and October: **3 times** on Space Mountain: Ghost Galaxy during Mickey's Halloween Party at Disneyland on September 24th, **1 time** on Xcelerator at Knott's Berry Farm on October 8th, and **3 times** on Revenge of the Mummy at Universal Studios Hollywood (Halloween Horror Nights) on October 15th. (Note: the final session excerpt from 2023/11/04 18:12 is truncated after the assistant's first response, so any later turns in that session cannot be verified.)",
+      "judge_reason": "The model response only accounts for 7 rollercoaster rides, while the correct answer is 10 times.",
       "retrieval_hit_at_5": true
     },
     {
@@ -219,8 +201,8 @@
       "category": "multi-session",
       "question": "How much total money did I spend on attending workshops in the last four months?",
       "gold_answer": "$720",
-      "predicted_answer": "The exact total cannot be determined because the cost of the three-day entrepreneurship workshop you attended in January is not mentioned. Across the other workshops mentioned in your history—a two-day writing workshop in November ($200), a half-day mindfulness workshop on December 12 ($20), a free photography workshop on February 22 ($0), and a two-day digital marketing workshop on March 15–16 ($500, though its March 15–16 date falls outside the Nov–Feb window relative to the 2023/02/26 question date)—the stated costs total $220 for November–February (or $720 if the $500 digital marketing workshop is included).",
-      "judge_reason": "The model states that the exact total cannot be determined and computes $220 for the four-month window (only parenthetically noting $720 if an out-of-window workshop is included), rather than answering $720.",
+      "predicted_answer": "Based on the stated amounts, you spent $700 in total: $200 for the two-day writing workshop in November and $500 for the digital marketing workshop (which you described as your most recent workshop, though you gave its dates as March 15–16). Your February 22 photography workshop was free ($0), and the costs for the January entrepreneurship workshop and any fifth workshop (such as mindfulness) are not mentioned in the excerpts.",
+      "judge_reason": "The model response calculates a total of $700, which is less than the correct answer of $720. It also mentions missing cost information for some workshops.",
       "retrieval_hit_at_5": true
     },
     {
@@ -228,8 +210,8 @@
       "category": "multi-session",
       "question": "How many days did I spend attending workshops, lectures, and conferences in April?",
       "gold_answer": "3 days",
-      "predicted_answer": "You spent 1 day in April attending an event—specifically, a lecture on sustainable development at the public library on April 10, 2023 (though the exact duration in hours is not specified). No workshops or conferences in April were mentioned.",
-      "judge_reason": "The model states 1 day spent attending events in April instead of the correct answer of 3 days.",
+      "predicted_answer": "You spent 1 day in April attending such events: you attended a lecture on sustainable development at the public library on April 10 (mentioned on 2023/05/01). No other workshops, lectures, or conferences in April are mentioned in the excerpts.",
+      "judge_reason": "The model response states only 1 day was spent attending events, while the correct answer is 3 days.",
       "retrieval_hit_at_5": true
     },
     {
@@ -237,17 +219,8 @@
       "category": "multi-session",
       "question": "How many magazine subscriptions do I currently have?",
       "gold_answer": "2",
-      "predicted_answer": "You currently have 1 active magazine subscription: *The New Yorker*, which you subscribed to in early February (mentioned on 2023/04/01). You previously had a *Forbes* magazine subscription, which you canceled in early March.",
-      "judge_reason": "The correct answer is 2 magazine subscriptions, whereas the model response states 1 active subscription.",
-      "retrieval_hit_at_5": true
-    },
-    {
-      "item_id": "c2ac3c61",
-      "category": "multi-session",
-      "question": "How many online courses have I completed in total?",
-      "gold_answer": "5",
-      "predicted_answer": "You have completed 3 online courses in total—specifically, three courses on Coursera (mentioned on 2023/05/23).",
-      "judge_reason": "The correct answer is 5 completed online courses, whereas the model response states 3.",
+      "predicted_answer": "Based on the 2023/04/01 sessions (00:37 and 19:02), you currently have 1 magazine subscription: The New Yorker (subscribed in early February). You canceled your Forbes magazine subscription in early March.",
+      "judge_reason": "The response states that there is only 1 current magazine subscription, whereas the correct answer is 2.",
       "retrieval_hit_at_5": true
     },
     {
@@ -255,8 +228,8 @@
       "category": "multi-session",
       "question": "How many music albums or EPs have I purchased or downloaded?",
       "gold_answer": "3",
-      "predicted_answer": "You have purchased or downloaded 2 music albums/EPs in total: Billie Eilish's album *Happier Than Ever* (downloaded on Spotify, mentioned on 2023/05/20) and The Whiskey Wanderers' EP *Midnight Sky* (purchased at a music festival merchandise booth, mentioned on 2023/05/20, 2023/05/26, and 2023/05/29). (You also mentioned owning a Tame Impala vinyl that you had signed at a concert on 2023/05/26, though you did not state whether or when you purchased it.)",
-      "judge_reason": "The correct answer is 3 music albums or EPs, whereas the model response states 2.",
+      "predicted_answer": "You have explicitly downloaded or purchased 2 music albums/EPs: Billie Eilish's album \"Happier Than Ever\" (downloaded on Spotify, mentioned on 2023/05/20) and The Whiskey Wanderers' EP \"Midnight Sky\" (purchased at a festival merchandise booth, mentioned on 2023/05/20, 2023/05/26, and 2023/05/29). On 2023/05/26, you also mentioned having a Tame Impala vinyl signed after a show, though no purchase or download of it was stated.",
+      "judge_reason": "The model response only accounts for 2 explicitly purchased or downloaded albums/EPs, not 3 as required by the correct answer.",
       "retrieval_hit_at_5": true
     },
     {
@@ -264,17 +237,8 @@
       "category": "multi-session",
       "question": "How many years in total did I spend in formal education from high school to the completion of my Bachelor's degree?",
       "gold_answer": "10 years",
-      "predicted_answer": "You spent 8 years in total in formal education across high school and your Bachelor's degree: 4 years at Arcadia High School (2010–2014, mentioned on 2021/08/20) and 4 years completing your Bachelor's degree in Computer Science at UCLA (graduating in 2020, mentioned on 2021/08/20).",
-      "judge_reason": "The correct answer is 10 years total, whereas the model response states 8 years (omitting the 2 years at PCC).",
-      "retrieval_hit_at_5": true
-    },
-    {
-      "item_id": "81507db6",
-      "category": "multi-session",
-      "question": "How many graduation ceremonies have I attended in the past three months?",
-      "gold_answer": "3",
-      "predicted_answer": "You attended 2 graduation ceremonies in the past three months (between April 21 and July 21, 2023): your cousin Emma's preschool graduation about two months ago (around May 2023) and your best friend Rachel's master's degree graduation a couple of weeks ago (around early July 2023). You also mentioned missing your nephew Jack's eighth-grade graduation ceremony last month.",
-      "judge_reason": "The correct answer is 3 graduation ceremonies, whereas the model response states 2.",
+      "predicted_answer": "You spent 8 years in total in formal education from high school through your Bachelor's degree: 4 years at Arcadia High School from 2010 to 2014 (stated on 2021/08/20 at 21:27) and 4 years completing your Bachelor's in Computer Science at UCLA, graduating in 2020 (stated on 2021/08/20 at 04:09). No other formal education between 2014 and starting UCLA is mentioned.",
+      "judge_reason": "The model response states 8 years of formal education, which does not match the correct answer of 10 years.",
       "retrieval_hit_at_5": true
     },
     {
@@ -282,26 +246,62 @@
       "category": "single-session-preference",
       "question": "Can you recommend some recent publications or conferences that I might find interesting?",
       "gold_answer": "The user would prefer suggestions related to recent research papers, articles, or conferences that focus on artificial intelligence in healthcare, particularly those that involve deep learning for medical image analysis. They would not be interested in general AI topics or those unrelated to healthcare.",
-      "predicted_answer": "Although you mentioned looking for a postdoctoral position (2023/05/21), your specific academic research field is not stated in your history, so I cannot recommend discipline-specific postdoc journals or conferences without that detail. Based on the interests you did share—particularly Baptist identity, mission, and how smaller churches collaborate in response to mega-churches (2023/05/24)—you might find publications like *Baptist History and Heritage*, *Review & Expositor*, or *The Christian Century*, and gatherings like the Cooperative Baptist Fellowship (CBF) General Assembly or Baptist History & Heritage Society Annual Conference interesting (as well as reading-focused events like Romance Writers of America conferences given your love of romance novels and book clubs).",
-      "judge_reason": "The model fails to recall the user's research focus on AI in healthcare / deep learning for medical image analysis and instead recommends unrelated religious and fiction-writing resources.",
+      "predicted_answer": "In the visible excerpts, you mentioned looking for a postdoctoral position (though your specific academic discipline is not shown in the visible text), enjoying romance novels (especially by female authors with strong female protagonists) and book clubs, and discussing collaboration among Baptist churches. Based on those stated interests, you might find academic and postdoc-focused publications like *The Chronicle of Higher Education* or *Nature Careers*, literary and romance-focused venues such as *Book Riot* or Romance Writers of America (RWA) conferences, and religious leadership resources like *Christianity Today* or regional Baptist cooperative conferences relevant.",
+      "judge_reason": "The response does not address the user's interest in AI in healthcare or deep learning for medical image analysis.",
       "retrieval_hit_at_5": false
+    },
+    {
+      "item_id": "35a27287",
+      "category": "single-session-preference",
+      "question": "Can you recommend some interesting cultural events happening around me this weekend?",
+      "gold_answer": "The user would prefer responses that suggest cultural events where they can practice their language skills, particularly Spanish and French. They would also appreciate if the event has a focus on language learning resources. They would not prefer events that do not provide opportunities for language practice or cultural exchange.",
+      "predicted_answer": "Your current city or location is not mentioned in our conversation history, so I cannot look up specific events happening near you this weekend. However, based on your interests, you could check local listings on Eventbrite, Meetup, or cultural center calendars for **French or Spanish language exchange meetups**, **multicultural/international food and cultural festivals** (celebrating cuisines like Colombian, Nigerian, Mozambican, Indian/Pakistani, or Vietnamese), or **live professional theater productions** like *Hamlet*.",
+      "judge_reason": "The response does not suggest specific events or mention language learning resources, which are part of the user's preferences.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "caf03d32",
+      "category": "single-session-preference",
+      "question": "I've been struggling with my slow cooker recipes. Any advice on getting better results?",
+      "gold_answer": "The user would prefer responses that provide tips and advice specifically tailored to their slow cooker experiences, utilizing their recent success with beef stew and interest in making yogurt in the slow cooker. They might not prefer general slow cooker recipes or advice unrelated to their specific experiences and interests.",
+      "predicted_answer": "Since you have been focusing on plant-based meals and cashew-based slow cooker yogurt, use a thermometer to ensure the milk/base heats to 180°F–185°F and cools to 110°F–120°F before adding your vegan starter and incubating for 8–12 hours on low. For your cashew yogurt base, soak the cashews thoroughly (at least 4 hours or overnight), blend until smooth, and strain through cheesecloth or a nut milk bag for a creamier texture. For savory vegan slow cooker dishes like lentil curry or black bean chili, rinse low-sodium canned beans well and finish with a splash of lemon juice or vinegar to brighten the flavors.",
+      "judge_reason": "The response does not utilize the user's personal information about their recent success with beef stew or their interest in making yogurt in the slow cooker. It instead focuses on plant-based meals and cashew-based yogurt, which are not mentioned in the user's preferences.",
+      "retrieval_hit_at_5": true
     },
     {
       "item_id": "06f04340",
       "category": "single-session-preference",
       "question": "What should I serve for dinner this weekend with my homegrown ingredients?",
       "gold_answer": "The user would prefer dinner suggestions that incorporate their homegrown cherry tomatoes and herbs like basil and mint, highlighting recipes that showcase their garden produce. They might not prefer suggestions that do not utilize these specific ingredients or do not emphasize the use of homegrown elements.",
-      "predicted_answer": "Your memory excerpts do not mention any garden or what homegrown ingredients you have, so there is not enough information to suggest a dinner based on them. If you share what ingredients you grew, they could be paired with your preference for healthy meals like grilled chicken or fish with roasted vegetables or mixed-greens salads.",
-      "judge_reason": "Fails to recall the user's homegrown cherry tomatoes, basil, and mint, claiming memory excerpts do not mention any garden or homegrown ingredients.",
+      "predicted_answer": "Your conversation history does not mention any homegrown ingredients or a garden, so I cannot recommend a dinner tailored to specific ingredients you grow. However, based on the meal preferences you have shared—such as healthy grilled chicken or fish with roasted vegetables, a quinoa or brown rice bowl with mixed greens and vinaigrette, or veggie-packed pasta primavera—any of those would work well if you incorporate the fresh produce or herbs you have on hand.",
+      "judge_reason": "The response does not utilize the user's personal information about homegrown cherry tomatoes and herbs like basil and mint, which are specified in the rubric.",
       "retrieval_hit_at_5": false
+    },
+    {
+      "item_id": "75f70248",
+      "category": "single-session-preference",
+      "question": "I've been sneezing quite a bit lately. Do you think it might be my living room?",
+      "gold_answer": "The user would prefer responses that consider the potential impact of their cat, Luna, and her shedding on their sneezing, as well as the recent deep clean of the living room and its possible effect on stirring up dust. They might not prefer responses that fail to take into account these specific details previously mentioned, such as generic suggestions or unrelated factors.",
+      "predicted_answer": "Yes, your living room could be triggering your sneezing—you previously mentioned having trouble keeping it dust-free because of a cat that sheds a lot, so accumulated dust, cat hair, and dander are likely culprits. Dust or residue from working on your antique oak coffee table or Victorian-era armchair could also contribute if you've been restoring them indoors. Vacuuming regularly with a HEPA filter, dusting with a damp microfiber cloth, and changing your home's air filters every 1–3 months should help reduce allergens.",
+      "judge_reason": "The response correctly mentions the cat and dust but introduces unrelated factors like the antique furniture, which were not part of the user's personal information.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "b6025781",
+      "category": "single-session-preference",
+      "question": "I'm planning my meal prep next week, any suggestions for new recipes?",
+      "gold_answer": "The user would prefer responses that suggest healthy meal prep recipes, especially those that incorporate quinoa and roasted vegetables, and offer variations in protein sources. They might appreciate suggestions that build upon their existing preferences, such as new twists on chicken Caesar salads or turkey and avocado wraps. The user may not prefer responses that suggest unhealthy or high-calorie meal prep options, or those that deviate significantly from their established healthy eating habits.",
+      "predicted_answer": "Based on your preference for quinoa, roasted vegetables (like rosemary sweet potatoes), and grilled chicken or plant-based proteins, you could meal prep Mexican-inspired chicken fajita bowls or black bean and sweet potato enchiladas to build on your recent interest in Mexican dishes. If you want to branch out from grilled chicken and turkey breast, you could also try making lentil or mushroom bolognese over quinoa, along with homemade granola or double-fried sweet potato fries with spicy mayo or chipotle ranch for snacks.",
+      "judge_reason": "The response includes suggestions for unhealthy options like double-fried sweet potato fries with spicy mayo, which deviate from the user's healthy eating habits.",
+      "retrieval_hit_at_5": true
     },
     {
       "item_id": "51c32626",
       "category": "multi-session",
       "question": "When did I submit my research paper on sentiment analysis?",
       "gold_answer": "February 1st",
-      "predicted_answer": "The exact date or year you submitted your research paper on sentiment analysis is not mentioned in the conversation history. On 2023/05/22, you noted submitting it to ACL prior to your master's thesis without giving a date, and on 2023/05/30 you mentioned currently reviewing for ACL whose submission date was February 1st—which refers to the conference you are reviewing for rather than when you submitted your own earlier paper.",
-      "judge_reason": "Abstains by claiming the submission date is not mentioned and explicitly rejects February 1st as the answer, whereas the ground truth answer is February 1st.",
+      "predicted_answer": "The exact date when you submitted your research paper on sentiment analysis is not mentioned in the conversation history. You only noted on 2023/05/22 that you submitted it to ACL before your master's thesis, while the February 1st submission date mentioned on 2023/05/30 refers to the ACL conference you are currently reviewing for.",
+      "judge_reason": "The model response does not state February 1st as the submission date for the research paper on sentiment analysis.",
       "retrieval_hit_at_5": true
     },
     {
@@ -309,17 +309,17 @@
       "category": "multi-session",
       "question": "Did I receive a higher percentage discount on my first order from HelloFresh, compared to my first UberEats order?",
       "gold_answer": "Yes.",
-      "predicted_answer": "This cannot be determined from the conversation history because your first UberEats order discount is not mentioned. On 2023/05/23, you stated you received a 40% discount on your first HelloFresh order and were already using UberEats \"a lot lately\"; on 2023/05/28, you mentioned getting 20% off an UberEats order the previous week, without indicating that it was your first order.",
-      "judge_reason": "Abstains by stating it cannot be determined from the conversation history instead of answering 'Yes'.",
+      "predicted_answer": "This cannot be answered from the conversation history because the discount on your first UberEats order is not mentioned. While you noted getting a 40% discount on your first HelloFresh order (2023/05/23) and a 20% discount on a recent UberEats order (2023/05/28), you did not state what discount, if any, you received on your first UberEats order.",
+      "judge_reason": "The model response states that the discount on the first UberEats order is unknown, which means it cannot confirm the correct answer.",
       "retrieval_hit_at_5": true
     },
     {
-      "item_id": "4adc0475",
+      "item_id": "9ee3ecd6",
       "category": "multi-session",
-      "question": "What is the total number of goals and assists I have in the recreational indoor soccer league?",
-      "gold_answer": "5",
-      "predicted_answer": "There is not enough information in your conversation history to determine the total: on 2023/05/26 you mentioned scoring 3 goals in the recreational indoor soccer league, but you did not mention how many assists you have.",
-      "judge_reason": "Model response claims there is not enough information instead of giving the correct answer 5.",
+      "question": "How many points do I need to earn to redeem a free skincare product at Sephora?",
+      "gold_answer": "100",
+      "predicted_answer": "You need to earn 100 more points. On 2023/05/21 you noted having 200 points in Sephora's loyalty program, and on 2023/05/29 you stated you need a total of 300 points to redeem a free skincare product.",
+      "judge_reason": "The model response states that 300 points are needed to redeem a free skincare product, which contradicts the correct answer of 100 points.",
       "retrieval_hit_at_5": true
     },
     {
@@ -327,8 +327,8 @@
       "category": "multi-session",
       "question": "How many years will I be when my friend Rachel gets married?",
       "gold_answer": "33",
-      "predicted_answer": "This cannot be answered from your conversation history. While you mentioned on September 1, 2022 that Rachel is getting married next year (2023), your age or birth year is never mentioned in the excerpts.",
-      "judge_reason": "The model incorrectly abstained instead of providing the correct answer of 33.",
+      "predicted_answer": "This cannot be answered from the conversation history. While you mentioned on September 1, 2022, that your friend Rachel is getting married next year (2023), your age is never stated in the excerpts.",
+      "judge_reason": "The model response does not provide the correct answer of 33 or any equivalent information.",
       "retrieval_hit_at_5": true
     }
   ]
