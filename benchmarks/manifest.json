@@ -13,10 +13,10 @@
       "conversations": 10,
       "qa_pairs": 1986,
       "categories": {
-        "1": "single_hop",
+        "1": "multi_hop",
         "2": "temporal",
         "3": "open_domain",
-        "4": "multi_hop",
+        "4": "single_hop",
         "5": "adversarial"
       },
       "supports_curated_mode": true,

@@ -1,29 +1,29 @@
 {
   "suite": "longmemeval-s",
   "mode": "hub_retrieval+semantic+rerank",
-  "engine_label": "raw-memory-v0.6.0-maxsim-temporal-rerank",
+  "engine_label": "raw-memory-v0.7.0-calibrated-hierarchical-rerank",
   "dataset_path": "/Users/benzema/.local/share/context-hub-v2/benchmarks/longmemeval_s_cleaned.json",
-  "evaluated_at_ms": 1795786168253,
+  "evaluated_at_ms": 1795854832563,
   "total_questions": 500,
   "scored_questions": 470,
   "abstention_questions": 30,
   "overall": {
-    "sess_r@1": 0.9383,
-    "sess_r@5": 0.9851,
-    "sess_r@10": 0.9894,
-    "sess_all_r@5": 0.9085,
-    "sess_all_r@10": 0.9277,
-    "sess_ndcg@5": 0.9431,
-    "sess_ndcg@10": 0.947,
-    "sess_mrr": 0.958,
-    "turn_r@1": 0.5894,
-    "turn_r@5": 0.9191,
+    "sess_r@1": 0.9447,
+    "sess_r@5": 0.9894,
+    "sess_r@10": 0.9936,
+    "sess_all_r@5": 0.9255,
+    "sess_all_r@10": 0.9447,
+    "sess_ndcg@5": 0.9498,
+    "sess_ndcg@10": 0.9534,
+    "sess_mrr": 0.9635,
+    "turn_r@1": 0.6979,
+    "turn_r@5": 0.934,
     "turn_r@10": 0.9617,
-    "turn_ndcg@5": 0.6869,
-    "turn_ndcg@10": 0.7314,
-    "turn_mrr": 0.7289,
+    "turn_ndcg@5": 0.7665,
+    "turn_ndcg@10": 0.7931,
+    "turn_mrr": 0.7997,
     "ans_cov@5": 0.6404,
-    "ans_cov@10": 0.6979
+    "ans_cov@10": 0.6872
   },
   "by_category": {
     "knowledge-update": {
@@ -33,36 +33,36 @@
       "sess_r@10": 1.0,
       "sess_all_r@5": 0.9861,
       "sess_all_r@10": 0.9861,
-      "sess_ndcg@5": 0.9839,
-      "sess_ndcg@10": 0.9839,
+      "sess_ndcg@5": 0.985,
+      "sess_ndcg@10": 0.985,
       "sess_mrr": 0.9861,
-      "turn_r@1": 0.625,
-      "turn_r@5": 0.9583,
+      "turn_r@1": 0.6806,
+      "turn_r@5": 0.9861,
       "turn_r@10": 1.0,
-      "turn_ndcg@5": 0.7589,
-      "turn_ndcg@10": 0.7924,
-      "turn_mrr": 0.7705,
-      "ans_cov@5": 0.8611,
-      "ans_cov@10": 0.9444
+      "turn_ndcg@5": 0.8437,
+      "turn_ndcg@10": 0.8486,
+      "turn_mrr": 0.8222,
+      "ans_cov@5": 0.9028,
+      "ans_cov@10": 0.9306
     },
     "multi-session": {
       "count": 121,
       "sess_r@1": 0.9504,
       "sess_r@5": 1.0,
       "sess_r@10": 1.0,
-      "sess_all_r@5": 0.8595,
-      "sess_all_r@10": 0.9008,
-      "sess_ndcg@5": 0.9385,
-      "sess_ndcg@10": 0.9468,
-      "sess_mrr": 0.9704,
-      "turn_r@1": 0.6281,
-      "turn_r@5": 0.9504,
+      "sess_all_r@5": 0.9174,
+      "sess_all_r@10": 0.9504,
+      "sess_ndcg@5": 0.9486,
+      "sess_ndcg@10": 0.9566,
+      "sess_mrr": 0.9679,
+      "turn_r@1": 0.7686,
+      "turn_r@5": 0.9752,
       "turn_r@10": 0.9917,
-      "turn_ndcg@5": 0.6242,
-      "turn_ndcg@10": 0.7056,
-      "turn_mrr": 0.7659,
-      "ans_cov@5": 0.5372,
-      "ans_cov@10": 0.595
+      "turn_ndcg@5": 0.7418,
+      "turn_ndcg@10": 0.7878,
+      "turn_mrr": 0.8567,
+      "ans_cov@5": 0.5041,
+      "ans_cov@10": 0.562
     },
     "single-session-assistant": {
       "count": 56,
@@ -74,70 +74,70 @@
       "sess_ndcg@5": 1.0,
       "sess_ndcg@10": 1.0,
       "sess_mrr": 1.0,
-      "turn_r@1": 0.5893,
-      "turn_r@5": 0.9107,
-      "turn_r@10": 0.9821,
-      "turn_ndcg@5": 0.7609,
-      "turn_ndcg@10": 0.7844,
-      "turn_mrr": 0.7209,
-      "ans_cov@5": 0.9107,
-      "ans_cov@10": 0.9464
+      "turn_r@1": 0.6607,
+      "turn_r@5": 0.8929,
+      "turn_r@10": 0.9286,
+      "turn_ndcg@5": 0.7887,
+      "turn_ndcg@10": 0.8014,
+      "turn_mrr": 0.7595,
+      "ans_cov@5": 0.9286,
+      "ans_cov@10": 0.9643
     },
     "single-session-preference": {
       "count": 30,
-      "sess_r@1": 0.8,
-      "sess_r@5": 0.9,
+      "sess_r@1": 0.7667,
+      "sess_r@5": 0.9333,
       "sess_r@10": 0.9333,
-      "sess_all_r@5": 0.9,
+      "sess_all_r@5": 0.9333,
       "sess_all_r@10": 0.9333,
-      "sess_ndcg@5": 0.8564,
-      "sess_ndcg@10": 0.8683,
-      "sess_mrr": 0.8472,
-      "turn_r@1": 0.3333,
+      "sess_ndcg@5": 0.8555,
+      "sess_ndcg@10": 0.8555,
+      "sess_mrr": 0.83,
+      "turn_r@1": 0.4333,
       "turn_r@5": 0.8333,
       "turn_r@10": 0.8667,
-      "turn_ndcg@5": 0.5456,
-      "turn_ndcg@10": 0.5755,
-      "turn_mrr": 0.5189,
-      "ans_cov@5": 0.0333,
-      "ans_cov@10": 0.1
+      "turn_ndcg@5": 0.5884,
+      "turn_ndcg@10": 0.6169,
+      "turn_mrr": 0.5817,
+      "ans_cov@5": 0.0667,
+      "ans_cov@10": 0.0667
     },
     "single-session-user": {
       "count": 64,
-      "sess_r@1": 0.9531,
+      "sess_r@1": 0.9844,
       "sess_r@5": 1.0,
       "sess_r@10": 1.0,
       "sess_all_r@5": 1.0,
       "sess_all_r@10": 1.0,
-      "sess_ndcg@5": 0.9807,
-      "sess_ndcg@10": 0.9807,
-      "sess_mrr": 0.974,
-      "turn_r@1": 0.7812,
+      "sess_ndcg@5": 0.9942,
+      "sess_ndcg@10": 0.9942,
+      "sess_mrr": 0.9922,
+      "turn_r@1": 0.8281,
       "turn_r@5": 0.9688,
-      "turn_r@10": 0.9844,
-      "turn_ndcg@5": 0.8848,
-      "turn_ndcg@10": 0.8895,
-      "turn_mrr": 0.8598,
+      "turn_r@10": 1.0,
+      "turn_ndcg@5": 0.9076,
+      "turn_ndcg@10": 0.9177,
+      "turn_mrr": 0.8909,
       "ans_cov@5": 0.9688,
       "ans_cov@10": 0.9688
     },
     "temporal-reasoning": {
       "count": 127,
-      "sess_r@1": 0.9055,
-      "sess_r@5": 0.9685,
-      "sess_r@10": 0.9764,
+      "sess_r@1": 0.9213,
+      "sess_r@5": 0.9764,
+      "sess_r@10": 0.9921,
       "sess_all_r@5": 0.8268,
-      "sess_all_r@10": 0.8504,
-      "sess_ndcg@5": 0.9009,
-      "sess_ndcg@10": 0.9044,
-      "sess_mrr": 0.93,
-      "turn_r@1": 0.4961,
-      "turn_r@5": 0.8661,
-      "turn_r@10": 0.9134,
-      "turn_ndcg@5": 0.6067,
-      "turn_ndcg@10": 0.6551,
-      "turn_mrr": 0.6574,
-      "ans_cov@5": 0.4724,
+      "sess_all_r@10": 0.8661,
+      "sess_ndcg@5": 0.9087,
+      "sess_ndcg@10": 0.9143,
+      "sess_mrr": 0.9473,
+      "turn_r@1": 0.6535,
+      "turn_r@5": 0.8898,
+      "turn_r@10": 0.9291,
+      "turn_ndcg@5": 0.7076,
+      "turn_ndcg@10": 0.7419,
+      "turn_mrr": 0.756,
+      "ans_cov@5": 0.4646,
       "ans_cov@10": 0.5512
     }
   },
@@ -146,9 +146,9 @@
     "refuting_sess_r@10": 1.0,
     "zero_hit_rate": 0.0
   },
-  "latency_p50_ms": 1824.151,
-  "latency_p95_ms": 3045.631,
-  "total_elapsed_s": 4255.8,
+  "latency_p50_ms": 1336.204,
+  "latency_p95_ms": 2152.079,
+  "total_elapsed_s": 789.25,
   "sample_failures": [
     {
       "suite": "longmemeval-s",
@@ -161,10 +161,10 @@
       ],
       "retrieved_top_ids": [
         "ultrachat_533748",
-        "sharegpt_FYqt26U_0",
         "c51583cd_1",
-        "47ec1674_2",
-        "c884b67a_1"
+        "c884b67a_1",
+        "sharegpt_FYqt26U_0",
+        "5a6b1065"
       ],
       "retrieved_top_snippets": [
         "[2023/05/20 (Sat) 23:47] user: Hmm, most of these seem interesting, but can you recommend a Romance book for someone who wants a little more steamy, intimate scenes? I'm looking for a spicy read.",
@@ -187,35 +187,12 @@
         "6e6fbb6b",
         "8b156015_2",
         "728deb4d_4",
-        "42924d15"
+        "b459f888_3"
       ],
       "retrieved_top_snippets": [
         "[2023/05/27 (Sat) 15:58] user: I've been experimenting with some unique flavor profiles lately, like the Spicy Mango Margarita I served at a BBQ party last weekend. I used jalapeno peppers, mango puree, tequila, lime jui",
-        "[2023/05/24 (Wed) 22:45] assistant: What a wonderful occasion! Planning a healthy and delicious meal for your mom's 60th birthday celebration is a great way to make the event even more special. Here are some healthy meal",
-        "[2023/05/24 (Wed) 22:45] user: I'm trying to plan a family dinner for my mom's 60th birthday, which is coming up soon. Can you suggest some healthy meal ideas that would be suitable for a big family gathering?"
-      ],
-      "reason": "miss_at_5"
-    },
-    {
-      "suite": "longmemeval-s",
-      "item_id": "d6233ab6",
-      "category": "single-session-preference",
-      "question": "I've been feeling nostalgic lately. Do you think it would be a good idea to attend my high school reunion?",
-      "expected_answer": "The user would prefer responses that draw upon their personal experiences and memories, specifically their positive high school experiences such as being part of the debate team and taking advanced placement courses. They would prefer suggestions that highlight the potential benefits of attending the reunion, such as reconnecting with old friends and revisiting favorite subjects like history and economics. The user might not prefer generic or vague responses that do not take into account their individual experiences and interests.",
-      "gold_ids": [
-        "answer_b0fac439"
-      ],
-      "retrieved_top_ids": [
-        "ultrachat_329160",
-        "0e726047",
-        "94bc18df_3",
-        "ultrachat_125013",
-        "e419b7c3_4"
-      ],
-      "retrieved_top_snippets": [
-        "[2023/05/27 (Sat) 15:22] user: These are awesome ideas! I think I'll reward myself with a shopping spree if I stick to my cleaning routines for a whole month. Do you think that's a good idea?",
-        "[2023/05/22 (Mon) 22:28] user: I think I'll use a dedicated journal for my gratitude habit. I like the idea of having a physical book where I can write down my thoughts and reflect on them later. By the way, speaking of ",
-        "[2023/05/20 (Sat) 02:31] user: I'll definitely take those tips into consideration. Speaking of epic nights, I'm still on a high from the Khalid concert at the Greek Theatre in Berkeley with my sister, Sophia - it was suc"
+        "[2023/05/24 (Wed) 22:45] user: I'm trying to plan a family dinner for my mom's 60th birthday, which is coming up soon. Can you suggest some healthy meal ideas that would be suitable for a big family gathering?",
+        "[2023/05/24 (Wed) 22:45] assistant: What a wonderful occasion! Planning a healthy and delicious meal for your mom's 60th birthday celebration is a great way to make the event even more special. Here are some healthy meal"
       ],
       "reason": "miss_at_5"
     },
@@ -229,40 +206,16 @@
         "answer_9b09d95b_1"
       ],
       "retrieved_top_ids": [
-        "25e5b797_1",
         "1e5bd28d_2",
-        "ultrachat_59629",
-        "a2f0054f",
-        "1d74a734"
+        "ultrachat_323709",
+        "sharegpt_C2Qfdn8_0",
+        "25e5b797_1",
+        "ultrachat_59629"
       ],
       "retrieved_top_snippets": [
-        "[2023/04/11 (Tue) 14:50] user: I'm glad to hear that the narrators are engaging. Since I have a 45-minute commute each way, I think I'll start with \"The Family Upstairs\" and see how I like it. Do you have any recommendat",
-        "[2023/04/11 (Tue) 19:52] assistant: Enforcing boundaries with a boss can be challenging, but it is important to communicate your limits and advocate for yourself. Here are some tips for approaching this situation:\n\n1. Id",
-        "[2023/04/11 (Tue) 01:21] user: I'm trying to plan my next theme park trip and I was wondering if you could help me compare the crowd levels at Universal Studios and Disneyland on Friday evenings. I remember going to Univ"
-      ],
-      "reason": "miss_at_5"
-    },
-    {
-      "suite": "longmemeval-s",
-      "item_id": "9a707b82",
-      "category": "temporal-reasoning",
-      "question": "I mentioned cooking something for my friend a couple of days ago. What was it?",
-      "expected_answer": "a chocolate cake",
-      "gold_ids": [
-        "answer_dba89488_1",
-        "answer_dba89488_2"
-      ],
-      "retrieved_top_ids": [
-        "990f3ef9_2",
-        "68d35085_1",
-        "ultrachat_466884",
-        "e72739cd_1",
-        "f8e9d4fa"
-      ],
-      "retrieved_top_snippets": [
-        "[2022/04/10 (Sun) 11:55] user: These are really helpful tips! I especially like the idea of suggesting sharing vegan dishes with my friends. I hope they'll be open to trying something different. I also just wanted to say",
-        "[2022/04/10 (Sun) 19:28] assistant: You've got a great starting point with your Trader Joe's haul!\n\nI've got some quick, delicious, and healthy recipe ideas that incorporate your fruits and veggies. Since you mentioned y",
-        "[2022/04/10 (Sun) 11:55] user: It's reassuring to know that more restaurants are offering vegan options. I used to struggle finding something to eat whenever I went out to eat with my friends who aren't vegan. Do you hav"
+        "[2023/04/11 (Tue) 20:41] user: I'm particularly interested in trying some of the classic Chicago eats. Can you recommend any good spots for Italian beef sandwiches? And do you have any tips on how to order it like a loca",
+        "[2023/04/11 (Tue) 02:12] user: Hi",
+        "[2023/04/11 (Tue) 02:12] assistant: Hello! How can I help you today?"
       ],
       "reason": "miss_at_5"
     },
@@ -278,14 +231,14 @@
       ],
       "retrieved_top_ids": [
         "369695b4_2",
-        "sharegpt_5YtukCb_0",
-        "7bb01253",
         "ultrachat_133409",
-        "2946bf12"
+        "ultrachat_91693",
+        "sharegpt_5YtukCb_0",
+        "577da76d_2"
       ],
       "retrieved_top_snippets": [
         "[2023/02/22 (Wed) 19:19] user: Can you list the most significant studies on this matter?",
-        "[2023/02/22 (Wed) 19:19] user: Can you provide links to the scientific articles you've listed?",
+        "[2023/02/28 (Tue) 13:18] user: It's great to hear about these initiatives! Do you know where I can find more information on them?",
         "[2023/03/01 (Wed) 19:28] user: I'd like to focus on my current projects, which include wrapping up the Johnson account, onboarding my new team, and mentoring Alex. The deadline for wrapping up the Johnson account is in t"
       ],
       "reason": "miss_at_5"
@@ -301,15 +254,15 @@
       ],
       "retrieved_top_ids": [
         "bb107057_2",
-        "b357fb8b_2",
+        "ultrachat_526748",
         "652c0717_3",
-        "864a563d_5",
-        "ultrachat_526748"
+        "b357fb8b_2",
+        "864a563d_5"
       ],
       "retrieved_top_snippets": [
+        "[2023/03/15 (Wed) 17:07] user: I'm looking for some new recipe ideas, particularly Italian dishes. I've been cooking at home a lot lately, about 4 times a week for the past 3 months, and I'm getting more comfortable with",
         "[2023/03/15 (Wed) 17:07] assistant: Thank you so much for your help and guidance! I'm really excited to try out the bulgur spaghetti with cherry tomatoes and mozzarella recipe. I think it's going to be a hit!\n\nI apprecia",
-        "[2023/03/15 (Wed) 17:07] assistant: Buon appetito! It's great to hear that you've been cooking at home regularly and feeling more confident in the kitchen. Italian cuisine offers a wealth of delicious and varied dishes t",
-        "[2023/02/23 (Thu) 19:39] assistant: You'll have a blast making okonomiyaki at home!\n\nAh, yes! Tokyo has plenty of amazing places to buy ingredients for Japanese cooking. Here are some popular options:\n\n1. **Tsukiji Outer"
+        "[2023/03/15 (Wed) 17:07] user: I'm excited to try out the bulgur spaghetti with cherry tomatoes and burrata recipe. I've never made burrata cheese from scratch before, but I might give it a shot. Do you have any recommen"
       ],
       "reason": "miss_at_5"
     }

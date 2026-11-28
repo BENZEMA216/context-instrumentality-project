@@ -3,8 +3,8 @@
   "suite_version": "1.0.0",
   "suite_sha256": "faaf53763019a000db7670b03ba4ee96cf2c55fb0ec540a3a53215cf8a0c5475",
   "integrity_verified": true,
-  "engine_label": "raw-memory-v0.6.0",
-  "evaluated_at_ms": 1795786254797,
+  "engine_label": "raw-memory-v0.7.0",
+  "evaluated_at_ms": 1795858189766,
   "total_cases": 32,
   "passed_cases": 32,
   "overall_pass_rate": 1.0,
@@ -15,8 +15,8 @@
   "ttl_expiry_pass_rate": 1.0,
   "avg_cacheable_prefix_ratio": 0.6874,
   "avg_tokens": 417.3,
-  "p50_latency_ms": 0.8,
-  "p95_latency_ms": 4.65,
+  "p50_latency_ms": 0.85,
+  "p95_latency_ms": 5.0,
   "by_pillar": [
     {
       "pillar": "cold_start_continuation",
@@ -86,7 +86,7 @@
       "approx_tokens": 463,
       "max_tokens": 2500,
       "cacheable_prefix_ratio": 0.75,
-      "latency_ms": 2.55,
+      "latency_ms": 3.69,
       "detail": ""
     },
     {
@@ -101,7 +101,7 @@
       "approx_tokens": 459,
       "max_tokens": 2500,
       "cacheable_prefix_ratio": 0.7531,
-      "latency_ms": 0.69,
+      "latency_ms": 0.8,
       "detail": ""
     },
     {
@@ -116,7 +116,7 @@
       "approx_tokens": 487,
       "max_tokens": 2500,
       "cacheable_prefix_ratio": 0.7016,
-      "latency_ms": 0.73,
+      "latency_ms": 0.75,
       "detail": ""
     },
     {
@@ -131,7 +131,7 @@
       "approx_tokens": 460,
       "max_tokens": 2500,
       "cacheable_prefix_ratio": 0.75,
-      "latency_ms": 0.64,
+      "latency_ms": 0.68,
       "detail": ""
     },
     {
@@ -146,7 +146,7 @@
       "approx_tokens": 341,
       "max_tokens": 2500,
       "cacheable_prefix_ratio": 0.6452,
-      "latency_ms": 0.94,
+      "latency_ms": 0.92,
       "detail": ""
     },
     {
@@ -161,7 +161,7 @@
       "approx_tokens": 451,
       "max_tokens": 2500,
       "cacheable_prefix_ratio": 0.7308,
-      "latency_ms": 0.91,
+      "latency_ms": 0.93,
       "detail": ""
     },
     {
@@ -176,7 +176,7 @@
       "approx_tokens": 335,
       "max_tokens": 2500,
       "cacheable_prefix_ratio": 0.6333,
-      "latency_ms": 0.82,
+      "latency_ms": 0.95,
       "detail": ""
     },
     {
@@ -191,7 +191,7 @@
       "approx_tokens": 445,
       "max_tokens": 2500,
       "cacheable_prefix_ratio": 0.7343,
-      "latency_ms": 0.72,
+      "latency_ms": 0.79,
       "detail": ""
     },
     {
@@ -206,7 +206,7 @@
       "approx_tokens": 343,
       "max_tokens": 2500,
       "cacheable_prefix_ratio": 0.6375,
-      "latency_ms": 0.78,
+      "latency_ms": 0.8,
       "detail": ""
     },
     {
@@ -221,7 +221,7 @@
       "approx_tokens": 343,
       "max_tokens": 2500,
       "cacheable_prefix_ratio": 0.6375,
-      "latency_ms": 0.76,
+      "latency_ms": 0.77,
       "detail": ""
     },
     {
@@ -236,7 +236,7 @@
       "approx_tokens": 0,
       "max_tokens": 2500,
       "cacheable_prefix_ratio": 0.0,
-      "latency_ms": 0.19,
+      "latency_ms": 0.23,
       "detail": ""
     },
     {
@@ -251,7 +251,7 @@
       "approx_tokens": 335,
       "max_tokens": 2500,
       "cacheable_prefix_ratio": 0.6333,
-      "latency_ms": 0.8,
+      "latency_ms": 0.88,
       "detail": ""
     },
     {
@@ -266,7 +266,7 @@
       "approx_tokens": 575,
       "max_tokens": 2500,
       "cacheable_prefix_ratio": 0.1718,
-      "latency_ms": 0.79,
+      "latency_ms": 0.85,
       "detail": ""
     },
     {
@@ -281,7 +281,7 @@
       "approx_tokens": 534,
       "max_tokens": 2500,
       "cacheable_prefix_ratio": 0.4207,
-      "latency_ms": 0.78,
+      "latency_ms": 0.8,
       "detail": ""
     },
     {
@@ -296,7 +296,7 @@
       "approx_tokens": 429,
       "max_tokens": 2500,
       "cacheable_prefix_ratio": 0.5,
-      "latency_ms": 0.74,
+      "latency_ms": 0.79,
       "detail": ""
     },
     {
@@ -311,7 +311,7 @@
       "approx_tokens": 0,
       "max_tokens": 2500,
       "cacheable_prefix_ratio": 0.0,
-      "latency_ms": 0.15,
+      "latency_ms": 0.19,
       "detail": ""
     },
     {
@@ -326,7 +326,7 @@
       "approx_tokens": 494,
       "max_tokens": 2500,
       "cacheable_prefix_ratio": 0.7838,
-      "latency_ms": 0.71,
+      "latency_ms": 0.75,
       "detail": ""
     },
     {
@@ -341,7 +341,7 @@
       "approx_tokens": 492,
       "max_tokens": 2500,
       "cacheable_prefix_ratio": 0.786,
-      "latency_ms": 0.67,
+      "latency_ms": 0.69,
       "detail": ""
     },
     {
@@ -356,7 +356,7 @@
       "approx_tokens": 489,
       "max_tokens": 2500,
       "cacheable_prefix_ratio": 0.7868,
-      "latency_ms": 0.57,
+      "latency_ms": 0.62,
       "detail": ""
     },
     {
@@ -371,7 +371,7 @@
       "approx_tokens": 488,
       "max_tokens": 2500,
       "cacheable_prefix_ratio": 0.786,
-      "latency_ms": 0.57,
+      "latency_ms": 0.58,
       "detail": ""
     },
     {
@@ -386,7 +386,7 @@
       "approx_tokens": 0,
       "max_tokens": 2500,
       "cacheable_prefix_ratio": 0.0,
-      "latency_ms": 1.99,
+      "latency_ms": 2.02,
       "detail": "blocked=True"
     },
     {
@@ -401,7 +401,7 @@
       "approx_tokens": 0,
       "max_tokens": 2500,
       "cacheable_prefix_ratio": 0.0,
-      "latency_ms": 3.6,
+      "latency_ms": 4.05,
       "detail": ""
     },
     {
@@ -416,7 +416,7 @@
       "approx_tokens": 0,
       "max_tokens": 2500,
       "cacheable_prefix_ratio": 0.0,
-      "latency_ms": 4.01,
+      "latency_ms": 4.46,
       "detail": ""
     },
     {
@@ -431,7 +431,7 @@
       "approx_tokens": 463,
       "max_tokens": 2500,
       "cacheable_prefix_ratio": 0.75,
-      "latency_ms": 0.57,
+      "latency_ms": 0.6,
       "detail": ""
     },
     {
@@ -446,7 +446,7 @@
       "approx_tokens": 382,
       "max_tokens": 2500,
       "cacheable_prefix_ratio": 0.5246,
-      "latency_ms": 5.22,
+      "latency_ms": 5.66,
       "detail": ""
     },
     {
@@ -461,7 +461,7 @@
       "approx_tokens": 226,
       "max_tokens": 2500,
       "cacheable_prefix_ratio": 1.0,
-      "latency_ms": 1.73,
+      "latency_ms": 1.79,
       "detail": ""
     },
     {
@@ -476,7 +476,7 @@
       "approx_tokens": 342,
       "max_tokens": 2500,
       "cacheable_prefix_ratio": 0.6352,
-      "latency_ms": 5.39,
+      "latency_ms": 5.85,
       "detail": ""
     },
     {
@@ -491,7 +491,7 @@
       "approx_tokens": 220,
       "max_tokens": 2500,
       "cacheable_prefix_ratio": 1.0,
-      "latency_ms": 0.81,
+      "latency_ms": 0.84,
       "detail": ""
     },
     {
@@ -506,7 +506,7 @@
       "approx_tokens": 327,
       "max_tokens": 2500,
       "cacheable_prefix_ratio": 0.6205,
-      "latency_ms": 0.8,
+      "latency_ms": 0.91,
       "detail": ""
     },
     {
@@ -521,7 +521,7 @@
       "approx_tokens": 0,
       "max_tokens": 2500,
       "cacheable_prefix_ratio": 0.0,
-      "latency_ms": 1.85,
+      "latency_ms": 1.88,
       "detail": ""
     },
     {
@@ -536,7 +536,7 @@
       "approx_tokens": 463,
       "max_tokens": 2500,
       "cacheable_prefix_ratio": 0.75,
-      "latency_ms": 4.54,
+      "latency_ms": 4.85,
       "detail": "identical=True, ratio=0.750"
     },
     {
@@ -551,7 +551,7 @@
       "approx_tokens": 463,
       "max_tokens": 2500,
       "cacheable_prefix_ratio": 0.75,
-      "latency_ms": 4.65,
+      "latency_ms": 5.0,
       "detail": "identical=True, ratio=0.750"
     }
   ]

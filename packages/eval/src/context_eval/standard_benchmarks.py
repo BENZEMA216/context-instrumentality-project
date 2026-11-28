@@ -38,10 +38,10 @@ from context_hub.models import now_ms
 from context_hub.store import HubStore
 
 LOCOMO_CATEGORIES: dict[int, str] = {
-    1: "single_hop",
+    1: "multi_hop",
     2: "temporal",
     3: "open_domain",
-    4: "multi_hop",
+    4: "single_hop",
     5: "adversarial",
 }
 
@@ -339,18 +339,27 @@ def _retrieve_locomo_ranked(
             use_semantic=use_semantic,
             embed_model=embed_model,
             embed_cache=embed_cache,
+            use_reranker=use_reranker,
+            rerank_model=rerank_model,
+            rerank_kinds=("memory",) if use_reranker else (),
         )
-        # Fuse L3 Curated Observations (evidence_ids), L1 Raw Turns, and L2 Episodes via RRF
+        # Fuse L3 Curated Observations (evidence_ids, already CE-reranked when use_reranker=True),
+        # L1 Raw Turns, and L2 Episodes via RRF
         scores: dict[str, float] = {}
+        obs_by_dia: dict[str, str] = {}
         rrf_k = 15.0
 
         for rank, mem in enumerate(res.get("memories") or []):
             for eid in mem.get("evidence_ids") or []:
                 dia = raw_to_dia.get(eid)
                 if dia:
-                    scores[dia] = scores.get(dia, 0.0) + 1.25 / (rrf_k + rank + 1)
+                    scores[dia] = scores.get(dia, 0.0) + (1.45 if use_reranker else 1.25) / (
+                        rrf_k + rank + 1
+                    )
                     if dia not in best_snippet:
                         best_snippet[dia] = f"[L3 Memory] {mem['body']} || {dia_to_text.get(dia, '')}"
+                    if dia not in obs_by_dia:
+                        obs_by_dia[dia] = str(mem.get("body") or "")
 
         for rank, hit in enumerate(res.get("raw_matches") or []):
             dia = raw_to_dia.get(hit["id"])
@@ -367,6 +376,7 @@ def _retrieve_locomo_ranked(
 
         rrf_order = [dia for dia, _ in sorted(scores.items(), key=lambda kv: kv[1], reverse=True)]
     elif use_semantic:
+        obs_by_dia = {}
         res = store.search_context(
             question,
             limit=cand_limit,
@@ -382,6 +392,7 @@ def _retrieve_locomo_ranked(
                 rrf_order.append(dia)
                 best_snippet[dia] = hit.get("snippet") or dia_to_text.get(dia, "")
     else:
+        obs_by_dia = {}
         raw_hits = store.list_raw(q=question, limit=max(top_k, 15), agent=True)
         for hit in raw_hits:
             dia = raw_to_dia.get(hit["id"])
@@ -391,56 +402,58 @@ def _retrieve_locomo_ranked(
 
     if use_reranker and rrf_order:
         from context_hub.semantic import (
-            DEFAULT_RERANK_MODEL,
+            calibrate_rerank_blend,
             rerank_candidates,
             reranker_available,
-            rrf_fuse_lists,
+            select_rerank_model,
         )
 
         if reranker_available():
-            # Expand top-12 RRF hits with their immediate reply/antecedent neighbors (±1 turn)
-            # so elliptical answers (e.g. reply turn following a question turn) enter reranking.
+            # Expand top-12 RRF hits with ±1 (other speaker) AND ±2 (same speaker continuation)
+            # neighbors so elliptical & multi-turn continuations enter the Cross-Encoder pool.
+            prev_map = dia_to_prev or {}
+            next_map = dia_to_next or {}
             pool: list[str] = []
             seen_p: set[str] = set()
-            for d in rrf_order[:20]:
+            for d in rrf_order[:22]:
                 if d not in seen_p:
                     seen_p.add(d)
                     pool.append(d)
             for d in rrf_order[:12]:
-                for nb in (
-                    (dia_to_next or {}).get(d),
-                    (dia_to_prev or {}).get(d),
-                ):
-                    if nb and nb not in seen_p and len(pool) < 32:
+                p1 = prev_map.get(d)
+                n1 = next_map.get(d)
+                p2 = prev_map.get(p1) if p1 else None
+                n2 = next_map.get(n1) if n1 else None
+                for nb in (n1, p1, n2, p2):
+                    if nb and nb not in seen_p and len(pool) < 40:
                         seen_p.add(nb)
                         pool.append(nb)
 
             cand_pairs: list[tuple[str, str]] = []
             for d in pool:
                 cur_t = dia_to_text.get(d, "")
-                prev_d = (dia_to_prev or {}).get(d)
-                prev_t = dia_to_text.get(prev_d, "") if prev_d else ""
-                obs_prefix = best_snippet.get(d, "") if best_snippet.get(d, "").startswith("[L3") else ""
+                p1 = prev_map.get(d)
+                p2 = prev_map.get(p1) if p1 else None
                 doc_parts = [cur_t]
-                if obs_prefix:
-                    doc_parts.append(obs_prefix[:300])
-                if prev_t:
-                    doc_parts.append(f"[Previous turn] {prev_t[:240]}")
+                obs_txt = obs_by_dia.get(d)
+                if obs_txt:
+                    doc_parts.append(f"[Fact summary] {obs_txt[:260]}")
+                if p1 and dia_to_text.get(p1):
+                    doc_parts.append(f"[Prev turn] {dia_to_text[p1][:220]}")
+                if p2 and dia_to_text.get(p2):
+                    doc_parts.append(f"[Earlier turn] {dia_to_text[p2][:180]}")
                 cand_pairs.append((d, "\n".join(doc_parts)))
 
-            ce_ranked = [
-                d
-                for d, _ in rerank_candidates(
-                    question,
-                    cand_pairs,
-                    model_name=rerank_model or DEFAULT_RERANK_MODEL,
+            rmodel = select_rerank_model(question, rerank_model)
+            ce_scored = rerank_candidates(question, cand_pairs, model_name=rmodel)
+            if ce_scored:
+                blended = calibrate_rerank_blend(
+                    rrf_order[:28],
+                    ce_scored,
+                    high_ce_weight=0.80,
+                    low_ce_weight=0.45,
                 )
-            ]
-            if ce_ranked:
-                rrf_order = rrf_fuse_lists(
-                    [(rrf_order[:25], 0.85), (ce_ranked, 1.55)],
-                    k=15.0,
-                )
+                rrf_order = [d for d, _ in blended]
 
     for dia in rrf_order[:top_k]:
         _push_dia(dia, best_snippet.get(dia))
@@ -816,6 +829,9 @@ def evaluate_longmemeval(
                 use_semantic=use_semantic,
                 embed_model=embed_model,
                 embed_cache=embed_cache,
+                use_reranker=use_reranker,
+                rerank_model=rerank_model,
+                rerank_kinds=("episode",) if use_reranker else (),
             )
 
             raw_hits = searched.get("raw_matches") or []
@@ -823,13 +839,12 @@ def evaluate_longmemeval(
             tw_meta = searched.get("temporal_window")
 
             # Derive session ranking: `ep_hits` from `store.search_context` ALREADY fuses
-            # BM25 + Multi-Chunk MaxSim + Temporal Window + deduplicated raw_hits, so avoid
-            # double-counting BM25 raw_hits when `use_semantic` is enabled.
+            # BM25 + Multi-Chunk MaxSim + Temporal Window + Stage-1.5 Session-Chunk Cross-Encoder.
             sess_scores: dict[str, float] = {}
             rrf_k = 15.0
             for rank, ep in enumerate(ep_hits):
                 sid = ep_to_sess.get(ep["id"], ep["id"])
-                sess_scores[sid] = sess_scores.get(sid, 0.0) + (1.85 if use_semantic else 1.15) / (
+                sess_scores[sid] = sess_scores.get(sid, 0.0) + (2.00 if use_semantic else 1.15) / (
                     rrf_k + rank + 1
                 )
             if not use_semantic:
@@ -853,11 +868,13 @@ def evaluate_longmemeval(
                 # Stage 2: Turn-level dense semantic reranking inside top candidate sessions
                 from context_hub.semantic import (
                     DEFAULT_EMBED_MODEL,
-                    DEFAULT_RERANK_MODEL,
+                    calibrate_rerank_blend,
                     cosine_top_k,
+                    query_targets_assistant,
                     rerank_candidates,
                     reranker_available,
                     rrf_fuse_lists,
+                    select_rerank_model,
                 )
 
                 active_model = embed_model or DEFAULT_EMBED_MODEL
@@ -887,7 +904,6 @@ def evaluate_longmemeval(
                         (sem_turns, 1.45),
                     ]
                     if tw_meta:
-                        # Lift turns inside the parsed temporal window ranked by semantic similarity
                         tw_s, tw_e = int(tw_meta["start_ms"]), int(tw_meta["end_ms"])
                         tw_turn_ids: list[str] = []
                         for rid, _ in sem_turn_pairs:
@@ -901,44 +917,56 @@ def evaluate_longmemeval(
                             )
                     fused_turns = rrf_fuse_lists(turn_lists, k=20.0)
 
-                    # Stage 3: Local ONNX Cross-Encoder Reranking on top-28 contextualized turns
+                    # Stage 3: Local ONNX Cross-Encoder with confidence-adaptive calibrated blend
                     if use_reranker and reranker_available() and fused_turns:
                         ce_pool = fused_turns[:28]
                         ce_pairs: list[tuple[str, str]] = []
                         for rid in ce_pool:
-                            role, sdate, content, prev_c = raw_to_meta.get(rid, ("user", "", raw_to_text.get(rid, ""), ""))
-                            if role == "user":
-                                doc = f"User said ({sdate}): {content[:950]}"
-                                if prev_c:
-                                    doc += f"\n[Previous context]: {prev_c[:180]}"
-                            else:
-                                doc = f"Assistant replied ({sdate}): {content[:950]}"
-                                if prev_c:
-                                    doc += f"\n[In reply to user]: {prev_c[:240]}"
-                            ce_pairs.append((rid, doc))
-                        ce_ranked = [
-                            rid
-                            for rid, _ in rerank_candidates(
-                                question,
-                                ce_pairs,
-                                model_name=rerank_model or DEFAULT_RERANK_MODEL,
+                            role, sdate, content, prev_c = raw_to_meta.get(
+                                rid, ("user", "", raw_to_text.get(rid, ""), "")
                             )
-                        ]
-                        if ce_ranked:
-                            ranked_turns = rrf_fuse_lists(
-                                [(fused_turns[:28], 0.85), (ce_ranked, 1.65)],
-                                k=15.0,
-                            )[:top_k]
-                            # Feed deduplicated top Cross-Encoder turn evidence back into session ranking
+                            if role == "user":
+                                # Keep user turns crisp & unpolluted by verbose prior assistant monologues
+                                doc = f"User ({sdate}): {content[:950]}"
+                            else:
+                                doc = f"Assistant ({sdate}): {content[:950]}"
+                                # Only attach prior user turn when it was a question (avoids copying
+                                # user fact statements into assistant replies and stealing Turn R@1!)
+                                if prev_c and "?" in prev_c:
+                                    doc += f"\n[In reply to question]: {prev_c[:150]}"
+                            ce_pairs.append((rid, doc))
+                        rmodel = select_rerank_model(question, rerank_model)
+                        ce_scored = rerank_candidates(question, ce_pairs, model_name=rmodel)
+                        if ce_scored:
+                            # First-person authority prior (RFC-0003): human-authored turns are
+                            # primary ground truth unless the query explicitly recalls a prior
+                            # assistant response/recommendation.
+                            asks_assistant = query_targets_assistant(question)
+                            role_bonuses: dict[str, float] = {}
+                            for rid in ce_pool:
+                                role_r = raw_to_meta.get(rid, ("user", "", "", ""))[0]
+                                if asks_assistant and role_r == "assistant":
+                                    role_bonuses[rid] = 0.14
+                                elif not asks_assistant and role_r == "user":
+                                    role_bonuses[rid] = 0.16
+                            blended_turns = calibrate_rerank_blend(
+                                fused_turns[:28],
+                                ce_scored,
+                                extra_bonuses=role_bonuses,
+                                high_ce_weight=0.80,
+                                low_ce_weight=0.42,
+                            )
+                            ranked_turns = [rid for rid, _ in blended_turns][:top_k]
+                            # Feed calibrated top Cross-Encoder turn evidence back into session ranking
                             seen_ce_sess: dict[str, int] = {}
-                            for rank, rid in enumerate(ce_ranked[:12]):
+                            for rank, (rid, bscore) in enumerate(blended_turns[:12]):
                                 sid = raw_to_sess.get(rid)
                                 if sid:
                                     cnt = seen_ce_sess.get(sid, 0)
                                     if cnt < 2:
                                         decay = 1.0 if cnt == 0 else 0.25
                                         sess_scores[sid] = sess_scores.get(sid, 0.0) + (
-                                            1.35 * decay / (rrf_k + rank + 1)
+                                            (1.10 + 0.60 * bscore) * decay / (rrf_k + rank + 1)
                                         )
                                         seen_ce_sess[sid] = cnt + 1
                         else:

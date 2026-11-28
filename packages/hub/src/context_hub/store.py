@@ -2773,33 +2773,38 @@ class HubStore:
         model: str,
         top_k: int,
         min_score: float = 0.25,
-    ) -> tuple[list[tuple[str, float]], dict[str, float]]:
-        """Multi-vector MaxSim episode ranking over `episode_chunk` (falls back to `episode`)."""
+    ) -> tuple[list[tuple[str, float]], dict[str, float], dict[str, str]]:
+        """Multi-vector MaxSim episode ranking over `episode_chunk` (falls back to `episode`).
+
+        Returns `(ranked_pairs, ep_score_map, best_chunk_id_by_ep)`.
+        """
         chunk_ids, mat = self._load_semantic_matrix(conn, "episode_chunk", model)
         if chunk_ids:
             scores = mat @ query_vec
-            per_ep: dict[str, list[float]] = defaultdict(list)
+            per_ep: dict[str, list[tuple[float, str]]] = defaultdict(list)
             for idx, cid in enumerate(chunk_ids):
                 sc = float(scores[idx])
                 eid = cid.rsplit("::", 1)[0]
-                per_ep[eid].append(sc)
+                per_ep[eid].append((sc, cid))
             ep_score_map: dict[str, float] = {}
-            for eid, vals in per_ep.items():
-                vals.sort(reverse=True)
-                best = vals[0]
-                second = vals[1] if len(vals) > 1 else 0.0
+            best_chunk_map: dict[str, str] = {}
+            for eid, pairs in per_ep.items():
+                pairs.sort(key=lambda kv: kv[0], reverse=True)
+                best, best_cid = pairs[0]
+                second = pairs[1][0] if len(pairs) > 1 else 0.0
                 ep_score_map[eid] = best + 0.15 * max(0.0, second)
+                best_chunk_map[eid] = best_cid
             ranked = [
                 (eid, sc)
                 for eid, sc in sorted(ep_score_map.items(), key=lambda kv: kv[1], reverse=True)
                 if sc >= min_score
             ][:top_k]
-            return ranked, ep_score_map
+            return ranked, ep_score_map, best_chunk_map
 
         # Fallback to single-vector `episode` embeddings
         ep_ids, ep_mat = self._load_semantic_matrix(conn, "episode", model)
         if not ep_ids:
-            return [], {}
+            return [], {}, {}
         scores = ep_mat @ query_vec
         ep_score_map = {ep_ids[i]: float(scores[i]) for i in range(len(ep_ids))}
         ranked = [
@@ -2807,7 +2812,49 @@ class HubStore:
             for eid, sc in sorted(ep_score_map.items(), key=lambda kv: kv[1], reverse=True)
             if sc >= min_score
         ][:top_k]
-        return ranked, ep_score_map
+        return ranked, ep_score_map, {}
+
+    def _extract_episode_chunk_text(
+        self,
+        conn: sqlite3.Connection,
+        ep: dict[str, Any],
+        chunk_id: str | None,
+        *,
+        agent: bool = True,
+    ) -> str:
+        """Reconstruct the concise winning chunk text for an episode for Cross-Encoder reranking."""
+        summary_txt = f"{ep.get('title') or ''}\n{ep.get('summary') or ''}\n{ep.get('overview') or ''}".strip()
+        if len(summary_txt) >= 120:
+            return summary_txt[:1100]
+        priv_c = "AND r.privacy_tier != 'local_only'" if agent else ""
+        turn_rows = conn.execute(
+            f"""SELECT r.actor, r.body_text FROM raw_events r
+                JOIN episode_events ee ON ee.raw_id = r.id
+                WHERE ee.episode_id=? AND r.deleted=0 {priv_c}
+                ORDER BY r.t_start ASC LIMIT 60""",
+            (ep["id"],),
+        ).fetchall()
+        user_turns = [
+            (tr["body_text"] or "").strip()[:360]
+            for tr in turn_rows
+            if str(tr["actor"] or "").lower() in ("self", "user") and (tr["body_text"] or "").strip()
+        ]
+        asst_turns = [
+            (tr["body_text"] or "").strip()[:260]
+            for tr in turn_rows
+            if str(tr["actor"] or "").lower() not in ("self", "user") and (tr["body_text"] or "").strip()
+        ]
+        tag = chunk_id.rsplit("::", 1)[1] if (chunk_id and "::" in chunk_id) else ""
+        if tag.startswith("u") and tag[1:].isdigit():
+            cidx = int(tag[1:]) * 3
+            grp = user_turns[cidx : cidx + 3]
+            if grp:
+                return f"{ep.get('title') or ''}\n" + "\n".join(grp)[:1100]
+        if tag == "a0" and asst_turns:
+            return f"{ep.get('title') or ''}\n" + "\n".join(asst_turns[:4])[:1100]
+        if user_turns:
+            return f"{ep.get('title') or ''}\n" + "\n".join(user_turns[:4])[:1100]
+        return summary_txt[:1100]
 
     def get_evidence_context_window(
         self,
@@ -3392,6 +3439,7 @@ class HubStore:
         embed_cache: Any | None = None,
         use_reranker: bool = False,
         rerank_model: str | None = None,
+        rerank_kinds: tuple[str, ...] = ("episode", "memory", "raw"),
     ) -> dict[str, Any]:
         fts_q = fts_match_query(query)
         fts_or = fts_match_query_or(query)
@@ -3506,6 +3554,7 @@ class HubStore:
             sem_ep_ids: list[str] = []
             sem_mem_ids: list[str] = []
             ep_sem_score_map: dict[str, float] = {}
+            best_chunk_map: dict[str, str] = {}
             has_sem = False
             if use_semantic is not False and query.strip():
                 from .semantic import (
@@ -3526,7 +3575,7 @@ class HubStore:
                     else:
                         q_vec = embed_texts_direct([query.strip()], model_name=active_model)[0]
 
-                    sem_ep_pairs, ep_sem_score_map = self._semantic_episode_maxsim(
+                    sem_ep_pairs, ep_sem_score_map, best_chunk_map = self._semantic_episode_maxsim(
                         conn, query_vec=q_vec, model=active_model, top_k=limit * 2
                     )
                     if sem_ep_pairs:
@@ -3710,20 +3759,62 @@ class HubStore:
             )
             raw_hits = [item for _, item in raw_hits]
 
-        # 6. Optional Local ONNX Cross-Encoder Reranking on top fused candidates
+        # 6. Optional Local ONNX Cross-Encoder Reranking (confidence-adaptive calibrated blend)
         if use_reranker and query.strip():
             from .semantic import (
-                DEFAULT_RERANK_MODEL,
+                calibrate_rerank_blend,
+                query_targets_assistant,
                 rerank_candidates,
                 reranker_available,
-                rrf_fuse_lists,
+                select_rerank_model,
             )
 
             if reranker_available():
-                rmodel = rerank_model or DEFAULT_RERANK_MODEL
-                if len(raw_hits) > 1:
+                rmodel = select_rerank_model(query, rerank_model)
+
+                # 6a. Session-Best-Chunk Cross-Encoder Reranking on top candidate episodes
+                if "episode" in rerank_kinds and len(episodes_out) > 1:
+                    top_ep = episodes_out[:20]
+                    with self._tx(False) as conn:
+                        cand_ep = [
+                            (
+                                ep["id"],
+                                self._extract_episode_chunk_text(
+                                    conn, ep, best_chunk_map.get(ep["id"]), agent=agent
+                                ),
+                            )
+                            for ep in top_ep
+                        ]
+                    ce_ep_scored = rerank_candidates(query, cand_ep, model_name=rmodel)
+                    if ce_ep_scored:
+                        ep_bonuses: dict[str, float] = {}
+                        if temp_window is not None:
+                            for ep in top_ep:
+                                prox = temporal_proximity_score(
+                                    int(ep.get("t_start") or 0),
+                                    int(ep.get("t_end") or 0),
+                                    temp_window,
+                                )
+                                if prox > 0:
+                                    ep_bonuses[ep["id"]] = (
+                                        0.30 if temp_window.specificity == "point" else 0.14
+                                    ) * prox
+                        blended_ep = calibrate_rerank_blend(
+                            [ep["id"] for ep in top_ep],
+                            ce_ep_scored,
+                            extra_bonuses=ep_bonuses,
+                            high_ce_weight=0.70,
+                            low_ce_weight=0.38,
+                        )
+                        ep_by_id = {ep["id"]: ep for ep in episodes_out}
+                        reranked_ep = [ep_by_id[eid] for eid, _ in blended_ep if eid in ep_by_id]
+                        seen_ep = {ep["id"] for ep in reranked_ep}
+                        episodes_out = reranked_ep + [ep for ep in episodes_out if ep["id"] not in seen_ep]
+
+                # 6b. Turn Cross-Encoder with [Prev2] + [Prev1] dialogue continuity context
+                if "raw" in rerank_kinds and len(raw_hits) > 1:
                     top_n = raw_hits[:25]
-                    prev_by_raw: dict[str, str] = {}
+                    prev_by_raw: dict[str, list[str]] = {}
                     ep_ids_for_prev = list({r["episode_id"] for r in top_n if r.get("episode_id")})
                     if ep_ids_for_prev:
                         with self._tx(False) as conn:
@@ -3736,12 +3827,16 @@ class HubStore:
                                 ep_ids_for_prev,
                             ).fetchall()
                             last_ep = None
-                            last_txt = ""
+                            hist_buf: list[str] = []
                             for tr in ep_turns:
-                                if tr["episode_id"] == last_ep and last_txt:
-                                    prev_by_raw[str(tr["id"])] = last_txt
-                                last_ep = tr["episode_id"]
-                                last_txt = f"{tr['actor'] or ''}: {(tr['body_text'] or '')[:220]}"
+                                if tr["episode_id"] != last_ep:
+                                    last_ep = tr["episode_id"]
+                                    hist_buf = []
+                                if hist_buf:
+                                    prev_by_raw[str(tr["id"])] = list(hist_buf[-2:])
+                                hist_buf.append(
+                                    f"{tr['actor'] or ''}: {(tr['body_text'] or '')[:200]}"
+                                )
                     cand_raw: list[tuple[str, str]] = []
                     for r in top_n:
                         actor_lbl = (
@@ -3750,31 +3845,44 @@ class HubStore:
                             else str(r.get("actor") or "assistant")
                         )
                         doc = f"{actor_lbl}: {(r.get('body_text') or r.get('snippet') or '')[:950]}"
-                        prev_ctx = prev_by_raw.get(r["id"])
-                        if prev_ctx:
-                            doc += f"\n[Previous turn] {prev_ctx}"
+                        prev_list = prev_by_raw.get(r["id"]) or []
+                        if prev_list:
+                            doc += "\n[Previous turns] " + " | ".join(prev_list)
                         cand_raw.append((r["id"], doc))
-                    ce_raw = [rid for rid, _ in rerank_candidates(query, cand_raw, model_name=rmodel)]
-                    if ce_raw:
-                        raw_by_id = {r["id"]: r for r in raw_hits}
-                        fused_r = rrf_fuse_lists(
-                            [([r["id"] for r in top_n], 0.90), (ce_raw, 1.45)],
-                            k=15.0,
+                    ce_raw_scored = rerank_candidates(query, cand_raw, model_name=rmodel)
+                    if ce_raw_scored:
+                        asks_asst = query_targets_assistant(query)
+                        role_bonuses: dict[str, float] = {}
+                        for r in top_n:
+                            is_human = str(r.get("actor") or "").lower() in ("self", "user")
+                            if asks_asst != is_human:
+                                role_bonuses[r["id"]] = 0.14
+                        blended_r = calibrate_rerank_blend(
+                            [r["id"] for r in top_n],
+                            ce_raw_scored,
+                            extra_bonuses=role_bonuses,
+                            high_ce_weight=0.78,
+                            low_ce_weight=0.45,
                         )
-                        reranked = [raw_by_id[rid] for rid in fused_r if rid in raw_by_id]
+                        raw_by_id = {r["id"]: r for r in raw_hits}
+                        reranked = [raw_by_id[rid] for rid, _ in blended_r if rid in raw_by_id]
                         seen_rr = {r["id"] for r in reranked}
                         raw_hits = reranked + [r for r in raw_hits if r["id"] not in seen_rr]
-                if len(memories_out) > 1:
-                    top_m = memories_out[:20]
+
+                # 6c. Memory Cross-Encoder Reranking
+                if "memory" in rerank_kinds and len(memories_out) > 1:
+                    top_m = memories_out[:25]
                     cand_m = [(m["id"], f"{m['title']}\n{m['body'][:800]}") for m in top_m]
-                    ce_m = [mid for mid, _ in rerank_candidates(query, cand_m, model_name=rmodel)]
-                    if ce_m:
-                        mem_by_id = {m["id"]: m for m in memories_out}
-                        fused_m = rrf_fuse_lists(
-                            [([m["id"] for m in top_m], 0.90), (ce_m, 1.35)],
-                            k=15.0,
+                    ce_m_scored = rerank_candidates(query, cand_m, model_name=rmodel)
+                    if ce_m_scored:
+                        blended_m = calibrate_rerank_blend(
+                            [m["id"] for m in top_m],
+                            ce_m_scored,
+                            high_ce_weight=0.76,
+                            low_ce_weight=0.45,
                         )
-                        reranked_m = [mem_by_id[mid] for mid in fused_m if mid in mem_by_id]
+                        mem_by_id = {m["id"]: m for m in memories_out}
+                        reranked_m = [mem_by_id[mid] for mid, _ in blended_m if mid in mem_by_id]
                         seen_rm = {m["id"] for m in reranked_m}
                         memories_out = reranked_m + [m for m in memories_out if m["id"] not in seen_rm]
 

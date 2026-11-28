@@ -12,17 +12,44 @@ Design goals:
 from __future__ import annotations
 
 import hashlib
+import math
 import os
+import re
 import sqlite3
 from pathlib import Path
 from typing import Any
 
 DEFAULT_EMBED_MODEL = os.environ.get("RAW_MEMORY_EMBED_MODEL", "BAAI/bge-small-en-v1.5")
-DEFAULT_RERANK_MODEL = os.environ.get("RAW_MEMORY_RERANK_MODEL", "Xenova/ms-marco-MiniLM-L-6-v2")
+DEFAULT_RERANK_MODEL = os.environ.get("RAW_MEMORY_RERANK_MODEL", "Xenova/ms-marco-MiniLM-L-12-v2")
 MULTILINGUAL_EMBED_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+MULTILINGUAL_RERANK_MODEL = os.environ.get(
+    "RAW_MEMORY_MULTILINGUAL_RERANK_MODEL", "BAAI/bge-reranker-v2-m3-int8"
+)
+_CJK_RE = re.compile(r"[\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af]")
+_ASSISTANT_RECALL_RE = re.compile(
+    r"\b(?:did you|you (?:recommended|suggested|provided|mentioned|told|said|gave|listed|wrote|explained|proposed|shared)"
+    r"|your (?:previous|earlier|last) (?:recommendation|suggestion|advice|list|response|answer)"
+    r"|remind me\b|we (?:discussed|talked about)|our previous (?:chat|conversation|discussion))\b"
+    r"|你(?:之前|上次)?(?:推荐|建议|说过|提到|告诉|列出|写的)|提醒我(?:一下|之前)",
+    re.I,
+)
 
 _MODEL_CACHE: dict[str, Any] = {}
 _RERANKER_CACHE: dict[str, Any] = {}
+
+
+def query_targets_assistant(query: str) -> bool:
+    """Return True if the query explicitly recalls a prior assistant response/recommendation."""
+    return bool(_ASSISTANT_RECALL_RE.search(query or ""))
+
+
+def select_rerank_model(query: str, override: str | None = None) -> str:
+    """Choose the best local ONNX Cross-Encoder: multilingual int8 for CJK, MiniLM-L-12 for Latin."""
+    if override:
+        return override
+    if _CJK_RE.search(query or ""):
+        return MULTILINGUAL_RERANK_MODEL
+    return DEFAULT_RERANK_MODEL
 
 
 def semantic_available() -> bool:
@@ -252,3 +279,55 @@ def rrf_fuse_lists(
         for rank, item_id in enumerate(ids):
             scores[item_id] = scores.get(item_id, 0.0) + weight / (k + rank + 1)
     return [item_id for item_id, _ in sorted(scores.items(), key=lambda kv: kv[1], reverse=True)]
+
+
+def calibrate_rerank_blend(
+    rrf_order: list[str],
+    ce_scored_pairs: list[tuple[str, float]],
+    *,
+    extra_bonuses: dict[str, float] | None = None,
+    high_ce_weight: float = 0.78,
+    low_ce_weight: float = 0.42,
+    rrf_k: float = 15.0,
+) -> list[tuple[str, float]]:
+    """Confidence-adaptive calibrated fusion of Stage-1 RRF order and Cross-Encoder logits.
+
+    Preserves the Cross-Encoder's actual confidence margin (via temperature-scaled sigmoid +
+    min-max normalization) instead of discarding logit magnitudes in rank-only RRF, while
+    smoothly shifting weight back toward Stage-1 Dense/BM25 RRF when all CE logits are low
+    (e.g. abstract zero-overlap preference queries).
+    """
+    if not ce_scored_pairs:
+        return [(cid, 1.0 / (rrf_k + idx + 1)) for idx, cid in enumerate(rrf_order)]
+
+    rrf_raw: dict[str, float] = {}
+    for idx, cid in enumerate(rrf_order):
+        if cid not in rrf_raw:
+            rrf_raw[cid] = 1.0 / (rrf_k + idx + 1)
+    max_rrf = max(rrf_raw.values()) if rrf_raw else 1.0
+
+    logits = [sc for _, sc in ce_scored_pairs]
+    max_l = max(logits)
+    min_l = min(logits)
+    span_l = max(1e-6, max_l - min_l)
+
+    # Smooth confidence gate based on top Cross-Encoder logit:
+    # max_logit <= -6.0 -> low_ce_weight; max_logit >= +1.0 -> high_ce_weight
+    conf = max(0.0, min(1.0, (max_l + 6.0) / 7.0))
+    alpha = low_ce_weight + conf * (high_ce_weight - low_ce_weight)
+
+    ce_norm: dict[str, float] = {}
+    for cid, sc in ce_scored_pairs:
+        sig = 1.0 / (1.0 + math.exp(-max(-20.0, min(20.0, sc / 2.0))))
+        mm = (sc - min_l) / span_l
+        ce_norm[cid] = 0.55 * sig + 0.45 * mm
+
+    all_ids = list(dict.fromkeys([cid for cid, _ in ce_scored_pairs] + rrf_order))
+    bonuses = extra_bonuses or {}
+    blended: list[tuple[str, float]] = []
+    for cid in all_ids:
+        r_n = rrf_raw.get(cid, 0.0) / max_rrf
+        c_n = ce_norm.get(cid, 0.0)
+        blended.append((cid, alpha * c_n + (1.0 - alpha) * r_n + bonuses.get(cid, 0.0)))
+    blended.sort(key=lambda kv: kv[1], reverse=True)
+    return blended

@@ -1,32 +1,32 @@
 # Raw Memory Benchmark Report — `locomo` (raw+semantic+rerank)
 
-- **Engine**: `raw-memory-v0.6.0-maxsim-temporal-rerank`
+- **Engine**: `raw-memory-v0.7.0-calibrated-hierarchical-rerank`
 - **Questions**: `1982` scored / `1986` total
-- **Latency**: p50=`179.56 ms`, p95=`224.88 ms`, wall=`357.76 s`
+- **Latency**: p50=`716.96 ms`, p95=`1096.05 ms`, wall=`1516.91 s`
 
 ## Overall Metrics
 
 | R@1 | R@5 | R@10 | All-R@5 | All-R@10 | NDCG@5 | NDCG@10 | MRR | Ans-Cov@5 | Ans-Cov@10 |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 47.4% | 80.3% | 86.9% | 69.6% | 76.5% | 61.7% | 64.2% | 61.1% | 61.2% | 67.8% |
+| 53.2% | 83.5% | 89.5% | 72.7% | 79.6% | 66.2% | 68.6% | 66.0% | 64.4% | 70.6% |
 
 ## Breakdown by Category
 
 | Category | N | R@1 | R@5 | R@10 | All-R@5 | NDCG@5 | MRR | Ans-Cov@5 |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| `adversarial` | 446 | 44.0% | 84.1% | 91.7% | 82.7% | 65.5% | 60.8% | 84.1% |
-| `multi_hop` | 841 | 52.8% | 86.1% | 91.6% | 83.7% | 70.0% | 66.5% | 73.6% |
-| `open_domain` | 92 | 25.0% | 43.5% | 57.6% | 27.2% | 29.6% | 33.0% | 9.8% |
-| `single_hop` | 282 | 36.5% | 69.2% | 78.7% | 17.0% | 37.2% | 50.8% | 23.4% |
-| `temporal` | 321 | 54.2% | 80.1% | 83.8% | 72.9% | 65.4% | 64.5% | 44.5% |
+| `adversarial` | 446 | 52.7% | 88.8% | 95.5% | 87.9% | 72.5% | 68.2% | 88.8% |
+| `multi_hop` | 282 | 41.1% | 71.3% | 80.1% | 16.3% | 39.1% | 54.1% | 24.8% |
+| `open_domain` | 92 | 25.0% | 47.8% | 58.7% | 30.4% | 31.1% | 34.7% | 12.0% |
+| `single_hop` | 841 | 59.1% | 89.7% | 94.2% | 87.3% | 75.2% | 72.0% | 77.8% |
+| `temporal` | 321 | 57.0% | 81.0% | 86.0% | 75.1% | 67.6% | 66.9% | 45.2% |
 
 ## Sample Failure Cases (Top 8 for Debugging)
 
 - **`[temporal]` `conv-26#q1`** (`miss_at_5`): *When did Melanie paint a sunrise?* (gold=['D1:12'], got=['D1:14', 'D1:15', 'D14:7'])
-- **`[single_hop]` `conv-26#q4`** (`miss_at_5`): *What is Caroline's identity?* (gold=['D1:5'], got=['D11:12', 'D17:19', 'D3:3'])
-- **`[single_hop]` `conv-26#q13`** (`miss_at_5`): *What career path has Caroline decided to persue?* (gold=['D1:11', 'D4:13'], got=['D4:12', 'D4:11', 'D7:7'])
-- **`[single_hop]` `conv-26#q19`** (`miss_at_5`): *What do Melanie's kids like?* (gold=['D4:8', 'D6:6'], got=['D19:4', 'D18:7', 'D18:8'])
-- **`[single_hop]` `conv-26#q24`** (`miss_at_5`): *What does Melanie do to destress?* (gold=['D5:4', 'D7:22'], got=['D7:20', 'D2:5', 'D12:12'])
-- **`[open_domain]` `conv-26#q27`** (`miss_at_5`): *Would Caroline pursue writing as a career option?* (gold=['D7:5', 'D7:9'], got=['D1:9', 'D7:7', 'D4:11'])
-- **`[temporal]` `conv-26#q33`** (`miss_at_5`): *When did Caroline go to a pride parade during the summer?* (gold=['D5:1'], got=['D8:17', 'D12:16', 'D8:18'])
-- **`[single_hop]` `conv-26#q34`** (`miss_at_5`): *What events has Caroline participated in to help children?* (gold=['D3:3', 'D9:2'], got=['D11:2', 'D6:4', 'D8:32'])
+- **`[multi_hop]` `conv-26#q4`** (`miss_at_5`): *What is Caroline's identity?* (gold=['D1:5'], got=['D11:12', 'D11:14', 'D11:13'])
+- **`[multi_hop]` `conv-26#q19`** (`miss_at_5`): *What do Melanie's kids like?* (gold=['D4:8', 'D6:6'], got=['D18:7', 'D19:6', 'D19:4'])
+- **`[open_domain]` `conv-26#q27`** (`miss_at_5`): *Would Caroline pursue writing as a career option?* (gold=['D7:5', 'D7:9'], got=['D1:9', 'D1:11', 'D1:10'])
+- **`[multi_hop]` `conv-26#q34`** (`miss_at_5`): *What events has Caroline participated in to help children?* (gold=['D3:3', 'D9:2'], got=['D11:2', 'D6:4', 'D10:9'])
+- **`[temporal]` `conv-26#q35`** (`miss_at_5`): *When did Melanie go camping in July?* (gold=['D9:1'], got=['D10:12', 'D10:14', 'D8:32'])
+- **`[multi_hop]` `conv-26#q38`** (`miss_at_5`): *What activities has Melanie done with her family?* (gold=['D1:18', 'D3:14', 'D6:4', 'D8:4', 'D8:6', 'D9:1'], got=['D8:34', 'D3:22', 'D4:10'])
+- **`[open_domain]` `conv-26#q42`** (`miss_at_5`): *Would Melanie be more interested in going to a national park or a theme park?* (gold=['D10:12', 'D10:14'], got=['D15:2', 'D15:3', 'D15:4'])
