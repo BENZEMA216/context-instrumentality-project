@@ -1,29 +1,29 @@
 {
   "suite": "longmemeval-s",
   "mode": "hub_retrieval+semantic+rerank",
-  "engine_label": "raw-memory-v0.7.0-calibrated-hierarchical-rerank",
+  "engine_label": "raw-memory-v0.8.0-graph-multihop-rerank",
   "dataset_path": "/Users/benzema/.local/share/context-hub-v2/benchmarks/longmemeval_s_cleaned.json",
-  "evaluated_at_ms": 1795854832563,
+  "evaluated_at_ms": 1795879222996,
   "total_questions": 500,
   "scored_questions": 470,
   "abstention_questions": 30,
   "overall": {
-    "sess_r@1": 0.9447,
-    "sess_r@5": 0.9894,
-    "sess_r@10": 0.9936,
-    "sess_all_r@5": 0.9255,
-    "sess_all_r@10": 0.9447,
-    "sess_ndcg@5": 0.9498,
-    "sess_ndcg@10": 0.9534,
-    "sess_mrr": 0.9635,
-    "turn_r@1": 0.6979,
+    "sess_r@1": 0.9468,
+    "sess_r@5": 0.9915,
+    "sess_r@10": 0.9915,
+    "sess_all_r@5": 0.9234,
+    "sess_all_r@10": 0.9426,
+    "sess_ndcg@5": 0.9484,
+    "sess_ndcg@10": 0.9516,
+    "sess_mrr": 0.9648,
+    "turn_r@1": 0.7,
     "turn_r@5": 0.934,
-    "turn_r@10": 0.9617,
-    "turn_ndcg@5": 0.7665,
-    "turn_ndcg@10": 0.7931,
-    "turn_mrr": 0.7997,
-    "ans_cov@5": 0.6404,
-    "ans_cov@10": 0.6872
+    "turn_r@10": 0.9681,
+    "turn_ndcg@5": 0.7683,
+    "turn_ndcg@10": 0.7961,
+    "turn_mrr": 0.8017,
+    "ans_cov@5": 0.6426,
+    "ans_cov@10": 0.6915
   },
   "by_category": {
     "knowledge-update": {
@@ -58,8 +58,8 @@
       "turn_r@1": 0.7686,
       "turn_r@5": 0.9752,
       "turn_r@10": 0.9917,
-      "turn_ndcg@5": 0.7418,
-      "turn_ndcg@10": 0.7878,
+      "turn_ndcg@5": 0.7422,
+      "turn_ndcg@10": 0.7882,
       "turn_mrr": 0.8567,
       "ans_cov@5": 0.5041,
       "ans_cov@10": 0.562
@@ -123,22 +123,22 @@
     },
     "temporal-reasoning": {
       "count": 127,
-      "sess_r@1": 0.9213,
-      "sess_r@5": 0.9764,
-      "sess_r@10": 0.9921,
-      "sess_all_r@5": 0.8268,
-      "sess_all_r@10": 0.8661,
-      "sess_ndcg@5": 0.9087,
-      "sess_ndcg@10": 0.9143,
-      "sess_mrr": 0.9473,
-      "turn_r@1": 0.6535,
+      "sess_r@1": 0.9291,
+      "sess_r@5": 0.9843,
+      "sess_r@10": 0.9843,
+      "sess_all_r@5": 0.8189,
+      "sess_all_r@10": 0.8583,
+      "sess_ndcg@5": 0.9037,
+      "sess_ndcg@10": 0.9079,
+      "sess_mrr": 0.9521,
+      "turn_r@1": 0.6614,
       "turn_r@5": 0.8898,
-      "turn_r@10": 0.9291,
-      "turn_ndcg@5": 0.7076,
-      "turn_ndcg@10": 0.7419,
-      "turn_mrr": 0.756,
-      "ans_cov@5": 0.4646,
-      "ans_cov@10": 0.5512
+      "turn_r@10": 0.9528,
+      "turn_ndcg@5": 0.7137,
+      "turn_ndcg@10": 0.7527,
+      "turn_mrr": 0.7632,
+      "ans_cov@5": 0.4724,
+      "ans_cov@10": 0.5669
     }
   },
   "abstention_metrics": {
@@ -146,9 +146,9 @@
     "refuting_sess_r@10": 1.0,
     "zero_hit_rate": 0.0
   },
-  "latency_p50_ms": 1336.204,
-  "latency_p95_ms": 2152.079,
-  "total_elapsed_s": 789.25,
+  "latency_p50_ms": 2796.242,
+  "latency_p95_ms": 4461.875,
+  "total_elapsed_s": 1656.55,
   "sample_failures": [
     {
       "suite": "longmemeval-s",
@@ -210,12 +210,12 @@
         "ultrachat_323709",
         "sharegpt_C2Qfdn8_0",
         "25e5b797_1",
-        "ultrachat_59629"
+        "sharegpt_0PLBHdX_15"
       ],
       "retrieved_top_snippets": [
         "[2023/04/11 (Tue) 20:41] user: I'm particularly interested in trying some of the classic Chicago eats. Can you recommend any good spots for Italian beef sandwiches? And do you have any tips on how to order it like a loca",
         "[2023/04/11 (Tue) 02:12] user: Hi",
-        "[2023/04/11 (Tue) 02:12] assistant: Hello! How can I help you today?"
+        "[2023/04/11 (Tue) 09:07] user: I'm really excited to explore Passau and Cesky Krumlov now. Do you have any tips for finding good local restaurants in either town?"
       ],
       "reason": "miss_at_5"
     },
@@ -233,36 +233,13 @@
         "369695b4_2",
         "ultrachat_133409",
         "ultrachat_91693",
-        "sharegpt_5YtukCb_0",
-        "577da76d_2"
+        "e552e1f9_2",
+        "sharegpt_uc7artm_7"
       ],
       "retrieved_top_snippets": [
-        "[2023/02/22 (Wed) 19:19] user: Can you list the most significant studies on this matter?",
         "[2023/02/28 (Tue) 13:18] user: It's great to hear about these initiatives! Do you know where I can find more information on them?",
+        "[2023/03/01 (Wed) 00:25] user: Can you provide examples of notable research projects conducted at universities in the past 5 years?",
         "[2023/03/01 (Wed) 19:28] user: I'd like to focus on my current projects, which include wrapping up the Johnson account, onboarding my new team, and mentoring Alex. The deadline for wrapping up the Johnson account is in t"
-      ],
-      "reason": "miss_at_5"
-    },
-    {
-      "suite": "longmemeval-s",
-      "item_id": "gpt4_8279ba03",
-      "category": "temporal-reasoning",
-      "question": "What kitchen appliance did I buy 10 days ago?",
-      "expected_answer": "a smoker",
-      "gold_ids": [
-        "answer_56521e66_1"
-      ],
-      "retrieved_top_ids": [
-        "bb107057_2",
-        "ultrachat_526748",
-        "652c0717_3",
-        "b357fb8b_2",
-        "864a563d_5"
-      ],
-      "retrieved_top_snippets": [
-        "[2023/03/15 (Wed) 17:07] user: I'm looking for some new recipe ideas, particularly Italian dishes. I've been cooking at home a lot lately, about 4 times a week for the past 3 months, and I'm getting more comfortable with",
-        "[2023/03/15 (Wed) 17:07] assistant: Thank you so much for your help and guidance! I'm really excited to try out the bulgur spaghetti with cherry tomatoes and mozzarella recipe. I think it's going to be a hit!\n\nI apprecia",
-        "[2023/03/15 (Wed) 17:07] user: I'm excited to try out the bulgur spaghetti with cherry tomatoes and burrata recipe. I've never made burrata cheese from scratch before, but I might give it a shot. Do you have any recommen"
       ],
       "reason": "miss_at_5"
     }

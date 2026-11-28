@@ -330,6 +330,12 @@ def _retrieve_locomo_ranked(
     best_snippet: dict[str, str] = {}
     rrf_order: list[str] = []
 
+    from context_hub.graph import analyze_query_structure
+
+    q_plan = analyze_query_structure(question)
+    mem_ev_map: dict[str, list[str]] = {}
+    mem_body_map: dict[str, str] = {}
+
     if mode == "curated":
         res = store.search_context(
             question,
@@ -350,7 +356,11 @@ def _retrieve_locomo_ranked(
         rrf_k = 15.0
 
         for rank, mem in enumerate(res.get("memories") or []):
-            for eid in mem.get("evidence_ids") or []:
+            mid = str(mem["id"])
+            ev_ids = list(mem.get("evidence_ids") or [])
+            mem_ev_map[mid] = ev_ids
+            mem_body_map[mid] = str(mem.get("body") or "")
+            for eid in ev_ids:
                 dia = raw_to_dia.get(eid)
                 if dia:
                     scores[dia] = scores.get(dia, 0.0) + (1.45 if use_reranker else 1.25) / (
@@ -374,9 +384,71 @@ def _retrieve_locomo_ranked(
                 if dia not in best_snippet:
                     best_snippet[dia] = f"[L2 Episode] {ep.get('summary') or ''} || {dia_to_text.get(dia, '')}"
 
+        # Track A: Syntactic Multi-Hop / Dual-Entity / Choice Sub-Query Fusion (gentle recall boost)
+        for sq in q_plan.sub_queries[:2]:
+            sub_res = store.search_context(
+                sq,
+                limit=10,
+                agent=True,
+                max_tokens=16_000,
+                use_semantic=use_semantic,
+                embed_model=embed_model,
+                embed_cache=embed_cache,
+                use_reranker=False,
+            )
+            for rank, mem in enumerate(sub_res.get("memories") or []):
+                for eid in mem.get("evidence_ids") or []:
+                    dia = raw_to_dia.get(eid)
+                    if dia:
+                        scores[dia] = scores.get(dia, 0.0) + 0.35 / (rrf_k + rank + 1)
+                        if dia not in best_snippet:
+                            best_snippet[dia] = f"[L3 Memory] {mem['body']} || {dia_to_text.get(dia, '')}"
+                        if dia not in obs_by_dia:
+                            obs_by_dia[dia] = str(mem.get("body") or "")
+            for rank, hit in enumerate(sub_res.get("raw_matches") or []):
+                dia = raw_to_dia.get(hit["id"])
+                if dia:
+                    scores[dia] = scores.get(dia, 0.0) + 0.25 / (rrf_k + rank + 1)
+                    if dia not in best_snippet:
+                        best_snippet[dia] = hit.get("snippet") or dia_to_text.get(dia, "")
+
+        # Track A: 2-Hop Curated-Observation Entity-Concept Graph Walk (strict co-occurrence)
+        if q_plan.is_multi_hop or q_plan.is_open_inference:
+            seed_obs = [str(m.get("body") or "") for m in (res.get("memories") or [])[:5]] + [
+                str(h.get("snippet") or "") for h in (res.get("raw_matches") or [])[:4]
+            ]
+            graph_mems = store.graph_bridge_search(
+                question, seed_obs, item_kind="memory", top_k=12, agent=True
+            )
+            if graph_mems:
+                missing_mids = [mid for mid, _ in graph_mems if mid not in mem_ev_map]
+                if missing_mids:
+                    for mid in missing_mids:
+                        try:
+                            mobj = store.expand(mid, kind="memory", level="summary", agent=True)[
+                                "record"
+                            ]
+                            mem_ev_map[mid] = list(mobj.get("evidence_ids") or [])
+                            mem_body_map[mid] = str(mobj.get("body") or "")
+                        except Exception:
+                            mem_ev_map[mid] = []
+                for rank, (mid, _) in enumerate(graph_mems):
+                    for eid in mem_ev_map.get(mid) or []:
+                        dia = raw_to_dia.get(eid)
+                        if dia:
+                            scores[dia] = scores.get(dia, 0.0) + 0.32 / (rrf_k + rank + 1)
+                            if dia not in obs_by_dia and mem_body_map.get(mid):
+                                obs_by_dia[dia] = mem_body_map[mid]
+                            if dia not in best_snippet and mem_body_map.get(mid):
+                                best_snippet[dia] = (
+                                    f"[L3 Graph] {mem_body_map[mid]} || {dia_to_text.get(dia, '')}"
+                                )
+
         rrf_order = [dia for dia, _ in sorted(scores.items(), key=lambda kv: kv[1], reverse=True)]
     elif use_semantic:
         obs_by_dia = {}
+        scores_raw: dict[str, float] = {}
+        rrf_k = 15.0
         res = store.search_context(
             question,
             limit=cand_limit,
@@ -386,11 +458,31 @@ def _retrieve_locomo_ranked(
             embed_model=embed_model,
             embed_cache=embed_cache,
         )
-        for hit in res.get("raw_matches") or []:
+        for rank, hit in enumerate(res.get("raw_matches") or []):
             dia = raw_to_dia.get(hit["id"])
-            if dia and dia not in best_snippet:
-                rrf_order.append(dia)
-                best_snippet[dia] = hit.get("snippet") or dia_to_text.get(dia, "")
+            if dia:
+                scores_raw[dia] = scores_raw.get(dia, 0.0) + 1.0 / (rrf_k + rank + 1)
+                if dia not in best_snippet:
+                    best_snippet[dia] = hit.get("snippet") or dia_to_text.get(dia, "")
+        for sq in q_plan.sub_queries[:2]:
+            sub_res = store.search_context(
+                sq,
+                limit=14,
+                agent=True,
+                max_tokens=16_000,
+                use_semantic=True,
+                embed_model=embed_model,
+                embed_cache=embed_cache,
+            )
+            for rank, hit in enumerate(sub_res.get("raw_matches") or []):
+                dia = raw_to_dia.get(hit["id"])
+                if dia:
+                    scores_raw[dia] = scores_raw.get(dia, 0.0) + 0.65 / (rrf_k + rank + 1)
+                    if dia not in best_snippet:
+                        best_snippet[dia] = hit.get("snippet") or dia_to_text.get(dia, "")
+        rrf_order = [
+            dia for dia, _ in sorted(scores_raw.items(), key=lambda kv: kv[1], reverse=True)
+        ]
     else:
         obs_by_dia = {}
         raw_hits = store.list_raw(q=question, limit=max(top_k, 15), agent=True)
@@ -425,7 +517,7 @@ def _retrieve_locomo_ranked(
                 p2 = prev_map.get(p1) if p1 else None
                 n2 = next_map.get(n1) if n1 else None
                 for nb in (n1, p1, n2, p2):
-                    if nb and nb not in seen_p and len(pool) < 40:
+                    if nb and nb not in seen_p and len(pool) < 42:
                         seen_p.add(nb)
                         pool.append(nb)
 
@@ -434,6 +526,7 @@ def _retrieve_locomo_ranked(
                 cur_t = dia_to_text.get(d, "")
                 p1 = prev_map.get(d)
                 p2 = prev_map.get(p1) if p1 else None
+                n1 = next_map.get(d)
                 doc_parts = [cur_t]
                 obs_txt = obs_by_dia.get(d)
                 if obs_txt:
@@ -442,6 +535,9 @@ def _retrieve_locomo_ranked(
                     doc_parts.append(f"[Prev turn] {dia_to_text[p1][:220]}")
                 if p2 and dia_to_text.get(p2):
                     doc_parts.append(f"[Earlier turn] {dia_to_text[p2][:180]}")
+                # Bidirectional follow-up cue ONLY for image-bearing turns ("take a look at this")
+                if n1 and dia_to_text.get(n1) and "(image:" in cur_t:
+                    doc_parts.append(f"[Next reply] {dia_to_text[n1][:140]}")
                 cand_pairs.append((d, "\n".join(doc_parts)))
 
             rmodel = select_rerank_model(question, rerank_model)
@@ -474,6 +570,7 @@ def evaluate_locomo(
     embed_cache_path: Path | None = None,
     use_reranker: bool = False,
     rerank_model: str | None = None,
+    e2e_pack_dir: Path | None = None,
 ) -> StandardBenchmarkReport:
     """Evaluate Raw Memory on LoCoMo (`locomo10.json` or schema-compatible fixture)."""
     t_wall0 = time.perf_counter()
@@ -494,6 +591,8 @@ def evaluate_locomo(
     failures: list[BenchmarkFailureSample] = []
     total_q = 0
     scored_q = 0
+    e2e_reader_rows: list[dict[str, Any]] = []
+    e2e_gold_map: dict[str, dict[str, Any]] = {}
 
     try:
       for conv_idx, sample in enumerate(data):
@@ -599,6 +698,9 @@ def evaluate_locomo(
                 memories=memories_payload if mode == "curated" else None,
                 project=f"locomo-{sample.get('sample_id', conv_idx)}",
             )
+            store.index_entity_graph(
+                kinds=("raw", "memory") if mode == "curated" else ("raw",),
+            )
             if use_semantic:
                 store.index_semantic(
                     kinds=("raw", "episode", "memory") if mode == "curated" else ("raw",),
@@ -649,6 +751,53 @@ def evaluate_locomo(
                 all_rows.append(m)
                 by_cat_rows[cat_name].append(m)
 
+                if e2e_pack_dir is not None:
+                    item_id = f"{sample.get('sample_id', conv_idx)}#q{qidx}"
+                    is_adv = cat_num == 5
+                    gold_ans = (
+                        f"UNANSWERABLE / FALSE PREMISE (adversarial trap: {qa.get('adversarial_answer', '')})"
+                        if is_adv
+                        else str(qa.get("answer") or "")
+                    )
+                    ctx_lines: list[str] = []
+                    seen_cd: set[str] = set()
+                    for r_i, (dia, snip) in enumerate(
+                        zip(ranked_dias[:top_k], snippets[:top_k], strict=False)
+                    ):
+                        blk: list[str] = []
+                        if snip.startswith("[L3"):
+                            blk.append(f"  {snip.split(' || ', 1)[0]}")
+                        for nb_d in (dia_to_prev.get(dia), dia, dia_to_next.get(dia)):
+                            if nb_d and nb_d not in seen_cd and nb_d in dia_to_text:
+                                seen_cd.add(nb_d)
+                                mark = " *" if nb_d == dia else ""
+                                blk.append(f"  [{nb_d}{mark}] {dia_to_text[nb_d]}")
+                        if blk:
+                            ctx_lines.append(f"Excerpt #{r_i + 1}:\n" + "\n".join(blk))
+                    ctx_text = "\n".join(ctx_lines)[:9000]
+                    full_hist_chars = sum(len(t) + 4 for t in dia_to_text.values())
+                    e2e_reader_rows.append(
+                        {
+                            "item_id": item_id,
+                            "question": question,
+                            "question_date": "",
+                            "context_text": ctx_text,
+                            "context_tokens": max(1, len(ctx_text) // 4),
+                        }
+                    )
+                    e2e_gold_map[item_id] = {
+                        "item_id": item_id,
+                        "category": cat_name,
+                        "is_abstention": is_adv,
+                        "question": question,
+                        "question_date": "",
+                        "gold_answer": gold_ans,
+                        "retrieval_hit_at_5": bool(m["r@5"] > 0),
+                        "retrieval_hit_at_10": bool(m["r@10"] > 0),
+                        "context_tokens": max(1, len(ctx_text) // 4),
+                        "full_history_tokens": max(1, full_hist_chars // 4),
+                    }
+
                 if m["r@5"] == 0.0 and len(failures) < max_failures:
                     failures.append(
                         BenchmarkFailureSample(
@@ -670,6 +819,16 @@ def evaluate_locomo(
     finally:
         if embed_cache is not None:
             embed_cache.close()
+
+    if e2e_pack_dir is not None:
+        out_p = Path(e2e_pack_dir)
+        out_p.mkdir(parents=True, exist_ok=True)
+        with (out_p / "reader_inputs.jsonl").open("w", encoding="utf-8") as fh:
+            for r_row in e2e_reader_rows:
+                fh.write(json.dumps(r_row, ensure_ascii=False) + "\n")
+        (out_p / "gold_key.json").write_text(
+            json.dumps(e2e_gold_map, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
 
     by_category = {
         cat: {"count": len(rows), **_mean_metrics(rows)}
@@ -713,6 +872,7 @@ def evaluate_longmemeval(
     embed_cache_path: Path | None = None,
     use_reranker: bool = False,
     rerank_model: str | None = None,
+    e2e_pack_dir: Path | None = None,
 ) -> StandardBenchmarkReport:
     """Evaluate Raw Memory on LongMemEval-S or LongMemEval-Oracle.
 
@@ -741,6 +901,8 @@ def evaluate_longmemeval(
     by_cat_rows: dict[str, list[dict[str, float]]] = defaultdict(list)
     latencies: list[float] = []
     failures: list[BenchmarkFailureSample] = []
+    e2e_reader_rows: list[dict[str, Any]] = []
+    e2e_gold_map: dict[str, dict[str, Any]] = {}
 
     try:
       for item in data:
@@ -878,10 +1040,36 @@ def evaluate_longmemeval(
                 )
 
                 active_model = embed_model or DEFAULT_EMBED_MODEL
+                from context_hub.temporal import TemporalWindow, temporal_proximity_score
+
+                tw_obj = (
+                    TemporalWindow(
+                        start_ms=int(tw_meta["start_ms"]),
+                        end_ms=int(tw_meta["end_ms"]),
+                        center_ms=int(tw_meta["center_ms"]),
+                        specificity=str(tw_meta.get("specificity") or "range"),
+                        matched_phrase=str(tw_meta.get("matched_phrase") or ""),
+                    )
+                    if tw_meta
+                    else None
+                )
+                sess_date_ms_map = {
+                    sid: _parse_longmemeval_datetime_ms(sdate, idx)
+                    for idx, (sid, sdate) in enumerate(zip(sess_ids, sess_dates, strict=False))
+                }
                 cand_sess_n = 10 if use_reranker else 8
                 cand_rids: list[str] = []
                 seen_r: set[str] = set()
-                for sid in ranked_sessions[:cand_sess_n]:
+                cand_sids_list = list(ranked_sessions[:cand_sess_n])
+                # Guarantee exact-date sessions inside a point-in-time window enter Stage-2 turns
+                if tw_obj is not None and tw_obj.specificity == "point":
+                    for sid, s_ms in sess_date_ms_map.items():
+                        prox_s = temporal_proximity_score(s_ms, s_ms, tw_obj)
+                        if prox_s >= 0.65 and sid not in cand_sids_list:
+                            cand_sids_list.append(sid)
+                        if prox_s >= 0.80:
+                            sess_scores[sid] = sess_scores.get(sid, 0.0) + 0.10 * prox_s
+                for sid in cand_sids_list:
                     for rid in sess_to_raw_ids.get(sid, []):
                         if rid not in seen_r:
                             seen_r.add(rid)
@@ -903,17 +1091,19 @@ def evaluate_longmemeval(
                         (bm25_turns, 0.95),
                         (sem_turns, 1.45),
                     ]
-                    if tw_meta:
-                        tw_s, tw_e = int(tw_meta["start_ms"]), int(tw_meta["end_ms"])
-                        tw_turn_ids: list[str] = []
-                        for rid, _ in sem_turn_pairs:
-                            _, sdate_t, _, _ = raw_to_meta.get(rid, ("user", "", "", ""))
-                            t_ms_t = _parse_longmemeval_datetime_ms(sdate_t, 0)
-                            if tw_s <= t_ms_t <= tw_e:
-                                tw_turn_ids.append(rid)
+                    if tw_obj is not None:
+                        tw_turn_scored: list[tuple[str, float]] = []
+                        for rid, sc in sem_turn_pairs:
+                            sid_t = raw_to_sess.get(rid, "")
+                            t_ms_t = sess_date_ms_map.get(sid_t, 0)
+                            prox_t = temporal_proximity_score(t_ms_t, t_ms_t, tw_obj)
+                            if prox_t > 0.15:
+                                tw_turn_scored.append((rid, 0.55 * sc + 0.45 * prox_t))
+                        tw_turn_scored.sort(key=lambda kv: kv[1], reverse=True)
+                        tw_turn_ids = [rid for rid, _ in tw_turn_scored]
                         if tw_turn_ids:
                             turn_lists.append(
-                                (tw_turn_ids, 1.15 if tw_meta.get("specificity") == "point" else 0.70)
+                                (tw_turn_ids, 1.45 if tw_obj.specificity == "point" else 0.70)
                             )
                     fused_turns = rrf_fuse_lists(turn_lists, k=20.0)
 
@@ -945,10 +1135,19 @@ def evaluate_longmemeval(
                             role_bonuses: dict[str, float] = {}
                             for rid in ce_pool:
                                 role_r = raw_to_meta.get(rid, ("user", "", "", ""))[0]
+                                b_val = 0.0
                                 if asks_assistant and role_r == "assistant":
-                                    role_bonuses[rid] = 0.14
+                                    b_val += 0.14
                                 elif not asks_assistant and role_r == "user":
-                                    role_bonuses[rid] = 0.16
+                                    b_val += 0.16
+                                if tw_obj is not None and tw_obj.specificity == "point":
+                                    sid_r = raw_to_sess.get(rid, "")
+                                    t_ms_r = sess_date_ms_map.get(sid_r, 0)
+                                    prox_r = temporal_proximity_score(t_ms_r, t_ms_r, tw_obj)
+                                    if prox_r > 0.2:
+                                        b_val += 0.34 * prox_r
+                                if b_val > 0.0:
+                                    role_bonuses[rid] = b_val
                             blended_turns = calibrate_rerank_blend(
                                 fused_turns[:28],
                                 ce_scored,
@@ -1001,6 +1200,81 @@ def evaluate_longmemeval(
             ranked_texts = [raw_to_text.get(rid, "") for rid in ranked_turns]
 
             sess_m = compute_ranking_metrics(ranked_sessions, gold_sess_ids, ks=(1, 5, 10))
+            if e2e_pack_dir is not None:
+                sess_to_date_map = dict(zip(sess_ids, sess_dates, strict=False))
+                top_hit_set = set(ranked_turns[:top_k])
+                chosen_rids: set[str] = set()
+                for rid in ranked_turns[:top_k]:
+                    sid_c = raw_to_sess.get(rid)
+                    if not sid_c:
+                        continue
+                    s_rids = sess_to_raw_ids.get(sid_c, [])
+                    if rid in s_rids:
+                        idx_c = s_rids.index(rid)
+                        for nb_i in (idx_c - 1, idx_c, idx_c + 1):
+                            if 0 <= nb_i < len(s_rids):
+                                chosen_rids.add(s_rids[nb_i])
+                for sid_c in ranked_sessions[:5]:
+                    for rid in sess_to_raw_ids.get(sid_c, []):
+                        chosen_rids.add(rid)
+                # Allocate budget in retrieval-rank priority FIRST so rank-#1 sessions never get
+                # starved by older low-rank distractors, then render selected sessions chronologically.
+                rank_ordered_sids: list[str] = []
+                for sid_c in ranked_sessions[:5]:
+                    if sid_c not in rank_ordered_sids:
+                        rank_ordered_sids.append(sid_c)
+                for rid in ranked_turns[:top_k]:
+                    sid_c = raw_to_sess.get(rid)
+                    if sid_c and sid_c not in rank_ordered_sids:
+                        rank_ordered_sids.append(sid_c)
+                selected_blocks: list[tuple[int, str]] = []
+                used_c = 0
+                for sid_c in rank_ordered_sids:
+                    sd_c = sess_to_date_map.get(sid_c, "")
+                    bl_lines = [f"=== Session ({sd_c}) ==="]
+                    for rid in sess_to_raw_ids.get(sid_c, []):
+                        if rid not in chosen_rids:
+                            continue
+                        rr_role, _, rr_content, _ = raw_to_meta[rid]
+                        if rid in top_hit_set:
+                            cap_l = 4000
+                        elif rr_role == "user":
+                            cap_l = 1200
+                        else:
+                            cap_l = 1800
+                        bl_lines.append(f"{rr_role}: {rr_content[:cap_l]}")
+                    if len(bl_lines) > 1:
+                        blk_str = "\n".join(bl_lines)
+                        if used_c + len(blk_str) > 36_000 and selected_blocks:
+                            continue
+                        selected_blocks.append(
+                            (_parse_longmemeval_datetime_ms(sd_c, 0), blk_str)
+                        )
+                        used_c += len(blk_str)
+                selected_blocks.sort(key=lambda kv: kv[0])
+                ctx_text = "\n\n".join(b for _, b in selected_blocks)
+                full_chars = sum(len(t) + 12 for t in raw_to_text.values())
+                e2e_reader_rows.append(
+                    {
+                        "item_id": qid,
+                        "question": question,
+                        "question_date": str(item.get("question_date") or ""),
+                        "context_text": ctx_text,
+                        "context_tokens": max(1, len(ctx_text) // 4),
+                    }
+                )
+                e2e_gold_map[qid] = {
+                    "item_id": qid,
+                    "category": qtype,
+                    "is_abstention": is_abs,
+                    "question": question,
+                    "question_date": str(item.get("question_date") or ""),
+                    "gold_answer": str(answer or ""),
+                    "retrieval_hit_at_5": bool(sess_m["r@5"] > 0 or is_abs),
+                    "retrieval_hit_at_10": bool(sess_m["r@10"] > 0 or is_abs),
+                    "context_tokens": max(1, len(ctx_text) // 4),
+                    "full_history_tokens": max(1, full_chars // 4),
+                }
             if is_abs:
                 abs_rows.append(
                     {
@@ -1052,6 +1326,16 @@ def evaluate_longmemeval(
     finally:
         if embed_cache is not None:
             embed_cache.close()
+
+    if e2e_pack_dir is not None:
+        out_p = Path(e2e_pack_dir)
+        out_p.mkdir(parents=True, exist_ok=True)
+        with (out_p / "reader_inputs.jsonl").open("w", encoding="utf-8") as fh:
+            for r_row in e2e_reader_rows:
+                fh.write(json.dumps(r_row, ensure_ascii=False) + "\n")
+        (out_p / "gold_key.json").write_text(
+            json.dumps(e2e_gold_map, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
 
     by_category = {
         cat: {"count": len(rows), **_mean_metrics(rows)}

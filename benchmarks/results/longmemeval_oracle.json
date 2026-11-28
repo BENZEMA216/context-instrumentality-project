@@ -1,9 +1,9 @@
 {
   "suite": "longmemeval-oracle",
   "mode": "hub_retrieval+semantic+rerank",
-  "engine_label": "raw-memory-v0.7.0-calibrated-hierarchical-rerank",
+  "engine_label": "raw-memory-v0.8.1-graph-multihop-rerank",
   "dataset_path": "/Users/benzema/.local/share/context-hub-v2/benchmarks/longmemeval_oracle.json",
-  "evaluated_at_ms": 1795854042844,
+  "evaluated_at_ms": 1795883404241,
   "total_questions": 500,
   "scored_questions": 470,
   "abstention_questions": 30,
@@ -17,11 +17,11 @@
     "sess_ndcg@10": 1.0,
     "sess_mrr": 1.0,
     "turn_r@1": 0.7404,
-    "turn_r@5": 0.9596,
-    "turn_r@10": 0.9894,
-    "turn_ndcg@5": 0.8094,
-    "turn_ndcg@10": 0.8411,
-    "turn_mrr": 0.8404,
+    "turn_r@5": 0.9617,
+    "turn_r@10": 0.9872,
+    "turn_ndcg@5": 0.8103,
+    "turn_ndcg@10": 0.8402,
+    "turn_mrr": 0.8408,
     "ans_cov@5": 0.6553,
     "ans_cov@10": 0.6957
   },
@@ -58,8 +58,8 @@
       "turn_r@1": 0.8099,
       "turn_r@5": 0.9835,
       "turn_r@10": 0.9917,
-      "turn_ndcg@5": 0.7807,
-      "turn_ndcg@10": 0.8329,
+      "turn_ndcg@5": 0.7794,
+      "turn_ndcg@10": 0.8316,
       "turn_mrr": 0.8815,
       "ans_cov@5": 0.5041,
       "ans_cov@10": 0.5702
@@ -132,11 +132,11 @@
       "sess_ndcg@10": 1.0,
       "sess_mrr": 1.0,
       "turn_r@1": 0.7165,
-      "turn_r@5": 0.9528,
-      "turn_r@10": 0.9921,
-      "turn_ndcg@5": 0.7768,
-      "turn_ndcg@10": 0.8173,
-      "turn_mrr": 0.8217,
+      "turn_r@5": 0.9606,
+      "turn_r@10": 0.9843,
+      "turn_ndcg@5": 0.7812,
+      "turn_ndcg@10": 0.8151,
+      "turn_mrr": 0.8231,
       "ans_cov@5": 0.5276,
       "ans_cov@10": 0.5827
     }
@@ -146,8 +146,8 @@
     "refuting_sess_r@10": 1.0,
     "zero_hit_rate": 0.0
   },
-  "latency_p50_ms": 631.592,
-  "latency_p95_ms": 927.255,
-  "total_elapsed_s": 293.04,
+  "latency_p50_ms": 676.324,
+  "latency_p95_ms": 1143.035,
+  "total_elapsed_s": 323.81,
   "sample_failures": []
 }

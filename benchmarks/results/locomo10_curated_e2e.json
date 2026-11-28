@@ -1,0 +1,327 @@
+{
+  "suite": "locomo-curated",
+  "engine_label": "raw-memory-v0.8.1-graph-multihop-rerank",
+  "reader_model": "gemini-flash (Antigravity blind worker)",
+  "judge_model": "gemini-flash (ACL-2024 / Mem0 official judge prompt)",
+  "evaluated_at_ms": 1795883357292,
+  "total_questions": 492,
+  "scored_questions": 392,
+  "abstention_questions": 100,
+  "overall_accuracy": 0.75,
+  "positive_accuracy": 0.7015,
+  "abstention_accuracy": 0.94,
+  "avg_token_f1": 0.1631,
+  "retrieval_r5": 0.7679,
+  "retrieval_r10": 0.8418,
+  "avg_context_tokens": 1395.1,
+  "avg_full_history_tokens": 26537.0,
+  "token_reduction_pct": 94.7,
+  "by_category": {
+    "adversarial": {
+      "count": 100,
+      "accuracy": 0.94,
+      "retrieval_r5": 0.91,
+      "retrieval_r10": 0.95
+    },
+    "multi_hop": {
+      "count": 100,
+      "accuracy": 0.57,
+      "retrieval_r5": 0.81,
+      "retrieval_r10": 0.88,
+      "token_f1": 0.1494
+    },
+    "open_domain": {
+      "count": 92,
+      "accuracy": 0.4783,
+      "retrieval_r5": 0.5435,
+      "retrieval_r10": 0.6522,
+      "token_f1": 0.0962
+    },
+    "single_hop": {
+      "count": 100,
+      "accuracy": 0.95,
+      "retrieval_r5": 0.86,
+      "retrieval_r10": 0.92,
+      "token_f1": 0.2567
+    },
+    "temporal": {
+      "count": 100,
+      "accuracy": 0.79,
+      "retrieval_r5": 0.84,
+      "retrieval_r10": 0.9,
+      "token_f1": 0.1448
+    }
+  },
+  "sample_errors": [
+    {
+      "item_id": "conv-26#q15",
+      "category": "multi_hop",
+      "question": "What activities does Melanie partake in?",
+      "gold_answer": "pottery, camping, painting, swimming",
+      "predicted_answer": "Melanie partakes in running, reading, playing the violin, pottery, and nature-inspired painting with her kids. She also goes camping with her family—hiking, exploring nature, roasting marshmallows, and telling stories around the campfire—and takes her kids to the museum, the park, and concerts.",
+      "judge_reason": "Covers pottery, camping, and painting, but omits 'swimming' from the Gold multi-item list.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-26#q23",
+      "category": "multi_hop",
+      "question": "What books has Melanie read?",
+      "gold_answer": "\"Nothing is Impossible\", \"Charlotte's Web\"",
+      "predicted_answer": "Melanie read \"Charlotte's Web\" as a kid, read an unnamed book with a gold coin on the cover in 2022 (\"last year\" as of 12 July 2023), and as of 13 October 2023 had been reading the book Caroline previously recommended (\"Becoming Nicole\" by Amy Ellis Nutt, which Caroline recommended on 12 July 2023).",
+      "judge_reason": "Includes 'Charlotte's Web' but omits the book title 'Nothing is Impossible' (referring to it only as an unnamed book).",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-26#q39",
+      "category": "multi_hop",
+      "question": "In what ways is Caroline participating in the LGBTQ community?",
+      "gold_answer": "Joining activist group, going to pride parades, participating in an art show, mentoring program",
+      "predicted_answer": "Caroline participates in the LGBTQ community by attending support groups, pride parades, and an LGBTQ conference; speaking at a school event; mentoring LGBTQ youth; joining the activist group \"Connected LGBTQ Activists\" to attend meetings and plan events and campaigns; and creating paintings that advocate for inclusivity, diversity, and trans acceptance.",
+      "judge_reason": "Covers activist group, pride parades, and mentoring program, but omits 'participating in an art show'.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-26#q43",
+      "category": "multi_hop",
+      "question": "What kind of art does Caroline make?",
+      "gold_answer": "abstract art",
+      "predicted_answer": "Caroline creates paintings and drawings—primarily paintings—focused on expressing her feelings, gender identity, and journey as a trans woman, featuring themes of self-acceptance, love, warmth, and breaking away from binary gender norms.",
+      "judge_reason": "Describes paintings and themes but omits 'abstract art', which is the Gold answer.",
+      "retrieval_hit_at_5": false
+    },
+    {
+      "item_id": "conv-26#q51",
+      "category": "multi_hop",
+      "question": "What has Melanie painted?",
+      "gold_answer": "Horse, sunset, sunrise",
+      "predicted_answer": "Melanie has painted a lake sunrise (in 2022), a sunflower on canvas, and nature-inspired paintings with her kids—including a sunset with a palm tree. She also painted a sunset with a pink sky and an abstract painting featuring peaceful blue streaks and vibrant colors.",
+      "judge_reason": "Missing a key item from Gold ('Horse'): generated answer covers sunrise and sunset, but omits horse.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-26#q56",
+      "category": "multi_hop",
+      "question": "What symbols are important to Caroline?",
+      "gold_answer": "Rainbow flag, transgender symbol",
+      "predicted_answer": "Important symbols to Caroline include the rainbow flag and rainbow designs (representing the courage, strength, and togetherness of the trans community), the eagle (freedom, pride, and resilience), and a key in stained glass (unlocking one's true potential). She also treasures a necklace from her grandmother in Sweden, which symbolizes love, faith, and strength.",
+      "judge_reason": "Missing a key item from Gold ('transgender symbol'): generated answer mentions the rainbow flag and other symbols, but omits the transgender symbol.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-26#q59",
+      "category": "open_domain",
+      "question": "Would Caroline be considered religious?",
+      "gold_answer": "Somewhat, but not extremely religious",
+      "predicted_answer": "The excerpts do not explicitly state whether Caroline is religious, so it cannot be definitively determined from the history. While she treasures a childhood necklace from her grandmother symbolizing \"love, faith and strength\" and describes herself as \"blessed\" with support, she also recounted an upsetting encounter with religious conservatives on a hike on August 17, 2023.",
+      "judge_reason": "Fails to match Gold ('Somewhat, but not extremely religious'): generated answer declines to answer, stating it cannot be definitively determined.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-26#q69",
+      "category": "open_domain",
+      "question": "What personality traits might Melanie say Caroline has?",
+      "gold_answer": "Thoughtful, authentic, driven",
+      "predicted_answer": "Melanie would likely describe Caroline as strong, brave, and inspiring for sharing her journey and speaking up for the trans community. She also views Caroline as supportive and dependable (\"always been there for me\") as well as passionate about helping others and children.",
+      "judge_reason": "Does not cover the key traits in Gold ('Thoughtful, authentic, driven'): generated answer lists different traits (strong, brave, inspiring, supportive, dependable, passionate).",
+      "retrieval_hit_at_5": false
+    },
+    {
+      "item_id": "conv-26#q77",
+      "category": "open_domain",
+      "question": "Would Melanie go on another roadtrip soon?",
+      "gold_answer": "Likely no; since this one went badly",
+      "predicted_answer": "It is not mentioned in the excerpts whether Melanie plans to go on another roadtrip soon. However, on 20 October 2023, she described her recent weekend roadtrip as a very scary experience after her son got into an accident and said she was thankful it was over.",
+      "judge_reason": "Fails to match Gold ('Likely no; since this one went badly'): generated answer abstains by saying it is not mentioned whether she plans to go on another roadtrip soon.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-26#q78",
+      "category": "multi_hop",
+      "question": "What items has Melanie bought?",
+      "gold_answer": "Figurines, shoes",
+      "predicted_answer": "According to the excerpts, Melanie bought figurines (shown as wooden dolls) on 21 October 2023 (\"yesterday\" in her 22 October 2023 message) that remind her of family love.",
+      "judge_reason": "Missing a key item from Gold ('shoes'): generated answer mentions figurines, but omits shoes.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-26#q81",
+      "category": "open_domain",
+      "question": "Would Caroline want to move back to her home country soon?",
+      "gold_answer": "No; she's in the process of adopting children.",
+      "predicted_answer": "It is not mentioned in the excerpts whether Caroline wants to move back to her home country (Sweden) soon. She only notes that she moved from there four years prior to June 2023 and is focused on adopting and building a family.",
+      "judge_reason": "Fails to match Gold ('No; she's in the process of adopting children.'): generated answer abstains by stating it is not mentioned whether she wants to move back soon.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-26#q149",
+      "category": "single_hop",
+      "question": "What do Melanie's family give her?",
+      "gold_answer": "Strength and motivation",
+      "predicted_answer": "Melanie's family gives her love, support (helping her through tough times), motivation, joy, and happiness.",
+      "judge_reason": "Gold answer specifies two key items: 'Strength and motivation'. The generated answer mentions motivation (along with love, support, joy, and happiness) but omits 'strength'.",
+      "retrieval_hit_at_5": false
+    },
+    {
+      "item_id": "conv-30#q31",
+      "category": "multi_hop",
+      "question": "How long did it take for Jon to open his studio?",
+      "gold_answer": "six months",
+      "predicted_answer": "It cannot be determined from the excerpts how long it took Jon to open his studio. The excerpts do not state when he started the process (he was already searching for a location on 1 February, 2023), and although he said on 19 June, 2023 that the official opening night was the next day (20 June, 2023), on 23 July, 2023 he was still working toward opening the studio and welcoming dancers.",
+      "judge_reason": "Generated Answer states the duration cannot be determined instead of matching the Gold Answer ('six months').",
+      "retrieval_hit_at_5": false
+    },
+    {
+      "item_id": "conv-30#q100",
+      "category": "adversarial",
+      "question": "How does Gina use the clipboard with a notepad attached to it?",
+      "gold_answer": "UNANSWERABLE / FALSE PREMISE (adversarial trap: To set goals, track achievements, and find areas for improvement)",
+      "predicted_answer": "The excerpts do not mention Jon getting accepted for any professional experience on May 23, 2023. Instead, it was Gina who reported on 27 May, 2023 that she had just been accepted for a part-time fashion internship in the fashion department of an international company.",
+      "judge_reason": "Generated Answer is completely off-topic (answers the previous question about Gina's fashion internship rather than addressing the clipboard question or its false premise).",
+      "retrieval_hit_at_5": false
+    },
+    {
+      "item_id": "conv-41#q1",
+      "category": "temporal",
+      "question": "When did Maria donate her car?",
+      "gold_answer": "21 December 2022",
+      "predicted_answer": "The excerpts do not mention Gina using a clipboard with a notepad attached to it. It was Jon who shared a photo of a clipboard with a notepad attached on 13 June, 2023, explaining that he uses it to stay organized and motivated by setting goals, tracking achievements, and finding areas to improve.",
+      "judge_reason": "Generated Answer is completely off-topic (discusses Jon/Gina and a clipboard instead of when Maria donated her car).",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-41#q6",
+      "category": "multi_hop",
+      "question": "Where has Maria made friends?",
+      "gold_answer": "homeless shelter, gym, church",
+      "predicted_answer": "Maria donated her old car on 21 December, 2022. In her message at 6:10 pm on 22 December, 2022, she stated that she donated it to the homeless shelter where she volunteers \"yesterday.\"",
+      "judge_reason": "Generated Answer is completely off-topic (answers when Maria donated her car instead of where Maria has made friends).",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-41#q8",
+      "category": "open_domain",
+      "question": "What might John's financial status be?",
+      "gold_answer": "Middle-class or wealthy",
+      "predicted_answer": "Based on the excerpts, Maria has made friends through volunteering (becoming friends with a fellow volunteer), at the gym (friends from the gym), and at church (friends from church).",
+      "judge_reason": "Generated Answer is completely off-topic (answers where Maria made friends instead of John's financial status).",
+      "retrieval_hit_at_5": false
+    },
+    {
+      "item_id": "conv-41#q27",
+      "category": "temporal",
+      "question": "When did John have a party with veterans?",
+      "gold_answer": "The Friday before 20 May 2023",
+      "predicted_answer": "On 20 May, 2023, John shared that he had thrown a small party for veterans as part of a support project he began after a realization \"last week\" (around mid-May 2023), though the exact date of the party is not specified.",
+      "judge_reason": "Gold specifies 'The Friday before 20 May 2023', whereas the generated answer says the exact date is not specified and gives only 'around mid-May 2023'.",
+      "retrieval_hit_at_5": false
+    },
+    {
+      "item_id": "conv-41#q30",
+      "category": "multi_hop",
+      "question": "What shelters does Maria volunteer at?",
+      "gold_answer": "The homeless shelter, the dog shelter",
+      "predicted_answer": "Maria volunteers at a homeless shelter; no specific shelter name or additional shelters are mentioned in the excerpts.",
+      "judge_reason": "Generated answer only mentions the homeless shelter and misses 'the dog shelter' from Gold.",
+      "retrieval_hit_at_5": false
+    },
+    {
+      "item_id": "conv-41#q37",
+      "category": "multi_hop",
+      "question": "What events for veterans has John participated in?",
+      "gold_answer": "Petition, march, party, visiting veterans hospital, 5K charity run",
+      "predicted_answer": "John has participated in three events for veterans: a small party he organized for veterans to share their stories (20 May 2023), a marching event for veterans' rights (3 July 2023), and a neighborhood 5K charity run he set up to help veterans and their families (9 August 2023).",
+      "judge_reason": "Generated answer only covers party, march, and 5K charity run, missing 'Petition' and 'visiting veterans hospital' from Gold.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-41#q41",
+      "category": "open_domain",
+      "question": "Does John live close to a beach or the mountains?",
+      "gold_answer": "beach",
+      "predicted_answer": "The memory excerpts do not contain enough information to answer whether John lives close to a beach or the mountains. They only mention him visiting beaches on vacations, camping, hiking, and going on a mountaineering trip.",
+      "judge_reason": "Generated answer claims there is not enough information instead of answering 'beach' as in Gold.",
+      "retrieval_hit_at_5": false
+    },
+    {
+      "item_id": "conv-41#q45",
+      "category": "open_domain",
+      "question": "Would John be open to moving to another country?",
+      "gold_answer": "No, he has goals specifically in the U.S. like joining the military and running for office.",
+      "predicted_answer": "It is not mentioned in the memory excerpts whether John would be open to moving to another country. The excerpts only show that he is strongly committed to serving his current country and local community through politics, volunteering, and potentially policymaking.",
+      "judge_reason": "Generated answer states it is not mentioned rather than answering 'No' based on his U.S.-specific goals as in Gold.",
+      "retrieval_hit_at_5": false
+    },
+    {
+      "item_id": "conv-41#q50",
+      "category": "open_domain",
+      "question": "What attributes describe John?",
+      "gold_answer": "Selfless, family-oriented, passionate, rational",
+      "predicted_answer": "John is family-oriented, empathetic, optimistic, kind, and supportive, valuing friendship, community service, and standing up for his beliefs. He also respects the military, appreciates small moments in life, and occasionally doubts whether he is making a difference.",
+      "judge_reason": "Generated answer omits 'rational' (and only loosely paraphrases selfless/passionate while adding other traits), failing to cover all key attributes in Gold.",
+      "retrieval_hit_at_5": false
+    },
+    {
+      "item_id": "conv-41#q62",
+      "category": "multi_hop",
+      "question": "How many dogs has Maria adopted from the dog shelter she volunteers at?",
+      "gold_answer": "two",
+      "predicted_answer": "The excerpts mention Maria adopting one dog, a puppy named Shadow, from a shelter in early August 2023 (the week before 13 August, 2023). While she also has another dog, the excerpts do not state where that other dog came from, nor do they explicitly confirm whether Shadow was adopted from the specific dog shelter where Maria volunteers.",
+      "judge_reason": "Gold Answer is 'two', whereas the Generated Answer states Maria adopted one dog from a shelter and does not confirm whether the other dog was adopted from that shelter.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-41#q64",
+      "category": "open_domain",
+      "question": "What job might Maria pursue in the future?",
+      "gold_answer": "Shelter coordinator, Counselor",
+      "predicted_answer": "This is not mentioned in the memory excerpts. The excerpts discuss Maria's volunteering and charity work, as well as John's career plans in policymaking and at a tech company, but do not state what job Maria might pursue in the future.",
+      "judge_reason": "Gold Answer is 'Shelter coordinator, Counselor', whereas the Generated Answer states this is not mentioned.",
+      "retrieval_hit_at_5": false
+    },
+    {
+      "item_id": "conv-41#q85",
+      "category": "single_hop",
+      "question": "What event did John volunteer at last weekend?",
+      "gold_answer": "career fair at a local school",
+      "predicted_answer": "In his 9 August, 2023 conversation, John said that the previous weekend (5–6 August, 2023) he participated in a community fundraising event—specifically, a 5K charity run that he organized in his neighborhood to help veterans and their families.",
+      "judge_reason": "Gold Answer is 'career fair at a local school', whereas the Generated Answer describes a 5K charity run for veterans.",
+      "retrieval_hit_at_5": false
+    },
+    {
+      "item_id": "conv-41#q192",
+      "category": "adversarial",
+      "question": "How is John's new puppy adjusting to its new home?",
+      "gold_answer": "UNANSWERABLE / FALSE PREMISE (adversarial trap: doing great - learning commands and house training)",
+      "predicted_answer": "John did not receive recognition at a homeless shelter in August 2023. It was Maria who received a medal for volunteering at a homeless shelter, which she mentioned to John on August 9, 2023.",
+      "judge_reason": "The generated answer discusses recognition at a homeless shelter (an unrelated previous question) and fails to address or refute the false premise about John's new puppy.",
+      "retrieval_hit_at_5": false
+    },
+    {
+      "item_id": "conv-42#q0",
+      "category": "open_domain",
+      "question": "Is it likely that Nate has friends besides Joanna?",
+      "gold_answer": "Yesteammates on hisvideo game team.",
+      "predicted_answer": "Based on the excerpts, John does not have a new puppy yet—as of August 13, 2023, he was still considering adopting one and planning to look into nearby shelters. It is Maria who recently got a new puppy (named Coco/Shadow) that is doing great, learning commands, and house training.",
+      "judge_reason": "The generated answer discusses John and Maria's puppies instead of answering whether Nate has friends besides Joanna.",
+      "retrieval_hit_at_5": false
+    },
+    {
+      "item_id": "conv-42#q4",
+      "category": "open_domain",
+      "question": "What pets wouldn't cause any discomfort to Joanna?",
+      "gold_answer": "Hairless cats or pigs,since they don't have fur, which is one of the main causes of Joanna's allergy.",
+      "predicted_answer": "Yes, it is likely (and explicitly stated) that Nate has friends besides Joanna. He mentioned making ice cream for a friend (Feb 25, 2022), becoming good friends with a couple who love animals (May 25, 2022), hosting friends at a gaming party (June 24, 2022), and helping friends reset high scores at an international tournament (Nov 4, 2022).",
+      "judge_reason": "The generated answer discusses Nate's friends instead of answering what pets wouldn't cause discomfort to Joanna.",
+      "retrieval_hit_at_5": true
+    },
+    {
+      "item_id": "conv-42#q7",
+      "category": "temporal",
+      "question": "When did Joanna finish her first screenplay?",
+      "gold_answer": "The Friday before 23January, 2022",
+      "predicted_answer": "The memory excerpts do not identify any live pet that would not cause Joanna discomfort. Joanna states she is allergic to most reptiles, animals with fur, turtles, and cockroaches, and on May 20, 2022, she said she has not researched alternative pets for her allergies (though she keeps a stuffed animal dog named Tilly without issues).",
+      "judge_reason": "The generated answer discusses Joanna's pet allergies instead of answering when Joanna finished her first screenplay.",
+      "retrieval_hit_at_5": true
+    }
+  ]
+}

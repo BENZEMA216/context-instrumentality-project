@@ -284,6 +284,17 @@ CREATE TABLE IF NOT EXISTS semantic_vectors (
     PRIMARY KEY(item_kind, item_id, model)
 );
 CREATE INDEX IF NOT EXISTS idx_semvec_kind_model ON semantic_vectors(item_kind, model);
+
+CREATE TABLE IF NOT EXISTS entity_edges (
+    entity TEXT NOT NULL,
+    item_kind TEXT NOT NULL,
+    item_id TEXT NOT NULL,
+    episode_id TEXT NOT NULL DEFAULT '',
+    weight REAL NOT NULL DEFAULT 1.0,
+    PRIMARY KEY(entity, item_kind, item_id)
+);
+CREATE INDEX IF NOT EXISTS idx_entity_edges_entity ON entity_edges(entity, item_kind);
+CREATE INDEX IF NOT EXISTS idx_entity_edges_item ON entity_edges(item_kind, item_id);
 """
 
 _INJECTION_PATTERNS = (
@@ -2856,6 +2867,195 @@ class HubStore:
             return f"{ep.get('title') or ''}\n" + "\n".join(user_turns[:4])[:1100]
         return summary_txt[:1100]
 
+    def index_entity_graph(
+        self,
+        *,
+        kinds: tuple[str, ...] = ("raw", "memory"),
+        agent: bool = True,
+    ) -> dict[str, int]:
+        """Build the lightweight local SQLite entity-concept bipartite graph (`entity_edges`)."""
+        from .graph import extract_anchors
+
+        priv_c = "AND privacy_tier != 'local_only'" if agent else ""
+        rows_to_insert: list[tuple[str, str, str, str, float]] = []
+        distinct_entities: set[str] = set()
+
+        with self._tx(True) as conn:
+            for k in kinds:
+                conn.execute("DELETE FROM entity_edges WHERE item_kind=?", (k,))
+
+            if "raw" in kinds:
+                raw_rows = conn.execute(
+                    f"SELECT id, episode_id, actor, body_text FROM raw_events WHERE deleted=0 {priv_c}"
+                ).fetchall()
+                for r in raw_rows:
+                    rid = str(r["id"])
+                    ep_id = str(r["episode_id"] or "")
+                    for anc, w in extract_anchors(
+                        str(r["body_text"] or ""), actor=str(r["actor"] or "")
+                    ):
+                        rows_to_insert.append((anc, "raw", rid, ep_id, w))
+                        distinct_entities.add(anc)
+
+            if "memory" in kinds:
+                mem_rows = conn.execute(
+                    f"SELECT id, title, body, tags_json FROM memories WHERE deleted=0 {priv_c}"
+                ).fetchall()
+                for r in mem_rows:
+                    mid = str(r["id"])
+                    try:
+                        tags = json.loads(r["tags_json"] or "[]")
+                    except Exception:
+                        tags = []
+                    for anc, w in extract_anchors(
+                        f"{r['title'] or ''}\n{r['body'] or ''}",
+                        extra_tags=[str(t) for t in tags],
+                    ):
+                        rows_to_insert.append((anc, "memory", mid, "", w))
+                        distinct_entities.add(anc)
+
+            if rows_to_insert:
+                conn.executemany(
+                    """INSERT OR REPLACE INTO entity_edges
+                       (entity, item_kind, item_id, episode_id, weight)
+                       VALUES (?, ?, ?, ?, ?)""",
+                    rows_to_insert,
+                )
+
+        if hasattr(self, "_entity_df_cache"):
+            self._entity_df_cache.clear()
+        return {"edges": len(rows_to_insert), "entities": len(distinct_entities)}
+
+    def graph_bridge_search(
+        self,
+        query: str,
+        seed_texts: list[str],
+        *,
+        item_kind: str = "raw",
+        top_k: int = 20,
+        agent: bool = True,
+        project: str | None = None,
+    ) -> list[tuple[str, float]]:
+        """2-Hop Entity-Concept Bipartite Graph walk (HippoRAG / RM3 inspired, < 2 ms in SQLite).
+
+        Combines query-anchored entities with highest-IDF bridge terms extracted from Hop-1
+        seed evidence, rewarding items that co-connect a query entity and a bridge concept.
+        """
+        import math
+
+        from .graph import extract_bridge_terms, extract_query_entities
+
+        q_entities = extract_query_entities(query)
+        with self._tx(False) as conn:
+            df_cache: dict[str, tuple[int, dict[str, int]]] = getattr(
+                self, "_entity_df_cache", {}
+            )
+            if not hasattr(self, "_entity_df_cache"):
+                self._entity_df_cache = df_cache
+            if item_kind in df_cache:
+                total_items, df_map = df_cache[item_kind]
+            else:
+                total_items = int(
+                    conn.execute(
+                        "SELECT COUNT(DISTINCT item_id) FROM entity_edges WHERE item_kind=?",
+                        (item_kind,),
+                    ).fetchone()[0]
+                    or 0
+                )
+                df_map = {}
+                if total_items > 0:
+                    for ent, cnt in conn.execute(
+                        "SELECT entity, COUNT(DISTINCT item_id) FROM entity_edges WHERE item_kind=? GROUP BY entity",
+                        (item_kind,),
+                    ).fetchall():
+                        df_map[str(ent)] = int(cnt)
+                df_cache[item_kind] = (total_items, df_map)
+            if total_items == 0:
+                return []
+
+            bridge_terms = extract_bridge_terms(
+                query, seed_texts, df_map=df_map, total_docs=total_items, max_terms=6
+            )
+            active_q = [e for e in q_entities if e in df_map]
+            active_b = [b for b in bridge_terms if b in df_map and b not in active_q]
+            all_terms = active_q + active_b
+            if not all_terms:
+                return []
+
+            q_set = set(active_q)
+            b_set = set(active_b)
+            ph = ",".join("?" for _ in all_terms)
+            edge_rows = conn.execute(
+                f"""SELECT entity, item_id, weight FROM entity_edges
+                    WHERE item_kind=? AND entity IN ({ph})""",
+                [item_kind, *all_terms],
+            ).fetchall()
+            if not edge_rows:
+                return []
+
+            # Optional privacy/project visibility filter
+            cand_ids = list({str(r["item_id"]) for r in edge_rows})
+            allowed_ids: set[str] | None = None
+            if agent or project:
+                allowed_ids = set()
+                tbl = "raw_events" if item_kind == "raw" else "memories"
+                where_parts = ["deleted=0"]
+                extra_p: list[Any] = []
+                if agent:
+                    where_parts.append("privacy_tier != 'local_only'")
+                    if item_kind == "memory":
+                        where_parts.append("needs_review = 0")
+                if project:
+                    where_parts.append("project = ?")
+                    extra_p.append(project)
+                where_sql = " AND ".join(where_parts)
+                for start in range(0, len(cand_ids), 400):
+                    chunk = cand_ids[start : start + 400]
+                    ph_c = ",".join("?" for _ in chunk)
+                    for (iid,) in conn.execute(
+                        f"SELECT id FROM {tbl} WHERE id IN ({ph_c}) AND {where_sql}",
+                        [*chunk, *extra_p],
+                    ).fetchall():
+                        allowed_ids.add(str(iid))
+
+            q_scores: dict[str, float] = {}
+            b_scores: dict[str, float] = {}
+            q_hits_cnt: dict[str, int] = {}
+            for r in edge_rows:
+                iid = str(r["item_id"])
+                if allowed_ids is not None and iid not in allowed_ids:
+                    continue
+                ent = str(r["entity"])
+                w = float(r["weight"] or 1.0)
+                df = df_map.get(ent, 1)
+                idf = math.log(1.0 + (total_items + 1.0) / (df + 1.0))
+                if ent in q_set:
+                    q_scores[iid] = q_scores.get(iid, 0.0) + w * idf
+                    q_hits_cnt[iid] = q_hits_cnt.get(iid, 0) + 1
+                elif ent in b_set:
+                    b_scores[iid] = b_scores.get(iid, 0.0) + 0.85 * w * idf
+
+            combined: list[tuple[str, float]] = []
+            for iid in set(q_scores) | set(b_scores):
+                qs = q_scores.get(iid, 0.0)
+                bs = b_scores.get(iid, 0.0)
+                # Require genuine 2-hop co-occurrence (entity + discriminative bridge concept)
+                # OR multi-entity intersection so ubiquitous speaker names never flood results.
+                if active_q and bs == 0.0 and q_hits_cnt.get(iid, 0) < 2:
+                    continue
+                if active_q and qs == 0.0 and bs < 3.2:
+                    continue
+                total = qs + bs
+                if qs > 0.0 and bs > 0.0:
+                    total *= 1.55  # Co-occurrence bridge synergy (entity + 2-hop concept)
+                if q_hits_cnt.get(iid, 0) >= 2:
+                    total *= 1.25  # Multi-entity intersection bonus
+                if total > 0.0:
+                    combined.append((iid, round(total, 6)))
+
+            combined.sort(key=lambda kv: kv[1], reverse=True)
+            return combined[:top_k]
+
     def get_evidence_context_window(
         self,
         raw_id: str,
@@ -3717,6 +3917,56 @@ class HubStore:
             )
             raw_hits = [raw_map[rid] for rid in fused_raw_ids if rid in raw_map][:limit]
 
+        # 4b. Lightweight 2-Hop Entity-Concept Graph Bridge (when `entity_edges` is indexed)
+        from .graph import analyze_query_structure
+
+        q_plan = analyze_query_structure(query)
+        if query.strip() and (raw_hits or memories_out):
+            seed_txts = [
+                str(r.get("body_text") or r.get("snippet") or "")
+                for r in raw_hits[:5]
+            ] + [str(m.get("body") or "") for m in memories_out[:3]]
+            graph_raw = self.graph_bridge_search(
+                query,
+                seed_txts,
+                item_kind="raw",
+                top_k=limit,
+                agent=agent,
+                project=project,
+            )
+            if graph_raw:
+                from .semantic import rrf_fuse_lists
+
+                raw_map_g = {r["id"]: r for r in raw_hits}
+                missing_g = [rid for rid, _ in graph_raw if rid not in raw_map_g]
+                if missing_g:
+                    with self._tx(False) as conn:
+                        ph = ",".join("?" for _ in missing_g)
+                        for r in conn.execute(
+                            f"SELECT * FROM raw_events WHERE id IN ({ph}) AND deleted=0",
+                            missing_g,
+                        ).fetchall():
+                            if agent and r["privacy_tier"] == "local_only":
+                                continue
+                            if project and r["project"] != project:
+                                continue
+                            if sources and r["source"] not in sources:
+                                continue
+                            if since_ms is not None and r["t_start"] < since_ms:
+                                continue
+                            if until_ms is not None and r["t_start"] > until_ms:
+                                continue
+                            raw_map_g[r["id"]] = self._hydrate_raw(conn, r)
+                g_weight = 0.28 if (q_plan.is_multi_hop or q_plan.is_open_inference) else 0.14
+                fused_g_ids = rrf_fuse_lists(
+                    [
+                        ([r["id"] for r in raw_hits], 1.0),
+                        ([rid for rid, _ in graph_raw if rid in raw_map_g], g_weight),
+                    ],
+                    k=20.0,
+                )
+                raw_hits = [raw_map_g[rid] for rid in fused_g_ids if rid in raw_map_g][:limit]
+
         # 5. Cross-tier Episode <-> Turn RRF fusion (deduplicated per episode so a single
         #    verbose session with multiple BM25 keyword repeats cannot swamp semantic/temporal hits).
         if episodes_out and raw_hits:
@@ -3796,8 +4046,11 @@ class HubStore:
                                     temp_window,
                                 )
                                 if prox > 0:
+                                    # Point-in-time queries ("10 days ago", "last Tuesday",
+                                    # "four weeks ago") carry a hard calendar anchor: exact-date
+                                    # sessions must not be evicted by wrong-date lexical noise.
                                     ep_bonuses[ep["id"]] = (
-                                        0.30 if temp_window.specificity == "point" else 0.14
+                                        0.45 if temp_window.specificity == "point" else 0.16
                                     ) * prox
                         blended_ep = calibrate_rerank_blend(
                             [ep["id"] for ep in top_ep],
@@ -3957,6 +4210,12 @@ class HubStore:
                 if temp_window is not None
                 else None
             ),
+            "query_plan": {
+                "entities": q_plan.entities,
+                "is_multi_hop": q_plan.is_multi_hop,
+                "is_open_inference": q_plan.is_open_inference,
+                "sub_queries": q_plan.sub_queries,
+            },
             "approx_tokens": used,
         }
 

@@ -9,6 +9,13 @@ from pathlib import Path
 
 from context_hub.mcp_server import default_data_dir
 
+from .academic_e2e import (
+    prepare_locomo_e2e_pack,
+    prepare_longmemeval_e2e_pack,
+    render_academic_e2e_markdown,
+    run_api_reader_and_judge,
+    score_academic_e2e,
+)
 from .e2e_judge import evaluate_e2e_convomem
 from .fidelity import inspect_compression_fidelity, render_fidelity_markdown
 from .frozen_bench import (
@@ -244,6 +251,58 @@ def main(argv: list[str] | None = None) -> int:
     e2e_cmd.add_argument("--no-llm-judge", action="store_true")
     e2e_cmd.add_argument("--json-out", type=Path, default=None)
 
+    acad_e2e_cmd = sub.add_parser(
+        "bench-e2e-academic",
+        help="Official-protocol Academic E2E LLM-as-a-Judge harness for LongMemEval-S and LoCoMo",
+    )
+    acad_sub = acad_e2e_cmd.add_subparsers(dest="acad_action", required=True)
+
+    acad_prep = acad_sub.add_parser(
+        "prepare",
+        help="Run local HubStore retrieval and emit strictly blind reader_inputs.jsonl + gold_key.json",
+    )
+    acad_prep.add_argument(
+        "--suite",
+        choices=("longmemeval-s", "longmemeval-oracle", "locomo"),
+        required=True,
+    )
+    acad_prep.add_argument("--mode", choices=("raw", "curated"), default="curated")
+    acad_prep.add_argument("--dataset", type=Path, default=None)
+    acad_prep.add_argument("--cache-dir", type=Path, default=DEFAULT_BENCH_CACHE)
+    acad_prep.add_argument("--out-dir", type=Path, required=True)
+    acad_prep.add_argument("--limit", type=int, default=None)
+    acad_prep.add_argument("--stratified-per-cat", type=int, default=None)
+    acad_prep.add_argument("--no-rerank", action="store_true")
+
+    acad_run = acad_sub.add_parser(
+        "run",
+        help="Execute blind Reader + independent Official Judge via OpenAI-compatible or Gemini API",
+    )
+    acad_run.add_argument("--pack-dir", type=Path, required=True)
+    acad_run.add_argument(
+        "--suite",
+        choices=("longmemeval-s", "longmemeval-oracle", "locomo-curated", "locomo-raw"),
+        required=True,
+    )
+    acad_run.add_argument("--engine-label", type=str, default="raw-memory-v0.8.0")
+    acad_run.add_argument("--reader-model", type=str, default=None)
+    acad_run.add_argument("--judge-model", type=str, default=None)
+    acad_run.add_argument("--base-url", type=str, default=None)
+    acad_run.add_argument("--out", type=Path, default=None)
+    acad_run.add_argument("--json-out", type=Path, default=None)
+
+    acad_score = acad_sub.add_parser(
+        "score",
+        help="Score blind reader_outputs.jsonl + judge_outputs.jsonl into an AcademicE2EReport",
+    )
+    acad_score.add_argument("--pack-dir", type=Path, required=True)
+    acad_score.add_argument("--suite", type=str, required=True)
+    acad_score.add_argument("--engine-label", type=str, default="raw-memory-v0.8.0")
+    acad_score.add_argument("--reader-model", type=str, required=True)
+    acad_score.add_argument("--judge-model", type=str, required=True)
+    acad_score.add_argument("--out", type=Path, default=None)
+    acad_score.add_argument("--json-out", type=Path, default=None)
+
     wb_cmd = sub.add_parser(
         "workbench",
         help="Launch localhost Human-in-the-Loop Memory Testing & Debugging Workbench UI",
@@ -456,6 +515,77 @@ def main(argv: list[str] | None = None) -> int:
             args.json_out.expanduser().write_text(payload, encoding="utf-8")
         sys.stdout.write(payload)
         return 0
+
+    if args.command == "bench-e2e-academic":
+        if args.acad_action == "prepare":
+            manifest = load_manifest()
+            info = manifest["suites"][args.suite]
+            ds_path = args.dataset or (Path(args.cache_dir).expanduser() / info["filename"])
+            if args.suite == "locomo":
+                meta = prepare_locomo_e2e_pack(
+                    ds_path,
+                    args.out_dir,
+                    mode=args.mode,
+                    limit_convs=args.limit,
+                    stratified_per_cat=args.stratified_per_cat,
+                    use_semantic=True,
+                    use_reranker=not args.no_rerank,
+                )
+            else:
+                meta = prepare_longmemeval_e2e_pack(
+                    ds_path,
+                    args.out_dir,
+                    split_name=args.suite,
+                    limit_questions=args.limit,
+                    stratified_per_cat=args.stratified_per_cat,
+                    use_semantic=True,
+                    use_reranker=not args.no_rerank,
+                )
+            sys.stdout.write(json.dumps(meta, indent=2, ensure_ascii=False) + "\n")
+            return 0
+        if args.acad_action == "run":
+            r_out, j_out, r_mod, j_mod = run_api_reader_and_judge(
+                args.pack_dir,
+                suite=args.suite,
+                reader_model=args.reader_model,
+                judge_model=args.judge_model,
+                base_url=args.base_url,
+            )
+            rep = score_academic_e2e(
+                args.pack_dir,
+                suite=args.suite,
+                engine_label=args.engine_label,
+                reader_model=r_mod,
+                judge_model=j_mod,
+                reader_outputs_path=r_out,
+                judge_outputs_path=j_out,
+            )
+            md = render_academic_e2e_markdown(rep)
+            if args.out is not None:
+                args.out.expanduser().parent.mkdir(parents=True, exist_ok=True)
+                args.out.expanduser().write_text(md, encoding="utf-8")
+            if args.json_out is not None:
+                args.json_out.expanduser().parent.mkdir(parents=True, exist_ok=True)
+                args.json_out.expanduser().write_text(rep.model_dump_json(indent=2) + "\n", encoding="utf-8")
+            sys.stdout.write(md)
+            return 0
+        if args.acad_action == "score":
+            rep = score_academic_e2e(
+                args.pack_dir,
+                suite=args.suite,
+                engine_label=args.engine_label,
+                reader_model=args.reader_model,
+                judge_model=args.judge_model,
+            )
+            md = render_academic_e2e_markdown(rep)
+            if args.out is not None:
+                args.out.expanduser().parent.mkdir(parents=True, exist_ok=True)
+                args.out.expanduser().write_text(md, encoding="utf-8")
+            if args.json_out is not None:
+                args.json_out.expanduser().parent.mkdir(parents=True, exist_ok=True)
+                args.json_out.expanduser().write_text(rep.model_dump_json(indent=2) + "\n", encoding="utf-8")
+            sys.stdout.write(md)
+            return 0
 
     if args.command == "workbench":
         import uvicorn
